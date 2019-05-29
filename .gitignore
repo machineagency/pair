@@ -2,6 +2,10 @@
 
 .DS_Store
 
+### NPM ###
+
+node_modules/
+
 ### VIM ###
 
 # Swap
