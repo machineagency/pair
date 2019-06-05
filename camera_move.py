@@ -20,7 +20,7 @@ def get_outermost_points(corners_arr_lst, img):
     idx_lower_left = np.argmax(dists_upper_right)
     idx_lower_right = np.argmax(dists_upper_left)
 
-    return [all_points[idx_upper_left], all_points[idx_upper_right], \
+    return [all_points[idx_upper_right], all_points[idx_upper_left], \
             all_points[idx_lower_left], all_points[idx_lower_right]]
 
 img_raw = cv2.imread('./test_images/prusa_fiducials.JPG')
