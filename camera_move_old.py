@@ -15,7 +15,7 @@ img_thresh = cv2.adaptiveThreshold(dilation, 255, \
 edges = cv2.Canny(dilation, 25, 100, 2)
 img_cont, contours, hierarchy = cv2.findContours(img_thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-cnt_reduced = list(filter(lambda cnt: cv2.contourArea(cnt) > 100000, contours))
+cnt_reduced = list(filter(lambda cnt: cv2.contourArea(cnt) > 10000, contours))
 
 print "Num of contours: {}".format(len(contours))
 print "After reduction: {}".format(len(cnt_reduced))
