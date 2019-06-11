@@ -3,6 +3,13 @@ from cv2 import aruco
 import numpy as np
 from scipy.spatial import distance
 
+# Load images
+
+img_raw = cv2.imread('./test_images/prusa_fiducials.JPG')
+img_overlay = cv2.imread('./test_images/groundtruth_top.png')
+img_overlay = cv2.cvtColor(img_overlay, cv2.COLOR_BGR2GRAY)
+img_gray = cv2.cvtColor(img_raw, cv2.COLOR_BGR2GRAY)
+
 def get_outermost_points(corners_arr_lst, img):
     flat_corner_sets = [cset.reshape(4, 2) for cset in corners_arr_lst]
     all_points = np.concatenate(flat_corner_sets)
@@ -58,6 +65,13 @@ def overlay_img_at_pt(overlay_img, large_img, place_pt):
     y_end = int(y_start + overlay_img.shape[1])
     large_copy[x_start:x_end, y_start:y_end] = overlay_img
     return large_copy
+
+def crop_and_warp_roi(raw_img, roi_corner_points):
+    output_img = raw_img.copy()
+    # TODO: complete
+
+out_pts = get_roi_corner_pts(img_gray)
+img_poly = make_poly_from_roi_pts(out_pts)
 
 img_combined = make_img_with_warped_overlay(img_gray, img_overlay, out_pts)
 
