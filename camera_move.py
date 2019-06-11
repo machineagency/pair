@@ -37,20 +37,20 @@ out_pts = get_outermost_points(corners, img_raw)
 pts_reshaped = np.array(out_pts, np.int32).reshape(4, 1, 2)
 img_poly = cv2.polylines(img_raw, [pts_reshaped], True, (0, 255, 0), thickness=3)
 
-overlay_height, overlay_width = img_overlay.shape
-overlay_corner_pts = [np.array([0, overlay_width]), \
-                      np.array([0, 0]), \
-                      np.array([overlay_height, 0]), \
-                      np.array([overlay_height, overlay_width])]
+def make_img_with_warped_overlay(backgr_img, overlay_img, backgr_corner_pts):
+    overlay_height, overlay_width = overlay_img.shape
+    overlay_corner_pts = [np.array([0, overlay_width]), \
+                          np.array([0, 0]), \
+                          np.array([overlay_height, 0]), \
+                          np.array([overlay_height, overlay_width])]
 
-h, status = cv2.findHomography(np.array(overlay_corner_pts), np.array(out_pts))
+    h, status = cv2.findHomography(np.array(overlay_corner_pts), \
+                                   np.array(backgr_corner_pts))
 
-# Destination shape size needs to be (x, y) -> (y, x) reversed for some reason
-overlay_warped = cv2.warpPerspective(img_overlay, h, (img_gray.shape[1], img_gray.shape[0]))
-
-print "Gray img size {}".format(img_gray.shape)
-print "Overlay img size {}".format(img_overlay.shape)
-print "Warped overlay img size {}".format(overlay_warped.shape)
+    # Destination shape size needs to be (x, y) -> (y, x) reversed for some reason
+    overlay_warped = cv2.warpPerspective(img_overlay, h, \
+                        (backgr_img.shape[1], backgr_img.shape[0]))
+    return cv2.addWeighted(overlay_warped, 0.5, img_gray, 0.5, 0.0)
 
 def overlay_img_at_pt(overlay_img, large_img, place_pt):
     large_copy = large_img.copy()
@@ -61,8 +61,7 @@ def overlay_img_at_pt(overlay_img, large_img, place_pt):
     large_copy[x_start:x_end, y_start:y_end] = overlay_img
     return large_copy
 
-# img_combined = overlay_img_at_pt(overlay_warped, img_gray, out_pts[1])
-img_combined = cv2.addWeighted(overlay_warped, 0.5, img_gray, 0.5, 0.0)
+img_combined = make_img_with_warped_overlay(img_gray, img_overlay, out_pts)
 
 cv2.imshow('image', img_combined)
 
