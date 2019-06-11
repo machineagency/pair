@@ -30,12 +30,12 @@ def get_outermost_points(corners_arr_lst, img):
     return [all_points[idx_upper_right], all_points[idx_upper_left], \
             all_points[idx_lower_left], all_points[idx_lower_right]]
 
-def get_overlay_corner_pts(overlay_img):
-    overlay_height, overlay_width = overlay_img.shape
-    overlay_corner_pts = [np.array([0, overlay_width]), \
-                          np.array([0, 0]), \
-                          np.array([overlay_height, 0]), \
-                          np.array([overlay_height, overlay_width])]
+def get_img_corner_pts(img):
+    img_height, img_width = img.shape
+    return [np.array([0, img_width]), \
+            np.array([0, 0]), \
+            np.array([img_height, 0]), \
+            np.array([img_height, img_width])]
 
 def get_roi_corner_pts(backgr_img):
     aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
@@ -43,12 +43,12 @@ def get_roi_corner_pts(backgr_img):
     corners, ids, rejectedImgPoints = aruco.detectMarkers(img_gray, aruco_dict, parameters=parameters)
     return get_outermost_points(corners, img_raw)
 
-def make_poly_from_roi_pts(roi_pts)
+def make_poly_from_roi_pts(roi_pts):
     pts_reshaped = np.array(roi_pts, np.int32).reshape(4, 1, 2)
     return cv2.polylines(img_raw, [pts_reshaped], True, (0, 255, 0), thickness=3)
 
 def make_img_with_warped_overlay(backgr_img, overlay_img, backgr_corner_pts):
-    overlay_corner_pts = get_overlay_corner_pts)
+    overlay_corner_pts = get_img_corner_pts(overlay_img)
     h, status = cv2.findHomography(np.array(overlay_corner_pts), \
                                    np.array(backgr_corner_pts))
 
