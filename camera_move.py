@@ -25,6 +25,7 @@ def get_outermost_points(corners_arr_lst, img):
 
 img_raw = cv2.imread('./test_images/prusa_fiducials.JPG')
 img_overlay = cv2.imread('./test_images/groundtruth_top.png')
+img_overlay = cv2.cvtColor(img_overlay, cv2.COLOR_BGR2GRAY)
 img_gray = cv2.cvtColor(img_raw, cv2.COLOR_BGR2GRAY)
 
 aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
@@ -36,7 +37,7 @@ out_pts = get_outermost_points(corners, img_raw)
 pts_reshaped = np.array(out_pts, np.int32).reshape(4, 1, 2)
 img_poly = cv2.polylines(img_raw, [pts_reshaped], True, (0, 255, 0), thickness=3)
 
-overlay_height, overlay_width, _ = img_overlay.shape
+overlay_height, overlay_width = img_overlay.shape
 overlay_corner_pts = [np.array([0, overlay_width]), \
                       np.array([0, 0]), \
                       np.array([overlay_height, 0]), \
@@ -44,9 +45,26 @@ overlay_corner_pts = [np.array([0, overlay_width]), \
 
 h, status = cv2.findHomography(np.array(overlay_corner_pts), np.array(out_pts))
 
-print h
+# Destination shape size needs to be (x, y) -> (y, x) reversed for some reason
+overlay_warped = cv2.warpPerspective(img_overlay, h, (img_gray.shape[1], img_gray.shape[0]))
 
-cv2.imshow('image', img_poly)
+print "Gray img size {}".format(img_gray.shape)
+print "Overlay img size {}".format(img_overlay.shape)
+print "Warped overlay img size {}".format(overlay_warped.shape)
+
+def overlay_img_at_pt(overlay_img, large_img, place_pt):
+    large_copy = large_img.copy()
+    x_start = int(place_pt[0])
+    y_start = int(place_pt[1])
+    x_end = int(x_start + overlay_img.shape[0])
+    y_end = int(y_start + overlay_img.shape[1])
+    large_copy[x_start:x_end, y_start:y_end] = overlay_img
+    return large_copy
+
+# img_combined = overlay_img_at_pt(overlay_warped, img_gray, out_pts[1])
+img_combined = cv2.addWeighted(overlay_warped, 0.5, img_gray, 0.5, 0.0)
+
+cv2.imshow('image', img_combined)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
