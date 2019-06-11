@@ -69,9 +69,13 @@ def overlay_img_at_pt(overlay_img, large_img, place_pt):
     large_copy[x_start:x_end, y_start:y_end] = overlay_img
     return large_copy
 
-def crop_and_warp_roi(raw_img, roi_corner_points):
-    output_img = raw_img.copy()
-    # TODO: complete
+def crop_and_warp_roi(raw_img, roi_corner_points, out_shape):
+    output_img = np.zeros(out_shape)
+    out_img_corners = get_img_corner_pts(output_img)
+    h, status = cv2.findHomography(np.array(roi_corner_points, np.float32), \
+                                   np.array(out_img_corners, np.float32))
+    return cv2.warpPerspective(raw_img, h, (out_shape[1], \
+                                            out_shape[0]))
 
 out_pts = get_roi_corner_pts(img_gray)
 img_poly = make_poly_from_roi_pts(out_pts)
@@ -79,7 +83,7 @@ img_poly = make_poly_from_roi_pts(out_pts)
 # img_combined = make_img_with_warped_overlay(img_gray, img_overlay, out_pts)
 cropped_roi = crop_and_warp_roi(img_gray, out_pts, GRID_IMG_SIZE)
 
-cv2.imshow('image', img_combined)
+cv2.imshow('image', cropped_roi)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
