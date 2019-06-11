@@ -23,27 +23,25 @@ def get_outermost_points(corners_arr_lst, img):
     return [all_points[idx_upper_right], all_points[idx_upper_left], \
             all_points[idx_lower_left], all_points[idx_lower_right]]
 
-img_raw = cv2.imread('./test_images/prusa_fiducials.JPG')
-img_overlay = cv2.imread('./test_images/groundtruth_top.png')
-img_overlay = cv2.cvtColor(img_overlay, cv2.COLOR_BGR2GRAY)
-img_gray = cv2.cvtColor(img_raw, cv2.COLOR_BGR2GRAY)
-
-aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
-parameters =  aruco.DetectorParameters_create()
-corners, ids, rejectedImgPoints = aruco.detectMarkers(img_gray, aruco_dict, parameters=parameters)
-# frame_markers = aruco.drawDetectedMarkers(img_raw.copy(), corners, ids)
-
-out_pts = get_outermost_points(corners, img_raw)
-pts_reshaped = np.array(out_pts, np.int32).reshape(4, 1, 2)
-img_poly = cv2.polylines(img_raw, [pts_reshaped], True, (0, 255, 0), thickness=3)
-
-def make_img_with_warped_overlay(backgr_img, overlay_img, backgr_corner_pts):
+def get_overlay_corner_pts(overlay_img):
     overlay_height, overlay_width = overlay_img.shape
     overlay_corner_pts = [np.array([0, overlay_width]), \
                           np.array([0, 0]), \
                           np.array([overlay_height, 0]), \
                           np.array([overlay_height, overlay_width])]
 
+def get_roi_corner_pts(backgr_img):
+    aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
+    parameters =  aruco.DetectorParameters_create()
+    corners, ids, rejectedImgPoints = aruco.detectMarkers(img_gray, aruco_dict, parameters=parameters)
+    return get_outermost_points(corners, img_raw)
+
+def make_poly_from_roi_pts(roi_pts)
+    pts_reshaped = np.array(roi_pts, np.int32).reshape(4, 1, 2)
+    return cv2.polylines(img_raw, [pts_reshaped], True, (0, 255, 0), thickness=3)
+
+def make_img_with_warped_overlay(backgr_img, overlay_img, backgr_corner_pts):
+    overlay_corner_pts = get_overlay_corner_pts)
     h, status = cv2.findHomography(np.array(overlay_corner_pts), \
                                    np.array(backgr_corner_pts))
 
