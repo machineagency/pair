@@ -10,6 +10,9 @@ img_overlay = cv2.imread('./test_images/groundtruth_top.png')
 img_overlay = cv2.cvtColor(img_overlay, cv2.COLOR_BGR2GRAY)
 img_gray = cv2.cvtColor(img_raw, cv2.COLOR_BGR2GRAY)
 
+# Constants
+GRID_IMG_SIZE = (400, 400)
+
 def get_outermost_points(corners_arr_lst, img):
     flat_corner_sets = [cset.reshape(4, 2) for cset in corners_arr_lst]
     all_points = np.concatenate(flat_corner_sets)
@@ -73,7 +76,8 @@ def crop_and_warp_roi(raw_img, roi_corner_points):
 out_pts = get_roi_corner_pts(img_gray)
 img_poly = make_poly_from_roi_pts(out_pts)
 
-img_combined = make_img_with_warped_overlay(img_gray, img_overlay, out_pts)
+# img_combined = make_img_with_warped_overlay(img_gray, img_overlay, out_pts)
+cropped_roi = crop_and_warp_roi(img_gray, out_pts, GRID_IMG_SIZE)
 
 cv2.imshow('image', img_combined)
 
