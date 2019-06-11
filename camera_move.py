@@ -24,6 +24,7 @@ def get_outermost_points(corners_arr_lst, img):
             all_points[idx_lower_left], all_points[idx_lower_right]]
 
 img_raw = cv2.imread('./test_images/prusa_fiducials.JPG')
+img_overlay = cv2.imread('./test_images/groundtruth_top.png')
 img_gray = cv2.cvtColor(img_raw, cv2.COLOR_BGR2GRAY)
 
 aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
@@ -34,6 +35,16 @@ corners, ids, rejectedImgPoints = aruco.detectMarkers(img_gray, aruco_dict, para
 out_pts = get_outermost_points(corners, img_raw)
 pts_reshaped = np.array(out_pts, np.int32).reshape(4, 1, 2)
 img_poly = cv2.polylines(img_raw, [pts_reshaped], True, (0, 255, 0), thickness=3)
+
+overlay_height, overlay_width, _ = img_overlay.shape
+overlay_corner_pts = [np.array([0, overlay_width]), \
+                      np.array([0, 0]), \
+                      np.array([overlay_height, 0]), \
+                      np.array([overlay_height, overlay_width])]
+
+h, status = cv2.findHomography(np.array(overlay_corner_pts), np.array(out_pts))
+
+print h
 
 cv2.imshow('image', img_poly)
 
