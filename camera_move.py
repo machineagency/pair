@@ -77,6 +77,13 @@ def crop_and_warp_roi(raw_img, roi_corner_points, out_shape):
     return cv2.warpPerspective(raw_img, h, (out_shape[1], \
                                             out_shape[0]))
 
+def handle_click(event, x, y, flags, param):
+    if event == cv2.EVENT_LBUTTONDOWN:
+        print "Clicked {0}, {1}".format(x, y)
+
+cv2.namedWindow('image')
+cv2.setMouseCallback('image', handle_click)
+
 out_pts = get_roi_corner_pts(img_gray)
 img_poly = make_poly_from_roi_pts(out_pts)
 
