@@ -2,6 +2,7 @@ import cv2
 from cv2 import aruco
 import numpy as np
 from scipy.spatial import distance
+import gcode
 
 # Load images
 
@@ -79,7 +80,8 @@ def crop_and_warp_roi(raw_img, roi_corner_points, out_shape):
 
 def handle_click(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
-        print "Clicked {0}, {1}".format(x, y)
+        instr = gcode.travel(x, y)
+        print instr
 
 cv2.namedWindow('image')
 cv2.setMouseCallback('image', handle_click)
