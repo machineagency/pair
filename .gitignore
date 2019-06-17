@@ -26,3 +26,7 @@ Sessionx.vim
 tags
 # Persistent undo
 [._]*.un~
+
+# Python
+*.pyc
+
