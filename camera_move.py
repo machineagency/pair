@@ -3,6 +3,7 @@ from cv2 import aruco
 import numpy as np
 from scipy.spatial import distance
 import gcode
+import projection
 
 # Load images
 
@@ -93,6 +94,9 @@ img_poly = make_poly_from_roi_pts(out_pts)
 cropped_roi = crop_and_warp_roi(img_gray, out_pts, GRID_IMG_SIZE)
 
 cv2.imshow('image', cropped_roi)
+
+dot_img = projection.dot_at(150, 150, GRID_IMG_SIZE)
+cv2.imshow('dot', dot_img)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
