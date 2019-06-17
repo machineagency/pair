@@ -95,8 +95,9 @@ cropped_roi = crop_and_warp_roi(img_gray, out_pts, GRID_IMG_SIZE)
 
 cv2.imshow('image', cropped_roi)
 
-dot_img = projection.dot_at(150, 150, GRID_IMG_SIZE)
-cv2.imshow('dot', dot_img)
+dot_img = projection.dot_at(150, 150)
+dot_text_img = projection.text_at('hello', 200, 200, dot_img)
+cv2.imshow('dot', dot_text_img)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
