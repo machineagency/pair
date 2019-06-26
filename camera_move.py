@@ -82,7 +82,7 @@ def crop_and_warp_roi(raw_img, roi_corner_points, out_shape):
 def handle_click(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
         instr = gcode.travel(x, y)
-        print instr
+        print(instr)
 
 cv2.namedWindow('image')
 cv2.setMouseCallback('image', handle_click)
@@ -97,6 +97,9 @@ cv2.imshow('image', cropped_roi)
 
 dot_img = projection.dot_at(150, 150)
 dot_text_img = projection.text_at('hello', 200, 200, dot_img)
+
+# cv2.namedWindow('dot', cv2.WND_PROP_FULLSCREEN)
+# cv2.setWindowProperty('dot',cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN)
 cv2.imshow('dot', dot_text_img)
 
 cv2.waitKey(0)
