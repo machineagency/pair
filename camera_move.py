@@ -46,6 +46,8 @@ def get_roi_corner_pts(backgr_img):
     aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
     parameters =  aruco.DetectorParameters_create()
     corners, ids, rejectedImgPoints = aruco.detectMarkers(img_gray, aruco_dict, parameters=parameters)
+    if len(corners) == 0:
+        return []
     return get_outermost_points(corners, img_raw)
 
 def make_poly_from_roi_pts(roi_pts):
@@ -87,21 +89,37 @@ def handle_click(event, x, y, flags, param):
 cv2.namedWindow('image')
 cv2.setMouseCallback('image', handle_click)
 
-out_pts = get_roi_corner_pts(img_gray)
-img_poly = make_poly_from_roi_pts(out_pts)
+video_capture = cv2.VideoCapture(0)
+
+while True:
+    ret, frame = video_capture.read()
+    img_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    out_pts = get_roi_corner_pts(img_gray)
+
+    if len(out_pts) == 4:
+        img_poly = make_poly_from_roi_pts(out_pts)
+        cropped_roi = crop_and_warp_roi(img_gray, out_pts, GRID_IMG_SIZE)
+        cv2.imshow('image', cropped_roi)
+    else:
+        cv2.imshow('image', img_gray)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
 
 # img_combined = make_img_with_warped_overlay(img_gray, img_overlay, out_pts)
-cropped_roi = crop_and_warp_roi(img_gray, out_pts, GRID_IMG_SIZE)
 
-cv2.imshow('image', cropped_roi)
+# cv2.imshow('image', cropped_roi)
 
-dot_img = projection.dot_at(150, 150)
-dot_text_img = projection.text_at('hello', 200, 200, dot_img)
+# dot_img = projection.dot_at(150, 150)
+# dot_text_img = projection.text_at('hello', 200, 200, dot_img)
 
 # cv2.namedWindow('dot', cv2.WND_PROP_FULLSCREEN)
 # cv2.setWindowProperty('dot',cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN)
-cv2.imshow('dot', dot_text_img)
+# cv2.imshow('dot', dot_text_img)
 
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
 
