@@ -14,11 +14,14 @@ img_overlay = cv2.cvtColor(img_overlay, cv2.COLOR_BGR2GRAY)
 img_gray = cv2.cvtColor(img_raw, cv2.COLOR_BGR2GRAY)
 
 # Connection
-default_port_name = '/dev/tty.usbmodem14201'
+default_port_name = '/dev/tty.usbmodem14101'
+default_baudrate = 115200
 PORT = None
 
 # Constants
 GRID_IMG_SIZE = (400, 400)
+PRINT_BED_MAX_X = 250
+PRINT_BED_MAX_Y = 205
 
 def get_outermost_points(corners_arr_lst, img):
     flat_corner_sets = [cset.reshape(4, 2) for cset in corners_arr_lst]
@@ -88,16 +91,17 @@ def crop_and_warp_roi(raw_img, roi_corner_points, out_shape):
 
 def handle_click(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
-        instr = gcode.travel(x, y)
+        scaled_x = x * (PRINT_BED_MAX_X / GRID_IMG_SIZE[0])
+        scaled_y = y * (PRINT_BED_MAX_Y / GRID_IMG_SIZE[1])
+        instr = gcode.travel('%.2f'%(scaled_x), '%.2f'%(scaled_y))
         print(instr)
         if PORT:
             send_string_over_port(instr, PORT)
 
 def make_open_port(port):
     try:
-        ser = serial.Serial()
-        ser.port = port
-        ser.open()
+        ser = serial.Serial(port=port, baudrate=default_baudrate)
+        # ser.open()
         print("Connected to {0}".format(port))
         return ser
     except OSError as e:
@@ -106,12 +110,18 @@ def make_open_port(port):
 
 def send_string_over_port(s, port):
     try:
-        byte_string = s.encode('UTF-8')
+        byte_string = s.encode('ascii')
         port.write(byte_string)
         return True
     except Exception as e:
         print(e)
         return False
+
+def poll_and_read_port(port):
+    if port.in_waiting:
+        data = port.readline().decode()
+        print(data)
+    return None
 
 cv2.namedWindow('image')
 cv2.setMouseCallback('image', handle_click)
@@ -137,6 +147,8 @@ while True:
         cv2.imshow('image', cropped_roi)
     else:
         cv2.imshow('image', img_gray)
+
+    # poll_and_read_port(PORT)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
