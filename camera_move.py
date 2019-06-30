@@ -1,6 +1,7 @@
 import cv2
 from cv2 import aruco
 import numpy as np
+import serial
 from scipy.spatial import distance
 import gcode
 import projection
@@ -11,6 +12,10 @@ img_raw = cv2.imread('./test_images/prusa_fiducials.JPG')
 img_overlay = cv2.imread('./test_images/groundtruth_top.png')
 img_overlay = cv2.cvtColor(img_overlay, cv2.COLOR_BGR2GRAY)
 img_gray = cv2.cvtColor(img_raw, cv2.COLOR_BGR2GRAY)
+
+# Connection
+default_port_name = '/dev/tty.usbmodem14201'
+PORT = None
 
 # Constants
 GRID_IMG_SIZE = (400, 400)
@@ -85,12 +90,36 @@ def handle_click(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
         instr = gcode.travel(x, y)
         print(instr)
+        if PORT:
+            send_string_over_port(instr, PORT)
+
+def make_open_port(port):
+    try:
+        ser = serial.Serial()
+        ser.port = port
+        ser.open()
+        print("Connected to {0}".format(port))
+        return ser
+    except OSError as e:
+        print("Could not connect to port: {0}".format(e))
+        return None
+
+def send_string_over_port(s, port):
+    try:
+        byte_string = s.encode('UTF-8')
+        port.write(byte_string)
+        return True
+    except Exception as e:
+        print(e)
+        return False
 
 cv2.namedWindow('image')
 cv2.setMouseCallback('image', handle_click)
 
 video_capture = cv2.VideoCapture(0)
 most_recent_four_points = None
+
+PORT = make_open_port(default_port_name)
 
 while True:
     ret, frame = video_capture.read()
@@ -114,6 +143,7 @@ while True:
 
 video_capture.release()
 cv2.destroyAllWindows()
+PORT.close()
 
 # img_combined = make_img_with_warped_overlay(img_gray, img_overlay, out_pts)
 
