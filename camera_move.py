@@ -92,11 +92,14 @@ def crop_and_warp_roi(raw_img, roi_corner_points, out_shape):
 def handle_click(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
         scaled_x = x * (PRINT_BED_MAX_X / GRID_IMG_SIZE[0])
-        scaled_y = y * (PRINT_BED_MAX_Y / GRID_IMG_SIZE[1])
+        scaled_y = __invert_y(y) * (PRINT_BED_MAX_Y / GRID_IMG_SIZE[1])
         instr = gcode.travel('%.2f'%(scaled_x), '%.2f'%(scaled_y))
         print(instr)
         if PORT:
             send_string_over_port(instr, PORT)
+
+def __invert_y(y):
+    return GRID_IMG_SIZE[1] - y;
 
 def make_open_port(port):
     try:
