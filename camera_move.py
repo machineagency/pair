@@ -106,7 +106,7 @@ while True:
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-cap.release()
+video_capture.release()
 cv2.destroyAllWindows()
 
 # img_combined = make_img_with_warped_overlay(img_gray, img_overlay, out_pts)
