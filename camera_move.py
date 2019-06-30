@@ -46,7 +46,7 @@ def get_roi_corner_pts(backgr_img):
     aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
     parameters =  aruco.DetectorParameters_create()
     corners, ids, rejectedImgPoints = aruco.detectMarkers(img_gray, aruco_dict, parameters=parameters)
-    if len(corners) == 0:
+    if len(corners) != 4:
         return []
     return get_outermost_points(corners, img_raw)
 
@@ -90,6 +90,7 @@ cv2.namedWindow('image')
 cv2.setMouseCallback('image', handle_click)
 
 video_capture = cv2.VideoCapture(0)
+most_recent_four_points = None
 
 while True:
     ret, frame = video_capture.read()
@@ -97,8 +98,13 @@ while True:
     out_pts = get_roi_corner_pts(img_gray)
 
     if len(out_pts) == 4:
+        most_recent_four_points = out_pts
         img_poly = make_poly_from_roi_pts(out_pts)
         cropped_roi = crop_and_warp_roi(img_gray, out_pts, GRID_IMG_SIZE)
+        cv2.imshow('image', cropped_roi)
+    elif most_recent_four_points is not None:
+        cropped_roi = crop_and_warp_roi(img_gray, most_recent_four_points, \
+                                        GRID_IMG_SIZE)
         cv2.imshow('image', cropped_roi)
     else:
         cv2.imshow('image', img_gray)
