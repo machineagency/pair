@@ -6,5 +6,5 @@ def travel(x, y, z=None):
     return "G1 X{0} Y{1} F{2}\r\n".format(x, y, DEFAULT_FEED_RATE)
 
 def home_xy():
-    return "G28 W"
+    return "G28 W\r\n"
 
