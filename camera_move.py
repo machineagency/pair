@@ -98,6 +98,9 @@ def handle_click(event, x, y, flags, param):
         if PORT:
             send_string_over_port(instr, PORT)
 
+    if event == cv2.EVENT_RBUTTONDOWN:
+        send_string_over_port(gcode.home_xy(), PORT)
+
 def __invert_y(y):
     return GRID_IMG_SIZE[1] - y;
 
@@ -106,7 +109,6 @@ def make_open_port(port):
         ser = serial.Serial(port=port, baudrate=default_baudrate)
         # ser.open()
         print("Connected to {0}".format(port))
-        send_string_over_port(gcode.home_xy(), ser)
         return ser
     except OSError as e:
         print("Could not connect to port: {0}".format(e))
