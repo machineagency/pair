@@ -2,6 +2,9 @@
   * Grid Example
   *
   * Draw a grid and align it with the camera.
+  * This example illustrates why we are working with projection in the first
+  * place: because we may need to adjust machine settings that do not
+  * come into play if we are working purely in CAD/CAM.
   */
 
 // TODO
