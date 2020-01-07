@@ -10,7 +10,7 @@ class Machine:
     def pen_up(self):
         self.ad.penup()
 
-    def pen_down(self);
+    def pen_down(self):
         self.ad.pendown()
 
     def line(self, pt):
@@ -19,6 +19,6 @@ class Machine:
     def travel(self, pt):
         self.ad.moveto(pt[0], pt[1])
 
-    def disconnect(self);
+    def disconnect(self):
         self.ad.disconnect()
 
