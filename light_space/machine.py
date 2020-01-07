@@ -2,21 +2,23 @@ from pyaxidraw import axidraw
 
 class Machine:
     def __init__(self, port='/dev/tty.usbmodem14101'):
-        self.pen_is_up = False
-        self.port = port
-        self.baudrate = 115200
-        try:
-        self.serial = serial.Serial(port=port, baudrate=default_baudrate)
+        self.ad = axidraw.AxiDraw()
+        self.ad.interactive()
+        self.ad.options.units = 1 # Use centimeters
+        self.ad.connect()
 
-    def pen_up():
-        pass
+    def pen_up(self):
+        self.ad.penup()
 
-    def pen_down();
-        pass
+    def pen_down(self);
+        self.ad.pendown()
 
-    def draw_to_pt(pt):
-        pass
+    def line(self, pt):
+        self.ad.lineto(pt[0], pt[1])
 
-    def travel_to_pt(pt):
-        pass
+    def travel(self, pt):
+        self.ad.moveto(pt[0], pt[1])
+
+    def disconnect(self);
+        self.ad.disconnect()
 
