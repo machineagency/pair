@@ -10,21 +10,28 @@ def rescale_frame(frame, wpercent=130, hpercent=130):
     height = int(frame.shape[0] * hpercent / 100)
     return cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
 
-def main():
+def run_camera_loop():
     capture = cv2.VideoCapture(0)
 
     while capture.isOpened():
         pressed_key = cv2.waitKey(1)
         _, frame = capture.read()
 
-        cv2.imshow("Live Feed", rescale_frame(frame, 80, 80))
-
+        # Close window on Escape keypress
         if pressed_key == 27:
             break
+
+        # Example color print for one frame only
+        elif pressed_key > 0 and pressed_key < 0x10FFFF:
+            projection.text_at(chr(pressed_key), (100, 100), frame)
+
+        cv2.imshow("Live Feed", rescale_frame(frame, 80, 80))
 
     cv2.destroyAllWindows()
     capture.release()
 
+def main():
+    run_camera_loop()
 
 if __name__ == '__main__':
     main()
