@@ -6,16 +6,21 @@ import numpy as np
 from machine import Machine
 import projection
 
-def rescale_frame(frame, wpercent=130, hpercent=130):
-    width = int(frame.shape[1] * wpercent / 100)
-    height = int(frame.shape[0] * hpercent / 100)
-    return cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
+class FakeInteraction:
+    def __init__(self, img):
+        self.img = img
+        self.length = 50
+        self.spacing = 10
+        for i in range(0, 3):
+            projection.line_from_to((0, i * self.spacing), (self.length, i * self.spacing),\
+                                    self.img)
 
 def run_canvas_loop():
     GRID_IMG_SIZE = (400, 400)
     img_size_three_channel = GRID_IMG_SIZE + (3,)
     img = np.zeros(img_size_three_channel, np.float32)
     cv2.imshow("Projection", img)
+    ixn = FakeInteraction(img)
 
     while True:
         pressed_key = cv2.waitKey(1)
@@ -32,6 +37,11 @@ def run_canvas_loop():
     cv2.destroyAllWindows()
 
 def run_camera_loop():
+    def rescale_frame(frame, wpercent=130, hpercent=130):
+        width = int(frame.shape[1] * wpercent / 100)
+        height = int(frame.shape[0] * hpercent / 100)
+        return cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
+
     capture = cv2.VideoCapture(0)
 
     while capture.isOpened():
