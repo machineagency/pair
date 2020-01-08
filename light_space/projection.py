@@ -16,8 +16,8 @@ def line_from_to(p0, p1, img=None):
         img_size_three_channel = GRID_IMG_SIZE + (3,)
         img = np.zeros(img_size_three_channel, np.float32)
     thickness = 1
-    dot_color = (0, 0, 255)
-    return cv2.line(p0, p1, line_color, thickness, CV_AA)
+    line_color = (0, 0, 255)
+    return cv2.line(img, p0, p1, line_color, thickness, cv2.LINE_AA)
 
 def text_at(text, pt, img=None):
     if img is None:
