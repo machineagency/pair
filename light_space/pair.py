@@ -40,9 +40,11 @@ def run_canvas_loop():
     GRID_IMG_SIZE = (400, 400)
     img_size_three_channel = GRID_IMG_SIZE + (3,)
     img = np.zeros(img_size_three_channel, np.float32)
-    cv2.imshow("Projection", img)
     ixn = FakeInteraction(img)
     gui = GuiControl(img)
+    cv2.namedWindow('Projection')
+    cv2.setMouseCallback('Projection', handle_click)
+    cv2.imshow("Projection", img)
 
     while True:
         pressed_key = cv2.waitKey(1)

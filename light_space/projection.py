@@ -30,6 +30,9 @@ def rectangle_at(pt, width, height, img):
     return cv2.rectangle(img, pt, end_pt, color, thickness)
 
 def text_at(text, pt, img=None):
+    """
+    Creates text where PT is top left corner (not bottom left).
+    """
     if img is None:
         img_size_three_channel = GRID_IMG_SIZE + (3,)
         img = np.zeros(img_size_three_channel, np.float32)
