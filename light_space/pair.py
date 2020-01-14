@@ -2,6 +2,7 @@
 # takes in a pair file as input
 # TODO: bypass parsing with canned data for line example and create projection
 import cv2
+import screeninfo
 import numpy as np
 from machine import Machine
 import projection
