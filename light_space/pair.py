@@ -19,6 +19,13 @@ class FakeInteraction:
             end_pt = (self.length + self.translate_x, i * self.spacing + self.translate_y)
             projection.line_from_to(start_pt, end_pt, self.img)
 
+class GuiControl:
+    def __init__(self, img):
+        self.img = img
+        self.buttom_buttons = []
+
+    def add_bottom_button(self, text):
+        projection.rectangle_at((50, 300), 100, 50, self.img)
 
 def run_canvas_loop():
     GRID_IMG_SIZE = (400, 400)
@@ -26,6 +33,7 @@ def run_canvas_loop():
     img = np.zeros(img_size_three_channel, np.float32)
     cv2.imshow("Projection", img)
     ixn = FakeInteraction(img)
+    gui = GuiControl(img)
 
     while True:
         pressed_key = cv2.waitKey(1)
@@ -37,6 +45,7 @@ def run_canvas_loop():
         # Example color print for one frame only
         elif pressed_key > 0 and pressed_key < 0x10FFFF:
             projection.text_at(chr(pressed_key), (100, 100), img)
+            gui.add_bottom_button('foo')
 
         cv2.imshow("Projection", img)
     cv2.destroyAllWindows()

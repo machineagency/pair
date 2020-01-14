@@ -15,9 +15,19 @@ def line_from_to(p0, p1, img=None):
     if img is None:
         img_size_three_channel = GRID_IMG_SIZE + (3,)
         img = np.zeros(img_size_three_channel, np.float32)
-    thickness = 1
+    thickness = 5
     line_color = (0, 0, 255)
     return cv2.line(img, p0, p1, line_color, thickness, cv2.LINE_AA)
+
+def rectangle_at(pt, width, height, img):
+    """
+    Creates a rectangle whose top left corner is at PT, with WIDTH (delta X)
+    and HEIGHT (delta Y).
+    """
+    end_pt = (pt[0] + width, pt[1] + height)
+    color = (0, 0, 255)
+    thickness = cv2.FILLED
+    return cv2.rectangle(img, pt, end_pt, color, thickness)
 
 def text_at(text, pt, img=None):
     if img is None:
