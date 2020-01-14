@@ -9,11 +9,15 @@ import projection
 class FakeInteraction:
     def __init__(self, img):
         self.img = img
-        self.length = 50
-        self.spacing = 10
+        self.length = 150
+        self.spacing = 50
+        self.translate_x = 50
+        self.translate_y = 50
         for i in range(0, 3):
-            projection.line_from_to((0, i * self.spacing), (self.length, i * self.spacing),\
-                                    self.img)
+            start_pt = (self.translate_x, i * self.spacing + self.translate_y)
+            end_pt = (self.length + self.translate_x, i * self.spacing + self.translate_y)
+            projection.line_from_to(start_pt, end_pt, self.img)
+
 
 def run_canvas_loop():
     GRID_IMG_SIZE = (400, 400)
