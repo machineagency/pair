@@ -35,6 +35,23 @@ class GuiControl:
         projection.rectangle_at(pt, text_size[0], text_size[1], self.img)
         projection.text_at(text, pt, self.img)
 
+def handle_click(event, x, y, flags, param):
+    def invert_y(y):
+        return GRID_IMG_SIZE[1] - y;
+
+    # TODO: this will need to match work envelope somehow
+    PRINT_BED_MAX_X = 300
+    PRINT_BED_MAX_Y = 300
+
+    # TODO: way of sharing image dimensions
+    GRID_IMG_SIZE = (400, 400)
+    m = Machine(dry=True)
+
+    if event == cv2.EVENT_LBUTTONDOWN:
+        scaled_x = x * (PRINT_BED_MAX_X / GRID_IMG_SIZE[0])
+        scaled_y = invert_y(y) * (PRINT_BED_MAX_Y / GRID_IMG_SIZE[1])
+        instr = m.travel((scaled_x, scaled_y))
+        print(instr)
 
 def run_canvas_loop():
     GRID_IMG_SIZE = (400, 400)
