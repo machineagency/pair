@@ -26,6 +26,15 @@ class GuiControl:
 
     def add_bottom_button(self, text):
         projection.rectangle_at((50, 300), 100, 50, self.img)
+        projection.text_at(text, (50, 300), self.img)
+
+    def add_bottom_button(self, text):
+        # TODO: de-hardcode
+        pt = (50, 300)
+        text_size = projection.find_text_size(text)
+        projection.rectangle_at(pt, text_size[0], text_size[1], self.img)
+        projection.text_at(text, pt, self.img)
+
 
 def run_canvas_loop():
     GRID_IMG_SIZE = (400, 400)
@@ -42,10 +51,8 @@ def run_canvas_loop():
         if pressed_key == 27:
             break
 
-        # Example color print for one frame only
-        elif pressed_key > 0 and pressed_key < 0x10FFFF:
-            projection.text_at(chr(pressed_key), (100, 100), img)
-            gui.add_bottom_button('foo')
+        if pressed_key == ord('b'):
+            gui.add_bottom_button('trans')
 
         cv2.imshow("Projection", img)
     cv2.destroyAllWindows()
