@@ -44,5 +44,6 @@ class Machine:
             self.line(pt2)
             self.line(pt3)
             self.line(start_pt)
+            self.pen_up()
         return f'square at {start_pt} length {length}'
 
