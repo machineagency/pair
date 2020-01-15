@@ -7,9 +7,10 @@ from machine import Machine
 import projection
 
 class FakeInteraction:
-    def __init__(self, img, screen_size):
+    def __init__(self, img, screen_size, gui_control):
         self.m = Machine(dry=False)
         self.img = img
+        self.gui_control = gui_control
         self.length = screen_size[1] // 2
         self.spacing = screen_size[0] // 5
         self.translate_x = screen_size[1] // 4
@@ -18,7 +19,8 @@ class FakeInteraction:
             start_pt = (self.translate_x, i * self.spacing + self.translate_y)
             end_pt = (self.length + self.translate_x, i * self.spacing + self.translate_y)
             projection.line_from_to(start_pt, end_pt, self.img)
-
+        self.calib_pt = (self.translate_x, self.translate_y)
+        gui_control.calibration_square(self.calib_pt, 2)
 
 class GuiControl:
     def __init__(self, img, screen_size):
@@ -39,6 +41,17 @@ class GuiControl:
         rect_obj = projection.rectangle_at(pt, text_size[0], text_size[1], self.img)
         text_obj = projection.text_at(text, pt, 'black', self.img)
         self.bottom_buttons.append((rect_obj, text_obj))
+
+    def calibration_square(self, start_pt, length):
+        CM_TO_PX = 37.7952755906
+        length *= CM_TO_PX
+        pt1 = (start_pt[0] + length, start_pt[1])
+        pt2 = (start_pt[0] + length, start_pt[1] + length)
+        pt3 = (start_pt[0], start_pt[1] + length)
+        projection.line_from_to(start_pt, pt1, self.img)
+        projection.line_from_to(pt1, pt2, self.img)
+        projection.line_from_to(pt2, pt3, self.img)
+        projection.line_from_to(pt3, start_pt, self.img)
 
 def make_machine_click_handler(machine):
     def handle_click(event, x, y, flags, param):
@@ -75,8 +88,8 @@ def run_canvas_loop():
     window_name = 'Projection'
     cv2.namedWindow(window_name)
     cv2.moveWindow(window_name, MAC_SCREEN_SIZE_HW[1], 0)
-    ixn = FakeInteraction(img, PROJ_SCREEN_SIZE_HW)
     gui = GuiControl(img, PROJ_SCREEN_SIZE_HW)
+    ixn = FakeInteraction(img, PROJ_SCREEN_SIZE_HW, gui)
 
     # cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
     # cv2.moveWindow(window_name, macbook_screen_width, 0)
