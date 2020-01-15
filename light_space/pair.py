@@ -22,7 +22,7 @@ class FakeInteraction:
 class GuiControl:
     def __init__(self, img, screen_size):
         self.img = img
-        self.buttom_buttons = []
+        self.bottom_buttons = []
 
         self.button_params = {\
             'start_pt' : (screen_size[1] // 4, screen_size[0] - screen_size[0] // 4),\
@@ -31,12 +31,13 @@ class GuiControl:
 
     def add_bottom_button(self, text):
         text_size = projection.find_text_size(text)
-        x_offset = len(self.buttom_buttons) *\
+        x_offset = len(self.bottom_buttons) *\
                    (text_size[0] + self.button_params['gutter'])
         pt = (self.button_params['start_pt'][0] + x_offset,\
               self.button_params['start_pt'][1])
-        projection.rectangle_at(pt, text_size[0], text_size[1], self.img)
-        projection.text_at(text, pt, 'black', self.img)
+        rect_obj = projection.rectangle_at(pt, text_size[0], text_size[1], self.img)
+        text_obj = projection.text_at(text, pt, 'black', self.img)
+        self.bottom_buttons.append((rect_obj, text_obj))
 
 def handle_click(event, x, y, flags, param):
     def invert_y(y):
@@ -83,7 +84,8 @@ def run_canvas_loop():
             break
 
         if pressed_key == ord('b'):
-            gui.add_bottom_button('trans')
+            gui.add_bottom_button('translate')
+            gui.add_bottom_button('spacing')
 
         cv2.imshow("Projection", img)
     cv2.destroyAllWindows()
