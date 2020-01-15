@@ -8,6 +8,7 @@ import projection
 
 class FakeInteraction:
     def __init__(self, img, screen_size):
+        self.m = Machine(dry=False)
         self.img = img
         self.length = screen_size[1] // 2
         self.spacing = screen_size[0] // 5
@@ -17,6 +18,7 @@ class FakeInteraction:
             start_pt = (self.translate_x, i * self.spacing + self.translate_y)
             end_pt = (self.length + self.translate_x, i * self.spacing + self.translate_y)
             projection.line_from_to(start_pt, end_pt, self.img)
+
 
 class GuiControl:
     def __init__(self, img, screen_size):
@@ -38,23 +40,31 @@ class GuiControl:
         text_obj = projection.text_at(text, pt, 'black', self.img)
         self.bottom_buttons.append((rect_obj, text_obj))
 
-def handle_click(event, x, y, flags, param):
-    def invert_y(y):
-        return GRID_IMG_SIZE[1] - y;
+def make_machine_click_handler(machine):
+    def handle_click(event, x, y, flags, param):
+        def invert_y(y):
+            """
+            Use if plotter is facing same side as projection
+            """
+            return GRID_IMG_SIZE[1] - y;
 
-    # TODO: this will need to match work envelope somehow
-    PRINT_BED_MAX_X = 300
-    PRINT_BED_MAX_Y = 300
+        # TODO: this will need to match work envelope somehow
+        PRINT_BED_MAX_X = 30
+        PRINT_BED_MAX_Y = 20
+        SCALING = 0.1
 
-    # TODO: way of sharing image dimensions
-    GRID_IMG_SIZE = (720, 1280)
-    m = Machine(dry=True)
+        # TODO: way of sharing image dimensions
+        GRID_IMG_SIZE = (720, 1280)
 
-    if event == cv2.EVENT_LBUTTONDOWN:
-        scaled_x = x * (PRINT_BED_MAX_X / GRID_IMG_SIZE[0])
-        scaled_y = invert_y(y) * (PRINT_BED_MAX_Y / GRID_IMG_SIZE[1])
-        instr = m.travel((scaled_x, scaled_y))
-        print(instr)
+        if event == cv2.EVENT_LBUTTONDOWN:
+            scaled_x = x * (PRINT_BED_MAX_X / GRID_IMG_SIZE[0]) * SCALING
+            scaled_y = y * (PRINT_BED_MAX_Y / GRID_IMG_SIZE[1]) * SCALING
+            scaled_x = round(scaled_x, 2)
+            scaled_y = round(scaled_y, 2)
+            instr = machine.travel((scaled_x, scaled_y))
+            print(instr)
+
+    return handle_click
 
 def run_canvas_loop():
     MAC_SCREEN_SIZE_HW = (900, 1440)
@@ -72,6 +82,8 @@ def run_canvas_loop():
     # cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,\
     #                       cv2.WINDOW_FULLSCREEN)
 
+    machine = Machine(dry=False)
+    handle_click = make_machine_click_handler(machine)
     cv2.setMouseCallback(window_name, handle_click)
     cv2.imshow(window_name, img)
 
