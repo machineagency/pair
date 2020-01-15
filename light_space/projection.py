@@ -29,21 +29,29 @@ def rectangle_at(pt, width, height, img):
     thickness = cv2.FILLED
     return cv2.rectangle(img, pt, end_pt, color, thickness)
 
-def text_at(text, pt, img=None):
+def text_at(text, pt, color_name='white', img=None):
     """
     Creates text where PT is top left corner (not bottom left).
     """
     if img is None:
         img_size_three_channel = GRID_IMG_SIZE + (3,)
         img = np.zeros(img_size_three_channel, np.float32)
+    if color_name == 'white':
+        color = (255, 255, 255)
+    elif color_name == 'black':
+        color = (0, 0, 0)
+    elif color_name == 'red':
+        color = (0, 0, 255)
+    else:
+        color = (255, 255, 255)
+
     font = cv2.FONT_HERSHEY_SIMPLEX
     font_scale = 1
-    font_color = (255, 255, 255)
     thickness = 1
     bbox, _ = cv2.getTextSize(text, font, font_scale, thickness)
     y_offset = bbox[1]
     translated_pt = (pt[0], pt[1] + y_offset)
-    cv2.putText(img, text, translated_pt, font, font_scale, font_color, \
+    cv2.putText(img, text, translated_pt, font, font_scale, color, \
                        thickness, cv2.LINE_AA)
 
 def find_text_size(text):

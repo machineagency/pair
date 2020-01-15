@@ -33,7 +33,7 @@ class GuiControl:
         pt = (50, 300)
         text_size = projection.find_text_size(text)
         projection.rectangle_at(pt, text_size[0], text_size[1], self.img)
-        projection.text_at(text, pt, self.img)
+        projection.text_at(text, pt, 'black', self.img)
 
 def handle_click(event, x, y, flags, param):
     def invert_y(y):
