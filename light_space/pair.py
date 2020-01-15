@@ -55,10 +55,11 @@ def make_machine_click_handler(machine):
 
         # TODO: way of sharing image dimensions
         GRID_IMG_SIZE = (720, 1280)
+        CM_TO_PX = 37.7952755906
 
         if event == cv2.EVENT_LBUTTONDOWN:
-            scaled_x = x * (PRINT_BED_MAX_X / GRID_IMG_SIZE[0]) * SCALING
-            scaled_y = y * (PRINT_BED_MAX_Y / GRID_IMG_SIZE[1]) * SCALING
+            scaled_x = x / CM_TO_PX
+            scaled_y = y / CM_TO_PX
             scaled_x = round(scaled_x, 2)
             scaled_y = round(scaled_y, 2)
             instr = machine.travel((scaled_x, scaled_y))
