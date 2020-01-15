@@ -20,18 +20,21 @@ class FakeInteraction:
             projection.line_from_to(start_pt, end_pt, self.img)
 
 class GuiControl:
-    def __init__(self, img):
+    def __init__(self, img, screen_size):
         self.img = img
         self.buttom_buttons = []
 
-    def add_bottom_button(self, text):
-        projection.rectangle_at((50, 300), 100, 50, self.img)
-        projection.text_at(text, (50, 300), self.img)
+        self.button_params = {\
+            'start_pt' : (screen_size[1] // 4, screen_size[0] - screen_size[0] // 4),\
+            'gutter' : 50\
+        }
 
     def add_bottom_button(self, text):
-        # TODO: de-hardcode
-        pt = (50, 300)
         text_size = projection.find_text_size(text)
+        x_offset = len(self.buttom_buttons) *\
+                   (text_size[0] + self.button_params['gutter'])
+        pt = (self.button_params['start_pt'][0] + x_offset,\
+              self.button_params['start_pt'][1])
         projection.rectangle_at(pt, text_size[0], text_size[1], self.img)
         projection.text_at(text, pt, 'black', self.img)
 
@@ -44,7 +47,7 @@ def handle_click(event, x, y, flags, param):
     PRINT_BED_MAX_Y = 300
 
     # TODO: way of sharing image dimensions
-    GRID_IMG_SIZE = (400, 400)
+    GRID_IMG_SIZE = (720, 1280)
     m = Machine(dry=True)
 
     if event == cv2.EVENT_LBUTTONDOWN:
@@ -62,7 +65,7 @@ def run_canvas_loop():
     cv2.namedWindow(window_name)
     cv2.moveWindow(window_name, MAC_SCREEN_SIZE_HW[1], 0)
     ixn = FakeInteraction(img, PROJ_SCREEN_SIZE_HW)
-    gui = GuiControl(img)
+    gui = GuiControl(img, PROJ_SCREEN_SIZE_HW)
 
     # cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
     # cv2.moveWindow(window_name, macbook_screen_width, 0)

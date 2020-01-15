@@ -47,7 +47,7 @@ def text_at(text, pt, color_name='white', img=None):
 
     font = cv2.FONT_HERSHEY_SIMPLEX
     font_scale = 1
-    thickness = 1
+    thickness = 3
     bbox, _ = cv2.getTextSize(text, font, font_scale, thickness)
     y_offset = bbox[1]
     translated_pt = (pt[0], pt[1] + y_offset)
@@ -58,7 +58,7 @@ def find_text_size(text):
     font = cv2.FONT_HERSHEY_SIMPLEX
     font_scale = 1
     font_color = (255, 255, 255)
-    thickness = 1
+    thickness = 3
     bbox, _ = cv2.getTextSize(text, font, font_scale, thickness)
     return bbox
 
