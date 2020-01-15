@@ -17,6 +17,8 @@ def line_from_to(p0, p1, img=None):
         img = np.zeros(img_size_three_channel, np.float32)
     thickness = 5
     line_color = (0, 0, 255)
+    p0 = (int(round(p0[0])), int(round(p0[1])))
+    p1 = (int(round(p1[0])), int(round(p1[1])))
     return cv2.line(img, p0, p1, line_color, thickness, cv2.LINE_AA)
 
 def rectangle_at(pt, width, height, img):

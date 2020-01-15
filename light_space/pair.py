@@ -102,6 +102,7 @@ def run_canvas_loop():
     cv2.imshow(window_name, img)
 
     while True:
+        CM_TO_PX = 37.7952755906
         pressed_key = cv2.waitKey(1)
 
         # Close window on Escape keypress
@@ -112,8 +113,15 @@ def run_canvas_loop():
             gui.add_bottom_button('translate')
             gui.add_bottom_button('spacing')
 
+        # TODO: homing point around projected env
+        if pressed_key == ord('s'):
+            pt = (ixn.calib_pt[0] / CM_TO_PX, ixn.calib_pt[1] / CM_TO_PX)
+            instr = machine.plot_square(pt, 2)
+            print(instr)
+
         cv2.imshow("Projection", img)
     cv2.destroyAllWindows()
+    machine.disconnect()
 
 def run_camera_loop():
     def rescale_frame(frame, wpercent=130, hpercent=130):
