@@ -8,12 +8,12 @@ from machine import Machine
 import projection
 
 class FakeInteraction:
-    def __init__(self, img):
+    def __init__(self, img, screen_size):
         self.img = img
-        self.length = 150
-        self.spacing = 50
-        self.translate_x = 50
-        self.translate_y = 50
+        self.length = screen_size[1] // 2
+        self.spacing = screen_size[0] // 5
+        self.translate_x = screen_size[1] // 4
+        self.translate_y = screen_size[0] // 4
         for i in range(0, 3):
             start_pt = (self.translate_x, i * self.spacing + self.translate_y)
             end_pt = (self.length + self.translate_x, i * self.spacing + self.translate_y)
@@ -54,14 +54,23 @@ def handle_click(event, x, y, flags, param):
         print(instr)
 
 def run_canvas_loop():
-    GRID_IMG_SIZE = (400, 400)
-    img_size_three_channel = GRID_IMG_SIZE + (3,)
+    MAC_SCREEN_SIZE_HW = (900, 1440)
+    PROJ_SCREEN_SIZE_HW = (720, 1280)
+    img_size_three_channel = PROJ_SCREEN_SIZE_HW + (3,)
     img = np.zeros(img_size_three_channel, np.float32)
-    ixn = FakeInteraction(img)
+    window_name = 'Projection'
+    cv2.namedWindow(window_name)
+    cv2.moveWindow(window_name, MAC_SCREEN_SIZE_HW[1], 0)
+    ixn = FakeInteraction(img, PROJ_SCREEN_SIZE_HW)
     gui = GuiControl(img)
-    cv2.namedWindow('Projection')
-    cv2.setMouseCallback('Projection', handle_click)
-    cv2.imshow("Projection", img)
+
+    # cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
+    # cv2.moveWindow(window_name, macbook_screen_width, 0)
+    # cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,\
+    #                       cv2.WINDOW_FULLSCREEN)
+
+    cv2.setMouseCallback(window_name, handle_click)
+    cv2.imshow(window_name, img)
 
     while True:
         pressed_key = cv2.waitKey(1)
