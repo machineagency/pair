@@ -34,3 +34,15 @@ class Machine:
             self.ad.disconnect()
         return 'disconnect'
 
+    def plot_square(self, start_pt, length):
+        if not self.dry:
+            pt1 = (start_pt[0] + length, start_pt[1])
+            pt2 = (start_pt[0] + length, start_pt[1] + length)
+            pt3 = (start_pt[0], start_pt[1] + length)
+            self.travel(start_pt)
+            self.line(pt1)
+            self.line(pt2)
+            self.line(pt3)
+            self.line(start_pt)
+        return f'square at {start_pt} length {length}'
+
