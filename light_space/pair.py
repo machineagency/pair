@@ -113,10 +113,14 @@ def run_canvas_loop():
             gui.add_bottom_button('translate')
             gui.add_bottom_button('spacing')
 
-        # TODO: homing point around projected env
         if pressed_key == ord('s'):
             pt = (ixn.calib_pt[0] / CM_TO_PX, ixn.calib_pt[1] / CM_TO_PX)
-            instr = machine.plot_square(pt, 2)
+            instr = machine.plot_rect_hw(pt, 2, 2)
+            print(instr)
+
+        if pressed_key == ord('e'):
+            pt = (0, 0)
+            instr = machine.plot_rect_hw(pt, ixn.envelope_hw[0], ixn.envelope_hw[1])
             print(instr)
 
         cv2.imshow("Projection", img)

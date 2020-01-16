@@ -34,16 +34,16 @@ class Machine:
             self.ad.disconnect()
         return 'disconnect'
 
-    def plot_square(self, start_pt, length):
+    def plot_rect_hw(self, start_pt, height, width):
         if not self.dry:
-            pt1 = (start_pt[0] + length, start_pt[1])
-            pt2 = (start_pt[0] + length, start_pt[1] + length)
-            pt3 = (start_pt[0], start_pt[1] + length)
+            pt1 = (start_pt[0] + width, start_pt[1])
+            pt2 = (start_pt[0] + width, start_pt[1] + height)
+            pt3 = (start_pt[0], start_pt[1] + height)
             self.travel(start_pt)
             self.line(pt1)
             self.line(pt2)
             self.line(pt3)
             self.line(start_pt)
             self.pen_up()
-        return f'square at {start_pt} length {length}'
+        return f'square at {start_pt} height {height} width {width}'
 
