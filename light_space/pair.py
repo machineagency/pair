@@ -159,7 +159,7 @@ def run_canvas_loop():
                 print(instr)
 
             if pressed_key == ord('e'):
-                pt = (0, Y_OFFSET_PX)
+                pt = (0, Y_OFFSET_PX / CM_TO_PX)
                 instr = machine.plot_rect_hw(pt, ixn.envelope_hw[0],\
                                              ixn.envelope_hw[1])
                 print(instr)
