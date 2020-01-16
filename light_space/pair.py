@@ -1,6 +1,3 @@
-# TODO: main file for parsing, projecting, sensing, and machine control.
-# takes in a pair file as input
-# TODO: bypass parsing with canned data for line example and create projection
 import cv2
 import numpy as np
 from machine import Machine
@@ -9,7 +6,7 @@ import projection
 class FakeInteraction:
     def __init__(self, img, screen_size, gui_control):
         self.m = Machine(dry=False)
-        self.envelope_hw = (10, 15)
+        self.envelope_hw = (20, 28) # slightly smaller than axidraw envelope
         self.img = img
         self.gui_control = gui_control
         self.length = screen_size[1] // 2
@@ -76,7 +73,7 @@ def make_machine_click_handler(machine):
             return GRID_IMG_SIZE[1] - y;
 
         # TODO: way of sharing image dimensions
-        ENVELOPE_CM = (15, 20)
+        ENVELOPE_CM = (20, 28)
         CM_TO_PX = 37.7952755906
 
         if event == cv2.EVENT_LBUTTONDOWN:
@@ -92,11 +89,12 @@ def make_machine_click_handler(machine):
 def run_canvas_loop():
     MAC_SCREEN_SIZE_HW = (900, 1440)
     PROJ_SCREEN_SIZE_HW = (720, 1280)
+    SCREEN_W_EPS = 5
     img_size_three_channel = PROJ_SCREEN_SIZE_HW + (3,)
     img = np.zeros(img_size_three_channel, np.float32)
     window_name = 'Projection'
     cv2.namedWindow(window_name)
-    cv2.moveWindow(window_name, MAC_SCREEN_SIZE_HW[1], 0)
+    cv2.moveWindow(window_name, MAC_SCREEN_SIZE_HW[1] + SCREEN_W_EPS, 0)
     gui = GuiControl(img, PROJ_SCREEN_SIZE_HW)
     ixn = FakeInteraction(img, PROJ_SCREEN_SIZE_HW, gui)
 
