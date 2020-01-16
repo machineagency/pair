@@ -34,6 +34,9 @@ class Machine:
             self.ad.disconnect()
         return 'disconnect'
 
+    def return_to_origin(self):
+        return self.travel((0, 0))
+
     def plot_rect_hw(self, start_pt, height, width):
         if not self.dry:
             pt1 = (start_pt[0] + width, start_pt[1])

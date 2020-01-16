@@ -100,41 +100,40 @@ def run_canvas_loop():
     gui = GuiControl(img, PROJ_SCREEN_SIZE_HW)
     ixn = FakeInteraction(img, PROJ_SCREEN_SIZE_HW, gui)
 
-    # cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
-    # cv2.moveWindow(window_name, macbook_screen_width, 0)
-    # cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,\
-    #                       cv2.WINDOW_FULLSCREEN)
-
     machine = Machine(dry=False)
     handle_click = make_machine_click_handler(machine)
     cv2.setMouseCallback(window_name, handle_click)
     cv2.imshow(window_name, img)
 
-    while True:
-        CM_TO_PX = 37.7952755906
-        pressed_key = cv2.waitKey(1)
+    try:
+        while True:
+            CM_TO_PX = 37.7952755906
+            pressed_key = cv2.waitKey(1)
 
-        # Close window on Escape keypress
-        if pressed_key == 27:
-            break
+            # Close window on Escape keypress
+            if pressed_key == 27:
+                break
 
-        if pressed_key == ord('b'):
-            gui.add_bottom_button('translate')
-            gui.add_bottom_button('spacing')
+            if pressed_key == ord('b'):
+                gui.add_bottom_button('translate')
+                gui.add_bottom_button('spacing')
 
-        if pressed_key == ord('s'):
-            pt = (ixn.calib_pt[0] / CM_TO_PX, ixn.calib_pt[1] / CM_TO_PX)
-            instr = machine.plot_rect_hw(pt, 2, 2)
-            print(instr)
+            if pressed_key == ord('s'):
+                pt = (ixn.calib_pt[0] / CM_TO_PX, ixn.calib_pt[1] / CM_TO_PX)
+                instr = machine.plot_rect_hw(pt, 2, 2)
+                print(instr)
 
-        if pressed_key == ord('e'):
-            pt = (0, 0)
-            instr = machine.plot_rect_hw(pt, ixn.envelope_hw[0], ixn.envelope_hw[1])
-            print(instr)
+            if pressed_key == ord('e'):
+                pt = (0, 0)
+                instr = machine.plot_rect_hw(pt, ixn.envelope_hw[0],\
+                                             ixn.envelope_hw[1])
+                print(instr)
 
-        cv2.imshow("Projection", img)
-    cv2.destroyAllWindows()
-    machine.disconnect()
+            cv2.imshow("Projection", img)
+    finally:
+        cv2.destroyAllWindows()
+        machine.return_to_origin()
+        machine.disconnect()
 
 def run_camera_loop():
     def rescale_frame(frame, wpercent=130, hpercent=130):
