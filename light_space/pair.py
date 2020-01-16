@@ -164,12 +164,14 @@ def run_canvas_loop():
             if pressed_key == ord('s'):
                 ixn.set_listening_spacing(not ixn.listening_spacing)
                 if ixn.listening_spacing:
+                    ixn.set_listening_translate(False)
                     ixn.set_cam_color('green')
                 else:
                     ixn.set_cam_color('red')
                 ixn.render()
 
             if pressed_key == ord('t'):
+                ixn.set_listening_spacing(False)
                 ixn.set_listening_translate(True)
                 ixn.set_cam_color('green')
                 ixn.render()
@@ -187,6 +189,13 @@ def run_canvas_loop():
 
             if pressed_key == ord('0') or pressed_key == ord('1')\
                 or pressed_key == ord('2'):
+                # Exit any edit mode first
+                ixn.set_listening_translate(False)
+                ixn.set_listening_spacing(False)
+                ixn.set_cam_color('red')
+                ixn.render()
+
+                # Calculate and draw lines
                 i = int(chr(pressed_key))
                 start_pt = (ixn.translate_x / CM_TO_PX,\
                             (i * ixn.spacing + ixn.translate_y) / CM_TO_PX)
