@@ -17,6 +17,7 @@ class FakeInteraction:
         self.spacing = screen_size[0] // 5
         self.translate_x = screen_size[1] // 4
         self.translate_y = screen_size[0] // 4
+        self.calib_pt = (self.translate_x, self.translate_y)
         self.render()
 
     def translate(self, x, y):
@@ -163,6 +164,17 @@ def run_canvas_loop():
                 instr = machine.plot_rect_hw(pt, ixn.envelope_hw[0],\
                                              ixn.envelope_hw[1])
                 print(instr)
+
+            if pressed_key == ord('0') or pressed_key == ord('1')\
+                or pressed_key == ord('2'):
+                i = int(chr(pressed_key))
+                start_pt = (ixn.translate_x / CM_TO_PX,\
+                            (i * ixn.spacing + ixn.translate_y) / CM_TO_PX)
+                end_pt = ((ixn.length + ixn.translate_x) / CM_TO_PX,\
+                          (i * ixn.spacing + ixn.translate_y) / CM_TO_PX)
+                machine.travel(start_pt)
+                machine.line(end_pt)
+                machine.pen_up()
 
     finally:
         cv2.destroyAllWindows()
