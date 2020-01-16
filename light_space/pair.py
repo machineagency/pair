@@ -87,8 +87,8 @@ class GuiControl:
         projection.line_from_to(pt3, pt0, 'red', img)
 
     def render_gui(self, img):
-        # TODO: split storage and rendering, not this
-        # too tired to do rn
+        # TODO: don't recreate buttons, just separate rendering vs data
+        self.bottom_buttons = []
         self.add_bottom_button('translate', img)
         self.add_bottom_button('spacing', img)
         self.calibration_envelope(self.envelope_hw, img)
