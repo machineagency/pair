@@ -66,10 +66,10 @@ class GuiControl:
         pt1 = (start_pt[0] + length, start_pt[1])
         pt2 = (start_pt[0] + length, start_pt[1] + length)
         pt3 = (start_pt[0], start_pt[1] + length)
-        projection.line_from_to(start_pt, pt1, self.img)
-        projection.line_from_to(pt1, pt2, self.img)
-        projection.line_from_to(pt2, pt3, self.img)
-        projection.line_from_to(pt3, start_pt, self.img)
+        projection.line_from_to(start_pt, pt1, 'white', self.img)
+        projection.line_from_to(pt1, pt2, 'white', self.img)
+        projection.line_from_to(pt2, pt3, 'white', self.img)
+        projection.line_from_to(pt3, start_pt, 'white', self.img)
 
     def calibration_envelope(self, envelope_hw):
         height_px = envelope_hw[0] * self.CM_TO_PX
@@ -79,10 +79,10 @@ class GuiControl:
         pt1 = (width_px - thickness, thickness + self.Y_OFFSET)
         pt2 = (width_px - thickness, height_px - thickness + self.Y_OFFSET)
         pt3 = (thickness, height_px - thickness + self.Y_OFFSET)
-        projection.line_from_to(pt0, pt1, self.img)
-        projection.line_from_to(pt1, pt2, self.img)
-        projection.line_from_to(pt2, pt3, self.img)
-        projection.line_from_to(pt3, pt0, self.img)
+        projection.line_from_to(pt0, pt1, 'red', self.img)
+        projection.line_from_to(pt1, pt2, 'red', self.img)
+        projection.line_from_to(pt2, pt3, 'red', self.img)
+        projection.line_from_to(pt3, pt0, 'red', self.img)
 
 def make_machine_click_handler(machine):
     def handle_click(event, x, y, flags, param):

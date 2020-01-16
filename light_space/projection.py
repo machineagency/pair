@@ -11,15 +11,22 @@ def dot_at(pt, img=None):
     dot_color = (0, 0, 255)
     return cv2.circle(img, pt, radius, dot_color, -1)
 
-def line_from_to(p0, p1, img=None):
+def line_from_to(p0, p1, color_name='red', img=None):
     if img is None:
         img_size_three_channel = GRID_IMG_SIZE + (3,)
         img = np.zeros(img_size_three_channel, np.float32)
+    if color_name == 'white':
+        color = (255, 255, 255)
+    elif color_name == 'green':
+        color = (0, 255, 0)
+    elif color_name == 'red':
+        color = (0, 0, 255)
+    else:
+        color = (255, 255, 255)
     thickness = 5
-    line_color = (0, 0, 255)
     p0 = (int(round(p0[0])), int(round(p0[1])))
     p1 = (int(round(p1[0])), int(round(p1[1])))
-    return cv2.line(img, p0, p1, line_color, thickness, cv2.LINE_AA)
+    return cv2.line(img, p0, p1, color, thickness, cv2.LINE_AA)
 
 def rectangle_at(pt, width, height, img):
     """
