@@ -48,8 +48,8 @@ class GuiControl:
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
 
         self.button_params = {\
-            'start_pt' : (screen_size[1] // 4, screen_size[0] - screen_size[0] // 4),\
-            'gutter' : 50\
+            'start_pt' : (screen_size[1] // 10, screen_size[0] - screen_size[0] // 8),\
+            'gutter' : 75\
         }
 
     def add_bottom_button(self, text, img):
