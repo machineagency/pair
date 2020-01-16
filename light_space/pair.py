@@ -6,7 +6,7 @@ import projection
 class FakeInteraction:
     def __init__(self, img, screen_size, gui_control):
         self.m = Machine(dry=False)
-        self.envelope_hw = (20, 28) # slightly smaller than axidraw envelope
+        self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
         self.img = img
         self.gui_control = gui_control
         self.length = screen_size[1] // 2
@@ -26,6 +26,7 @@ class GuiControl:
         self.img = img
         self.bottom_buttons = []
         self.CM_TO_PX = 37.7952755906
+        self.Y_OFFSET = 20
 
         self.button_params = {\
             'start_pt' : (screen_size[1] // 4, screen_size[0] - screen_size[0] // 4),\
@@ -55,10 +56,11 @@ class GuiControl:
     def calibration_envelope(self, envelope_hw):
         height_px = envelope_hw[0] * self.CM_TO_PX
         width_px = envelope_hw[1] * self.CM_TO_PX
-        pt0 = (3, 3)
-        pt1 = (width_px - 3, 3)
-        pt2 = (width_px - 3, height_px - 3)
-        pt3 = (0, height_px - 3)
+        thickness = 3
+        pt0 = (thickness, thickness + self.Y_OFFSET)
+        pt1 = (width_px - thickness, thickness + self.Y_OFFSET)
+        pt2 = (width_px - thickness, height_px - thickness + self.Y_OFFSET)
+        pt3 = (thickness, height_px - thickness + self.Y_OFFSET)
         projection.line_from_to(pt0, pt1, self.img)
         projection.line_from_to(pt1, pt2, self.img)
         projection.line_from_to(pt2, pt3, self.img)
@@ -73,7 +75,6 @@ def make_machine_click_handler(machine):
             return GRID_IMG_SIZE[1] - y;
 
         # TODO: way of sharing image dimensions
-        ENVELOPE_CM = (20, 28)
         CM_TO_PX = 37.7952755906
 
         if event == cv2.EVENT_LBUTTONDOWN:
@@ -106,6 +107,7 @@ def run_canvas_loop():
     try:
         while True:
             CM_TO_PX = 37.7952755906
+            Y_OFFSET_PX = 20
             pressed_key = cv2.waitKey(1)
 
             # Close window on Escape keypress
@@ -122,7 +124,7 @@ def run_canvas_loop():
                 print(instr)
 
             if pressed_key == ord('e'):
-                pt = (0, 0)
+                pt = (0, Y_OFFSET_PX)
                 instr = machine.plot_rect_hw(pt, ixn.envelope_hw[0],\
                                              ixn.envelope_hw[1])
                 print(instr)
