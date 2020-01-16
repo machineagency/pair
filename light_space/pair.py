@@ -9,17 +9,35 @@ class FakeInteraction:
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
         self.img = img
         self.gui_control = gui_control
+        self.set_cam_color('red')
+        self.set_listening_translate(False)
+
         self.length = screen_size[1] // 2
         self.spacing = screen_size[0] // 5
         self.translate_x = screen_size[1] // 4
         self.translate_y = screen_size[0] // 4
+        self.render()
+
+    def translate(self, x, y):
+        self.translate_x = x
+        self.translate_y = y
+        self.calib_pt = (self.translate_x, self.translate_y)
+        self.render()
+
+    def set_cam_color(self, color_name):
+        self.color_name = color_name
+
+    def set_listening_translate(self, flag):
+        self.listening_translate = flag
+
+    def render(self):
+        self.img = np.zeros(self.img.shape, np.float32)
         for i in range(0, 3):
             start_pt = (self.translate_x, i * self.spacing + self.translate_y)
             end_pt = (self.length + self.translate_x, i * self.spacing + self.translate_y)
-            projection.line_from_to(start_pt, end_pt, self.img)
-        self.calib_pt = (self.translate_x, self.translate_y)
-        gui_control.calibration_square(self.calib_pt, 2)
-        gui_control.calibration_envelope(self.envelope_hw)
+            projection.line_from_to(start_pt, end_pt, self.color_name, self.img)
+        self.gui_control.calibration_envelope(self.envelope_hw)
+        cv2.imshow('Projection', self.img)
 
 class GuiControl:
     def __init__(self, img, screen_size):
