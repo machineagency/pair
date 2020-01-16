@@ -84,7 +84,7 @@ class GuiControl:
         projection.line_from_to(pt2, pt3, 'red', self.img)
         projection.line_from_to(pt3, pt0, 'red', self.img)
 
-def make_machine_click_handler(machine):
+def make_machine_ixn_click_handler(machine, ixn):
     def handle_click(event, x, y, flags, param):
         def invert_y(y):
             """
@@ -95,13 +95,20 @@ def make_machine_click_handler(machine):
         # TODO: way of sharing image dimensions
         CM_TO_PX = 37.7952755906
 
-        if event == cv2.EVENT_LBUTTONDOWN:
-            scaled_x = x / CM_TO_PX
-            scaled_y = y / CM_TO_PX
-            scaled_x = round(scaled_x, 2)
-            scaled_y = round(scaled_y, 2)
-            instr = machine.travel((scaled_x, scaled_y))
-            print(instr)
+        if ixn.listening_translate:
+            if event == cv2.EVENT_LBUTTONDOWN:
+                ixn.translate(x, y)
+                ixn.set_cam_color('red')
+                ixn.set_listening_translate(False)
+                ixn.render()
+        else:
+            if event == cv2.EVENT_LBUTTONDOWN:
+                scaled_x = x / CM_TO_PX
+                scaled_y = y / CM_TO_PX
+                scaled_x = round(scaled_x, 2)
+                scaled_y = round(scaled_y, 2)
+                instr = machine.travel((scaled_x, scaled_y))
+                print(instr)
 
     return handle_click
 
@@ -119,9 +126,9 @@ def run_canvas_loop():
     ixn = FakeInteraction(img, PROJ_SCREEN_SIZE_HW, gui)
 
     machine = Machine(dry=False)
-    handle_click = make_machine_click_handler(machine)
+    handle_click = make_machine_ixn_click_handler(machine, ixn)
     cv2.setMouseCallback(window_name, handle_click)
-    cv2.imshow(window_name, img)
+    cv2.imshow(window_name, ixn.img)
 
     try:
         while True:
@@ -132,6 +139,11 @@ def run_canvas_loop():
             # Close window on Escape keypress
             if pressed_key == 27:
                 break
+
+            if pressed_key == ord('t'):
+                ixn.set_listening_translate(True)
+                ixn.set_cam_color('green')
+                ixn.render()
 
             if pressed_key == ord('b'):
                 gui.add_bottom_button('translate')
@@ -148,7 +160,6 @@ def run_canvas_loop():
                                              ixn.envelope_hw[1])
                 print(instr)
 
-            cv2.imshow("Projection", img)
     finally:
         cv2.destroyAllWindows()
         machine.return_to_origin()
