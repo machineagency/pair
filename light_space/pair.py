@@ -11,6 +11,7 @@ class FakeInteraction:
         self.gui = gui
         self.set_cam_color('red')
         self.set_listening_translate(False)
+        self.set_listening_spacing(False)
 
         # Set arbitrary CAM data
         self.length = screen_size[1] // 2
@@ -31,6 +32,9 @@ class FakeInteraction:
 
     def set_listening_translate(self, flag):
         self.listening_translate = flag
+
+    def set_listening_spacing(self, flag):
+        self.listening_spacing = flag
 
     def render(self):
         self.img = np.zeros(self.img.shape, np.float32)
@@ -149,12 +153,28 @@ def run_canvas_loop():
             if pressed_key == 27:
                 break
 
+            if pressed_key == ord('=') and ixn.listening_spacing:
+                ixn.spacing += 10
+                ixn.render()
+
+            if pressed_key == ord('-') and ixn.listening_spacing:
+                ixn.spacing -= 10
+                ixn.render()
+
+            if pressed_key == ord('s'):
+                ixn.set_listening_spacing(not ixn.listening_spacing)
+                if ixn.listening_spacing:
+                    ixn.set_cam_color('green')
+                else:
+                    ixn.set_cam_color('red')
+                ixn.render()
+
             if pressed_key == ord('t'):
                 ixn.set_listening_translate(True)
                 ixn.set_cam_color('green')
                 ixn.render()
 
-            if pressed_key == ord('s'):
+            if pressed_key == ord('q'):
                 pt = (ixn.calib_pt[0] / CM_TO_PX, ixn.calib_pt[1] / CM_TO_PX)
                 instr = machine.plot_rect_hw(pt, 2, 2)
                 print(instr)
