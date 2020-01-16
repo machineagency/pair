@@ -94,8 +94,9 @@ def run_canvas_loop():
     img_size_three_channel = PROJ_SCREEN_SIZE_HW + (3,)
     img = np.zeros(img_size_three_channel, np.float32)
     window_name = 'Projection'
-    cv2.namedWindow(window_name)
-    cv2.moveWindow(window_name, MAC_SCREEN_SIZE_HW[1] + SCREEN_W_EPS, 0)
+    cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
+    cv2.moveWindow(window_name, MAC_SCREEN_SIZE_HW[1], 0)
+    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     gui = GuiControl(img, PROJ_SCREEN_SIZE_HW)
     ixn = FakeInteraction(img, PROJ_SCREEN_SIZE_HW, gui)
 
