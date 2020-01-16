@@ -9,6 +9,7 @@ import projection
 class FakeInteraction:
     def __init__(self, img, screen_size, gui_control):
         self.m = Machine(dry=False)
+        self.envelope_hw = (10, 15)
         self.img = img
         self.gui_control = gui_control
         self.length = screen_size[1] // 2
@@ -21,11 +22,13 @@ class FakeInteraction:
             projection.line_from_to(start_pt, end_pt, self.img)
         self.calib_pt = (self.translate_x, self.translate_y)
         gui_control.calibration_square(self.calib_pt, 2)
+        gui_control.calibration_envelope(self.envelope_hw)
 
 class GuiControl:
     def __init__(self, img, screen_size):
         self.img = img
         self.bottom_buttons = []
+        self.CM_TO_PX = 37.7952755906
 
         self.button_params = {\
             'start_pt' : (screen_size[1] // 4, screen_size[0] - screen_size[0] // 4),\
@@ -43,8 +46,7 @@ class GuiControl:
         self.bottom_buttons.append((rect_obj, text_obj))
 
     def calibration_square(self, start_pt, length):
-        CM_TO_PX = 37.7952755906
-        length *= CM_TO_PX
+        length *= self.CM_TO_PX
         pt1 = (start_pt[0] + length, start_pt[1])
         pt2 = (start_pt[0] + length, start_pt[1] + length)
         pt3 = (start_pt[0], start_pt[1] + length)
@@ -52,6 +54,18 @@ class GuiControl:
         projection.line_from_to(pt1, pt2, self.img)
         projection.line_from_to(pt2, pt3, self.img)
         projection.line_from_to(pt3, start_pt, self.img)
+
+    def calibration_envelope(self, envelope_hw):
+        height_px = envelope_hw[0] * self.CM_TO_PX
+        width_px = envelope_hw[1] * self.CM_TO_PX
+        pt0 = (3, 3)
+        pt1 = (width_px - 3, 3)
+        pt2 = (width_px - 3, height_px - 3)
+        pt3 = (0, height_px - 3)
+        projection.line_from_to(pt0, pt1, self.img)
+        projection.line_from_to(pt1, pt2, self.img)
+        projection.line_from_to(pt2, pt3, self.img)
+        projection.line_from_to(pt3, pt0, self.img)
 
 def make_machine_click_handler(machine):
     def handle_click(event, x, y, flags, param):
@@ -61,13 +75,8 @@ def make_machine_click_handler(machine):
             """
             return GRID_IMG_SIZE[1] - y;
 
-        # TODO: this will need to match work envelope somehow
-        PRINT_BED_MAX_X = 30
-        PRINT_BED_MAX_Y = 20
-        SCALING = 0.1
-
         # TODO: way of sharing image dimensions
-        GRID_IMG_SIZE = (720, 1280)
+        ENVELOPE_CM = (15, 20)
         CM_TO_PX = 37.7952755906
 
         if event == cv2.EVENT_LBUTTONDOWN:
