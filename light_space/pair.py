@@ -4,14 +4,15 @@ from machine import Machine
 import projection
 
 class FakeInteraction:
-    def __init__(self, img, screen_size, gui_control):
+    def __init__(self, img, screen_size, gui):
         self.m = Machine(dry=False)
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
         self.img = img
-        self.gui_control = gui_control
+        self.gui = gui
         self.set_cam_color('red')
         self.set_listening_translate(False)
 
+        # Set arbitrary CAM data
         self.length = screen_size[1] // 2
         self.spacing = screen_size[0] // 5
         self.translate_x = screen_size[1] // 4
@@ -36,42 +37,42 @@ class FakeInteraction:
             start_pt = (self.translate_x, i * self.spacing + self.translate_y)
             end_pt = (self.length + self.translate_x, i * self.spacing + self.translate_y)
             projection.line_from_to(start_pt, end_pt, self.color_name, self.img)
-        self.gui_control.calibration_envelope(self.envelope_hw)
+        self.gui.render_gui(self.img)
         cv2.imshow('Projection', self.img)
 
 class GuiControl:
-    def __init__(self, img, screen_size):
-        self.img = img
+    def __init__(self, screen_size):
         self.bottom_buttons = []
         self.CM_TO_PX = 37.7952755906
         self.Y_OFFSET = 20
+        self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
 
         self.button_params = {\
             'start_pt' : (screen_size[1] // 4, screen_size[0] - screen_size[0] // 4),\
             'gutter' : 50\
         }
 
-    def add_bottom_button(self, text):
+    def add_bottom_button(self, text, img):
         text_size = projection.find_text_size(text)
         x_offset = len(self.bottom_buttons) *\
                    (text_size[0] + self.button_params['gutter'])
         pt = (self.button_params['start_pt'][0] + x_offset,\
               self.button_params['start_pt'][1])
-        rect_obj = projection.rectangle_at(pt, text_size[0], text_size[1], self.img)
-        text_obj = projection.text_at(text, pt, 'black', self.img)
+        rect_obj = projection.rectangle_at(pt, text_size[0], text_size[1], img)
+        text_obj = projection.text_at(text, pt, 'black', img)
         self.bottom_buttons.append((rect_obj, text_obj))
 
-    def calibration_square(self, start_pt, length):
+    def calibration_square(self, start_pt, length, img):
         length *= self.CM_TO_PX
         pt1 = (start_pt[0] + length, start_pt[1])
         pt2 = (start_pt[0] + length, start_pt[1] + length)
         pt3 = (start_pt[0], start_pt[1] + length)
-        projection.line_from_to(start_pt, pt1, 'white', self.img)
-        projection.line_from_to(pt1, pt2, 'white', self.img)
-        projection.line_from_to(pt2, pt3, 'white', self.img)
-        projection.line_from_to(pt3, start_pt, 'white', self.img)
+        projection.line_from_to(start_pt, pt1, 'white', img)
+        projection.line_from_to(pt1, pt2, 'white', img)
+        projection.line_from_to(pt2, pt3, 'white', img)
+        projection.line_from_to(pt3, start_pt, 'white', img)
 
-    def calibration_envelope(self, envelope_hw):
+    def calibration_envelope(self, envelope_hw, img):
         height_px = envelope_hw[0] * self.CM_TO_PX
         width_px = envelope_hw[1] * self.CM_TO_PX
         thickness = 3
@@ -79,10 +80,17 @@ class GuiControl:
         pt1 = (width_px - thickness, thickness + self.Y_OFFSET)
         pt2 = (width_px - thickness, height_px - thickness + self.Y_OFFSET)
         pt3 = (thickness, height_px - thickness + self.Y_OFFSET)
-        projection.line_from_to(pt0, pt1, 'red', self.img)
-        projection.line_from_to(pt1, pt2, 'red', self.img)
-        projection.line_from_to(pt2, pt3, 'red', self.img)
-        projection.line_from_to(pt3, pt0, 'red', self.img)
+        projection.line_from_to(pt0, pt1, 'red', img)
+        projection.line_from_to(pt1, pt2, 'red', img)
+        projection.line_from_to(pt2, pt3, 'red', img)
+        projection.line_from_to(pt3, pt0, 'red', img)
+
+    def render_gui(self, img):
+        # TODO: split storage and rendering, not this
+        # too tired to do rn
+        self.add_bottom_button('translate', img)
+        self.add_bottom_button('spacing', img)
+        self.calibration_envelope(self.envelope_hw, img)
 
 def make_machine_ixn_click_handler(machine, ixn):
     def handle_click(event, x, y, flags, param):
@@ -122,7 +130,7 @@ def run_canvas_loop():
     cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
     cv2.moveWindow(window_name, MAC_SCREEN_SIZE_HW[1], 0)
     cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-    gui = GuiControl(img, PROJ_SCREEN_SIZE_HW)
+    gui = GuiControl(PROJ_SCREEN_SIZE_HW)
     ixn = FakeInteraction(img, PROJ_SCREEN_SIZE_HW, gui)
 
     machine = Machine(dry=False)
@@ -144,10 +152,6 @@ def run_canvas_loop():
                 ixn.set_listening_translate(True)
                 ixn.set_cam_color('green')
                 ixn.render()
-
-            if pressed_key == ord('b'):
-                gui.add_bottom_button('translate')
-                gui.add_bottom_button('spacing')
 
             if pressed_key == ord('s'):
                 pt = (ixn.calib_pt[0] / CM_TO_PX, ixn.calib_pt[1] / CM_TO_PX)
