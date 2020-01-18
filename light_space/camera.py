@@ -4,7 +4,7 @@ import numpy as np
 def process_image(img_path):
     img = cv2.imread(img_path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    img = cv2.blur(img, (3, 3))
+    img = cv2.GaussianBlur(img, (11, 11), 1, 1)
     # _, img = cv2.threshold(img, 150, 255, cv2.THRESH_BINARY)
     img = cv2.Canny(img, 50, 80)
     return img
