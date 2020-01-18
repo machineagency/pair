@@ -26,17 +26,33 @@ def draw_hough_lines(edge_img, out_img):
         y2 = line[0][3]
         cv2.line(out_img,(x1, y1),(x2, y2), (0, 255, 0), 2)
 
+def calc_contours(edge_img):
+    contours, hierarchy = cv2.findContours(edge_img, cv2.RETR_TREE,\
+                                           cv2.CHAIN_APPROX_SIMPLE)
+    return contours
+
+def find_work_env_in_contours(contours):
+    # TODO: contour 1 is not always the rectangle, but roll with it for now
+    rect_contour = contours[1]
+    # cv2.drawContours(img_orig, [rect_contour], 0, (0, 255, 0), 1)
+    MAX_DIST = 100
+    work_env_contour = cv2.approxPolyDP(rect_contour, MAX_DIST, True)
+    if len(work_env_contour) > 4:
+        # TODO: increase max dist if this happens, or something.
+        print(f'Warning: work env contour has {len(work_env_contour)} points')
+    return work_env_contour
+
 def run_camera_loop(img_path):
     img_orig = cv2.imread(img_path)
     img = process_image(img_path)
     window_name = 'Camera'
     cv2.namedWindow(window_name)
-
-    contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE,\
-                                           cv2.CHAIN_APPROX_SIMPLE)
-    cv2.drawContours(img_orig, contours, -1, (0, 255, 0), 1)
+    contours = calc_contours(img)
+    work_env_contour = find_work_env_in_contours(contours)
+    cv2.drawContours(img_orig, [work_env_contour], 0, (0, 255, 0), 1)
 
     cv2.imshow(window_name, img_orig)
+    # cv2.imshow("edges", img)
     while True:
         pressed_key = cv2.waitKey(1)
 
