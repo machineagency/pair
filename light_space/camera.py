@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from scipy.spatial.distance import euclidean as dist
 
 def process_image(img_path):
     img = cv2.imread(img_path)
@@ -53,22 +54,49 @@ def find_work_env_in_contours(contours):
         return candidate
 
     rect_contour = select_contour(contours)
-    print(rect_contour)
     if len(rect_contour) > 4:
         # TODO: increase max dist if this happens, or something.
-        print(f'Warning: work env contour has {len(work_env_contour)} points')
+        raise ValueError('Cannot find a contour with four points.')
     return rect_contour
 
 def crop_and_warp_to_env(raw_img, env_corner_points, out_shape):
-    # TODO: env contour order must match the image corner points'
+    def order_contour_points(contour_pts, img_contour):
+        """
+        Returns a new contour (assuming 4 points) with points in the order:
+        top right, top left (origin), bottom left, bottom right.
+        """
+        img_height, img_width, _ = img_contour.shape
+        abs_upper_left = np.array([0, 0])
+        abs_upper_right = np.array([0, img_width])
+        dists_upper_left = [dist(pt, abs_upper_left) \
+                                for pt in contour_pts]
+        dists_upper_right = [dist(pt, abs_upper_right) \
+                                for pt in contour_pts]
+
+        idx_upper_left = np.argmin(dists_upper_left)
+        idx_upper_right = np.argmin(dists_upper_right)
+        idx_lower_left = np.argmax(dists_upper_right)
+        idx_lower_right = np.argmax(dists_upper_left)
+
+        return [contour_pts[idx_upper_right], contour_pts[idx_upper_left], \
+                contour_pts[idx_lower_left], contour_pts[idx_lower_right]]
+
     def get_img_corner_pts(img):
+        """
+        Returns corner points in pixels of image in the following order:
+        top right, top left (origin), bottom left, bottom right.
+        """
         img_height, img_width = img.shape
         return [np.array([img_width, 0]), \
                 np.array([0, 0]), \
                 np.array([0, img_height]), \
                 np.array([img_width, img_height])]
+
+    if len(env_corner_points) != 4:
+        raise ValueError('Cannot crop with non-four-point contour.')
     output_img = np.zeros(out_shape)
     out_img_corners = get_img_corner_pts(output_img)
+    ordered_env_corner_pts = order_contour_points(env_corner_points, raw_img)
     h, status = cv2.findHomography(np.array(env_corner_points, np.float32), \
                                    np.array(out_img_corners, np.float32))
     return cv2.warpPerspective(raw_img, h, (out_shape[1], \
