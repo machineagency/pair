@@ -59,7 +59,23 @@ def find_work_env_in_contours(contours):
         print(f'Warning: work env contour has {len(work_env_contour)} points')
     return rect_contour
 
+def crop_and_warp_to_env(raw_img, env_corner_points, out_shape):
+    # TODO: env contour order must match the image corner points'
+    def get_img_corner_pts(img):
+        img_height, img_width = img.shape
+        return [np.array([img_width, 0]), \
+                np.array([0, 0]), \
+                np.array([0, img_height]), \
+                np.array([img_width, img_height])]
+    output_img = np.zeros(out_shape)
+    out_img_corners = get_img_corner_pts(output_img)
+    h, status = cv2.findHomography(np.array(env_corner_points, np.float32), \
+                                   np.array(out_img_corners, np.float32))
+    return cv2.warpPerspective(raw_img, h, (out_shape[1], \
+                                            out_shape[0]))
+
 def run_camera_loop(img_path):
+    PROJ_SCREEN_SIZE_HW = (720, 1280)
     img_orig = cv2.imread(img_path)
     img = process_image(img_path)
     window_name = 'Camera'
@@ -67,9 +83,11 @@ def run_camera_loop(img_path):
     contours = calc_contours(img)
     work_env_contour = find_work_env_in_contours(contours)
     cv2.drawContours(img_orig, [work_env_contour], 0, (0, 255, 0), 1)
+    img_crop = crop_and_warp_to_env(img_orig, work_env_contour, PROJ_SCREEN_SIZE_HW)
 
     cv2.imshow(window_name, img_orig)
     # cv2.imshow("edges", img)
+    cv2.imshow("crop", img_crop)
     while True:
         pressed_key = cv2.waitKey(1)
 
