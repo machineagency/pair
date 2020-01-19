@@ -32,15 +32,32 @@ def calc_contours(edge_img):
     return contours
 
 def find_work_env_in_contours(contours):
-    # TODO: contour 1 is not always the rectangle, but roll with it for now
-    rect_contour = contours[1]
-    # cv2.drawContours(img_orig, [rect_contour], 0, (0, 255, 0), 1)
-    MAX_DIST = 100
-    work_env_contour = cv2.approxPolyDP(rect_contour, MAX_DIST, True)
-    if len(work_env_contour) > 4:
+    def select_contour(contours):
+        MAX_DIST = 100
+        decimated_contours = list(map(lambda c: cv2.approxPolyDP(c,\
+                                        MAX_DIST, True), contours))
+        four_pt_contours = list(filter(lambda c: len(c) == 4, decimated_contours))
+        max_area = 0
+        candidate = None
+        for contour in four_pt_contours:
+            # Assumes points are ordered circularly
+            contour = contour.reshape((4, 2))
+            a = [contour[0][0] - contour[1][0],\
+                 contour[0][1] - contour[1][1]]
+            b = [contour[0][0] - contour[3][0],\
+                 contour[0][1] - contour[3][1]]
+            area = abs(np.cross(a, b))
+            if area > max_area:
+                candidate = contour
+                max_area = area
+        return candidate
+
+    rect_contour = select_contour(contours)
+    print(rect_contour)
+    if len(rect_contour) > 4:
         # TODO: increase max dist if this happens, or something.
         print(f'Warning: work env contour has {len(work_env_contour)} points')
-    return work_env_contour
+    return rect_contour
 
 def run_camera_loop(img_path):
     img_orig = cv2.imread(img_path)
