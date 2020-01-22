@@ -62,7 +62,7 @@ def find_work_env_in_contours(contours):
         raise ValueError('Cannot find a contour with four points.')
     return rect_contour
 
-def crop_and_warp_to_env(raw_img, env_corner_points, out_shape):
+def calc_work_env_homog(raw_img, env_corner_points, out_shape):
     def order_contour_points(contour_pts, img_contour):
         """
         Returns a new contour (assuming 4 points) with points in the order:
@@ -102,8 +102,10 @@ def crop_and_warp_to_env(raw_img, env_corner_points, out_shape):
     ordered_env_corner_pts = order_contour_points(env_corner_points, raw_img)
     h, status = cv2.findHomography(np.array(env_corner_points, np.float32), \
                                    np.array(out_img_corners, np.float32))
-    return cv2.warpPerspective(raw_img, h, (out_shape[1], \
-                                            out_shape[0]))
+    return h
+
+def transform_contour_with_h(contour, h):
+    pass
 
 def run_camera_loop(img_path):
     PROJ_SCREEN_SIZE_HW = (720, 1280)
@@ -114,7 +116,10 @@ def run_camera_loop(img_path):
     contours = calc_contours(img)
     work_env_contour = find_work_env_in_contours(contours)
     cv2.drawContours(img_orig, [work_env_contour], 0, (0, 255, 0), 3)
-    img_crop = crop_and_warp_to_env(img_orig, work_env_contour, PROJ_SCREEN_SIZE_HW)
+
+    work_env_homog = calc_work_env_homog(img_orig, work_env_contour, PROJ_SCREEN_SIZE_HW)
+    img_crop = cv2.warpPerspective(img_orig, work_env_homog, (PROJ_SCREEN_SIZE_HW[1],\
+                                   PROJ_SCREEN_SIZE_HW[0]))
     img_crop_volatile = img_crop.copy()
 
     cv2.imshow(window_name, img_orig)
