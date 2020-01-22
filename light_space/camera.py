@@ -110,17 +110,26 @@ def run_camera_loop(img_path):
     cv2.namedWindow(window_name)
     contours = calc_contours(img)
     work_env_contour = find_work_env_in_contours(contours)
-    cv2.drawContours(img_orig, [work_env_contour], 0, (0, 255, 0), 1)
+    cv2.drawContours(img_orig, [work_env_contour], 0, (0, 255, 0), 3)
     img_crop = crop_and_warp_to_env(img_orig, work_env_contour, PROJ_SCREEN_SIZE_HW)
+    img_crop_volatile = img_crop.copy()
 
     cv2.imshow(window_name, img_orig)
     # cv2.imshow("edges", img)
     cv2.imshow("crop", img_crop)
+    curr_contour_idx = 0
     while True:
         pressed_key = cv2.waitKey(1)
 
         if pressed_key == 27:
             break
+
+        if pressed_key == ord('n'):
+            img_crop_volatile = img_crop.copy()
+            cv2.drawContours(img_crop_volatile, contours, curr_contour_idx, (255, 0, 0), 1)
+            curr_contour_idx = (curr_contour_idx + 1) % len(contours)
+            cv2.imshow('crop', img_crop_volatile)
+            print(f'Showing contour {curr_contour_idx}')
 
     cv2.destroyAllWindows()
 
