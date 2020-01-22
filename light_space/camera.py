@@ -32,11 +32,14 @@ def calc_contours(edge_img):
                                            cv2.CHAIN_APPROX_SIMPLE)
     return contours
 
+def decimate_contours(contours):
+    MAX_DIST = 100
+    return list(map(lambda c: cv2.approxPolyDP(c,\
+                    MAX_DIST, True), contours))
+
 def find_work_env_in_contours(contours):
     def select_contour(contours):
-        MAX_DIST = 100
-        decimated_contours = list(map(lambda c: cv2.approxPolyDP(c,\
-                                        MAX_DIST, True), contours))
+        decimated_contours = decimate_contours(contours)
         four_pt_contours = list(filter(lambda c: len(c) == 4, decimated_contours))
         max_area = 0
         candidate = None
@@ -125,11 +128,13 @@ def run_camera_loop(img_path):
             break
 
         if pressed_key == ord('n'):
+            decimated_contours = decimate_contours(contours)
             img_crop_volatile = img_crop.copy()
-            cv2.drawContours(img_crop_volatile, contours, curr_contour_idx, (255, 0, 0), 1)
-            curr_contour_idx = (curr_contour_idx + 1) % len(contours)
+            cv2.drawContours(img_crop_volatile, decimated_contours,\
+                             curr_contour_idx, (255, 0, 0), 1)
+            curr_contour_idx = (curr_contour_idx + 1) % len(decimated_contours)
             cv2.imshow('crop', img_crop_volatile)
-            print(f'Showing contour {curr_contour_idx}')
+            # print(f'Showing contour {curr_contour_idx}')
 
     cv2.destroyAllWindows()
 
