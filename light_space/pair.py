@@ -13,6 +13,7 @@ class FakeInteraction:
         self.set_cam_color('red')
         self.set_listening_translate(False)
         self.set_listening_spacing(False)
+        self.canditate_contours = []
 
         # Set arbitrary CAM data
         self.length = screen_size[1] // 2
@@ -37,12 +38,19 @@ class FakeInteraction:
     def set_listening_spacing(self, flag):
         self.listening_spacing = flag
 
+    def set_candidate_contours(self, contours):
+        self.canditate_contours = contours
+
+    def _draw_contours_to_img(self, contours, img):
+        cv2.drawContours(img, contours, -1, (255, 0, 0), 1)
+
     def render(self):
         self.img = np.zeros(self.img.shape, np.float32)
         for i in range(0, 3):
             start_pt = (self.translate_x, i * self.spacing + self.translate_y)
             end_pt = (self.length + self.translate_x, i * self.spacing + self.translate_y)
             projection.line_from_to(start_pt, end_pt, self.color_name, self.img)
+        self._draw_contours_to_img(self.canditate_contours, self.img)
         self.gui.render_gui(self.img)
         cv2.imshow('Projection', self.img)
 
@@ -207,8 +215,10 @@ def run_canvas_loop():
                 machine.line(end_pt)
                 machine.pen_up()
 
-            if pressed_key == ord('i'):
-                pass
+            if pressed_key == ord('c'):
+                camera.calc_candidate_contours()
+                ixn.set_candidate_contours(camera.candidate_contours)
+                ixn.render()
 
     finally:
         cv2.destroyAllWindows()

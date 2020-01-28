@@ -151,14 +151,33 @@ def run_camera_loop(img_path):
 # TODO: actually put functions into Camera class to export
 class Camera:
     def __init__(self):
+        self.PROJ_SCREEN_SIZE_HW = (720, 1280)
         self.path = 'test_images/work_env_lines.jpg'
+        self.img_orig = cv2.imread(self.path)
         self.contours = []
 
-    def calc_candidate_contours(self):
-        pass
+    def _process_image(self):
+        img = cv2.imread(self.path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img = cv2.GaussianBlur(img, (11, 11), 1, 1)
+        # _, img = cv2.threshold(img, 150, 255, cv2.THRESH_BINARY)
+        img = cv2.Canny(img, 50, 80)
+        return img
 
-    def write_contours_to_canvas(self, canv_img):
-        pass
+    def calc_candidate_contours(self):
+        img = self._process_image()
+        contours = calc_contours(img)
+        work_env_contour = find_work_env_in_contours(contours)
+        work_env_homog = calc_work_env_homog(self.img_orig, work_env_contour,\
+                                             self.PROJ_SCREEN_SIZE_HW)
+        decimated_contours = decimate_contours(contours)
+        trans_contours = list(map(lambda c: transform_contour_with_h(c,\
+                                work_env_homog), decimated_contours))
+        self.contours = trans_contours
+
+    @property
+    def candidate_contours(self):
+        return self.contours
 
     def user_vote_contours(self):
         # TODO: how to let user delete bad ones?
