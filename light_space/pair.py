@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from machine import Machine
+from camera import Camera
 import projection
 
 class FakeInteraction:
@@ -139,6 +140,7 @@ def run_canvas_loop():
     ixn = FakeInteraction(img, PROJ_SCREEN_SIZE_HW, gui)
 
     machine = Machine(dry=False)
+    camera = Camera()
     handle_click = make_machine_ixn_click_handler(machine, ixn)
     cv2.setMouseCallback(window_name, handle_click)
     cv2.imshow(window_name, ixn.img)
@@ -204,6 +206,9 @@ def run_canvas_loop():
                 machine.travel(start_pt)
                 machine.line(end_pt)
                 machine.pen_up()
+
+            if pressed_key == ord('i'):
+                pass
 
     finally:
         cv2.destroyAllWindows()

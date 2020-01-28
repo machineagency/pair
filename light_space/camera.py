@@ -148,6 +148,22 @@ def run_camera_loop(img_path):
 
     cv2.destroyAllWindows()
 
+# TODO: actually put functions into Camera class to export
+class Camera:
+    def __init__(self):
+        self.path = 'test_images/work_env_lines.jpg'
+        self.contours = []
+
+    def calc_candidate_contours(self):
+        pass
+
+    def write_contours_to_canvas(self, canv_img):
+        pass
+
+    def user_vote_contours(self):
+        # TODO: how to let user delete bad ones?
+        pass
+
 def main():
     run_camera_loop('./test_images/work_env_lines.jpg')
 
