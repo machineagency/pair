@@ -105,7 +105,9 @@ def calc_work_env_homog(raw_img, env_corner_points, out_shape):
     return h
 
 def transform_contour_with_h(contour, h):
-    pass
+    contour_float = np.array(contour).astype(np.float32)
+    trans = cv2.perspectiveTransform(contour_float, h)
+    return trans.astype(np.int32)
 
 def run_camera_loop(img_path):
     PROJ_SCREEN_SIZE_HW = (720, 1280)
@@ -126,6 +128,8 @@ def run_camera_loop(img_path):
     # cv2.imshow("edges", img)
     cv2.imshow("crop", img_crop)
     curr_contour_idx = 0
+    decimated_contours = decimate_contours(contours)
+
     while True:
         pressed_key = cv2.waitKey(1)
 
@@ -133,10 +137,11 @@ def run_camera_loop(img_path):
             break
 
         if pressed_key == ord('n'):
-            decimated_contours = decimate_contours(contours)
             img_crop_volatile = img_crop.copy()
-            cv2.drawContours(img_crop_volatile, decimated_contours,\
-                             curr_contour_idx, (255, 0, 0), 1)
+            curr_contour = decimated_contours[curr_contour_idx]
+            trans_contour = transform_contour_with_h(curr_contour, work_env_homog)
+            cv2.drawContours(img_crop_volatile, [trans_contour],\
+                             0, (255, 0, 0), 1)
             curr_contour_idx = (curr_contour_idx + 1) % len(decimated_contours)
             cv2.imshow('crop', img_crop_volatile)
             # print(f'Showing contour {curr_contour_idx}')
