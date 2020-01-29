@@ -196,7 +196,7 @@ class Camera:
         pass
 
 def main():
-    run_camera_loop('./test_images/work_env_lines.jpg')
+    run_camera_loop('./test_images/form.png')
 
 if __name__ == '__main__':
     main()
