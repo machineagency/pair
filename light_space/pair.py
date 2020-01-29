@@ -21,6 +21,7 @@ class Interaction:
         self.pt_mdown = (0, 0)
         self.pt_mdrag = (0, 0)
         self.set_drawing_sel_box(False)
+        self.curr_sel_contour = None
 
         # Set arbitrary CAM data
         self.length = screen_size[1] // 2
@@ -61,8 +62,12 @@ class Interaction:
             signed_dist = cv2.pointPolygonTest(contour, pt, measureDist=True)
             if abs(signed_dist) <= eps_px:
                 selected_contours.append(contour)
-        print(len(selected_contours))
-        return len(selected_contours)
+        max_len = 0
+        optimal_contour = None
+        for c in selected_contours:
+            if cv2.arcLength(c, closed=True) >= max_len:
+                optimal_contour = c
+        return optimal_contour
 
     def _draw_contours_to_img(self, contours, img):
         translated_contours = list(map(lambda c: np.copy(c), contours))
@@ -79,9 +84,10 @@ class Interaction:
             projection.line_from_to(start_pt, end_pt, self.color_name, self.img)
         self._draw_contours_to_img(self.canditate_contours, self.img)
         self.gui.render_gui(self.img)
-        # TODO: selection line--make box and functionalize
         if self.drawing_sel_box:
             projection.rectangle_from_to(self.pt_mdown, self.pt_mdrag, 'white', self.img)
+        if self.curr_sel_contour is not None:
+            cv2.drawContours(self.img, [self.curr_sel_contour], 0, (255, 255, 255), 3)
         cv2.imshow('Projection', self.img)
 
 class GuiControl:
@@ -176,7 +182,9 @@ def make_machine_ixn_click_handler(machine, ixn):
                 ixn.pt_mdrag = (0, 0)
                 ixn.set_drawing_sel_box(False)
                 ixn.render()
-            ixn.select_contour_at_point((x, y))
+
+            ixn.curr_sel_contour = ixn.select_contour_at_point((x, y))
+            ixn.render()
 
     return handle_click
 
