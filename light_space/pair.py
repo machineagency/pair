@@ -171,15 +171,23 @@ def run_canvas_loop():
             CM_TO_PX = 37.7952755906
             pressed_key = cv2.waitKey(1)
 
-            # Close window on Escape keypress
             if pressed_key == 27:
+                """
+                Close window on Escape keypress.
+                """
                 break
 
             if pressed_key == ord('=') and ixn.listening_spacing:
+                """
+                If spacing adjustment mode on, increase spacing.
+                """
                 ixn.spacing += 10
                 ixn.render()
 
             if pressed_key == ord('-') and ixn.listening_spacing:
+                """
+                If spacing adjustment mode on, reduce spacing.
+                """
                 ixn.spacing -= 10
                 ixn.render()
 
@@ -219,11 +227,17 @@ def run_canvas_loop():
                 ixn.render()
 
             if pressed_key == ord('q'):
+                """
+                Calibration square.
+                """
                 pt = (ixn.calib_pt[0] / CM_TO_PX, ixn.calib_pt[1] / CM_TO_PX)
                 instr = machine.plot_rect_hw(pt, 2, 2)
                 print(instr)
 
             if pressed_key == ord('e'):
+                """
+                Machine draws work envelope.
+                """
                 pt = (0, ixn.Y_OFFSET_PX / CM_TO_PX)
                 instr = machine.plot_rect_hw(pt, ixn.envelope_hw[0],\
                                              ixn.envelope_hw[1])
@@ -231,6 +245,9 @@ def run_canvas_loop():
 
             if pressed_key == ord('0') or pressed_key == ord('1')\
                 or pressed_key == ord('2'):
+                """
+                Draw line number 0, 1, or 2.
+                """
                 # Exit any edit mode first
                 ixn.set_listening_translate(False)
                 ixn.set_listening_spacing(False)
@@ -248,6 +265,9 @@ def run_canvas_loop():
                 machine.pen_up()
 
             if pressed_key == ord('c'):
+                """
+                Show candidate contours from camera feed.
+                """
                 camera.calc_candidate_contours(ixn.envelope_hw)
                 ixn.set_candidate_contours(camera.candidate_contours)
                 ixn.render()
