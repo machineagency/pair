@@ -6,6 +6,7 @@ import projection
 
 class Interaction:
     def __init__(self, img, screen_size, gui):
+        self.Y_OFFSET_PX = 20
         self.m = Machine(dry=False)
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
         self.img = img
@@ -42,7 +43,13 @@ class Interaction:
         self.canditate_contours = contours
 
     def _draw_contours_to_img(self, contours, img):
-        cv2.drawContours(img, contours, -1, (255, 0, 0), 1)
+        # translate_lambda = lambda c:
+        # translated_contours = list(map(translate_lambda, contours))
+        translated_contours = contours.copy()
+        for c in translated_contours:
+            for p in c:
+                p += np.array([0, self.Y_OFFSET_PX])
+        cv2.drawContours(img, translated_contours, -1, (255, 0, 0), 1)
 
     def render(self):
         self.img = np.zeros(self.img.shape, np.float32)
@@ -156,7 +163,6 @@ def run_canvas_loop():
     try:
         while True:
             CM_TO_PX = 37.7952755906
-            Y_OFFSET_PX = 20
             pressed_key = cv2.waitKey(1)
 
             # Close window on Escape keypress
@@ -192,7 +198,7 @@ def run_canvas_loop():
                 print(instr)
 
             if pressed_key == ord('e'):
-                pt = (0, Y_OFFSET_PX / CM_TO_PX)
+                pt = (0, ixn.Y_OFFSET_PX / CM_TO_PX)
                 instr = machine.plot_rect_hw(pt, ixn.envelope_hw[0],\
                                              ixn.envelope_hw[1])
                 print(instr)
