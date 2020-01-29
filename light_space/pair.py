@@ -54,6 +54,16 @@ class Interaction:
     def set_candidate_contours(self, contours):
         self.canditate_contours = contours
 
+    def select_contour_at_point(self, pt):
+        selected_contours = []
+        eps_px = 10
+        for contour in self.canditate_contours:
+            signed_dist = cv2.pointPolygonTest(contour, pt, measureDist=True)
+            if abs(signed_dist) <= eps_px:
+                selected_contours.append(contour)
+        print(len(selected_contours))
+        return len(selected_contours)
+
     def _draw_contours_to_img(self, contours, img):
         translated_contours = list(map(lambda c: np.copy(c), contours))
         for c in translated_contours:
@@ -166,6 +176,7 @@ def make_machine_ixn_click_handler(machine, ixn):
                 ixn.pt_mdrag = (0, 0)
                 ixn.set_drawing_sel_box(False)
                 ixn.render()
+            ixn.select_contour_at_point((x, y))
 
     return handle_click
 
