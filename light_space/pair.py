@@ -4,7 +4,7 @@ from machine import Machine
 from camera import Camera
 import projection
 
-class FakeInteraction:
+class Interaction:
     def __init__(self, img, screen_size, gui):
         self.m = Machine(dry=False)
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
@@ -145,7 +145,7 @@ def run_canvas_loop():
     cv2.moveWindow(window_name, MAC_SCREEN_SIZE_HW[1], 0)
     cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     gui = GuiControl(PROJ_SCREEN_SIZE_HW)
-    ixn = FakeInteraction(img, PROJ_SCREEN_SIZE_HW, gui)
+    ixn = Interaction(img, PROJ_SCREEN_SIZE_HW, gui)
 
     machine = Machine(dry=False)
     camera = Camera()
@@ -216,7 +216,7 @@ def run_canvas_loop():
                 machine.pen_up()
 
             if pressed_key == ord('c'):
-                camera.calc_candidate_contours()
+                camera.calc_candidate_contours(ixn.envelope_hw)
                 ixn.set_candidate_contours(camera.candidate_contours)
                 ixn.render()
 
