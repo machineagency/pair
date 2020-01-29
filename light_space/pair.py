@@ -91,16 +91,24 @@ class Interaction:
             trans_contours = self.calc_offset_contours([self.curr_sel_contour])
             cv2.drawContours(self.img, trans_contours, 0, (255, 255, 255), 3)
 
-    def render(self):
-        self.img = np.zeros(self.img.shape, np.float32)
+    def _render_cam(self):
+        # TODO: work for actual cam
         for i in range(0, 3):
             start_pt = (self.translate_x, i * self.spacing + self.translate_y)
             end_pt = (self.length + self.translate_x, i * self.spacing + self.translate_y)
             projection.line_from_to(start_pt, end_pt, self.color_name, self.img)
-        self.gui.render_gui(self.img)
+
+    def render(self):
+        """
+        Note: this function draws each render subroutine over the last call
+        to the effect of being an informal z-buffer.
+        """
+        self.img = np.zeros(self.img.shape, np.float32)
         self._render_candidate_contours(self.canditate_contours, self.img)
         self._render_sel_box()
         self._render_sel_contour()
+        self._render_cam()
+        self.gui.render_gui(self.img)
         cv2.imshow('Projection', self.img)
 
 class GuiControl:
