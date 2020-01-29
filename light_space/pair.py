@@ -55,7 +55,7 @@ class Interaction:
         self.canditate_contours = contours
 
     def _draw_contours_to_img(self, contours, img):
-        translated_contours = contours.copy()
+        translated_contours = list(map(lambda c: np.copy(c), contours))
         for c in translated_contours:
             for p in c:
                 p += np.array([0, self.Y_OFFSET_PX])
