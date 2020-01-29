@@ -128,7 +128,11 @@ def run_camera_loop(img_path):
     # cv2.imshow("edges", img)
     cv2.imshow("crop", img_crop)
     curr_contour_idx = 0
-    decimated_contours = decimate_contours(contours)
+    contours = decimate_contours(contours)
+    MIN_CONTOUR_LEN = 100
+    min_length_lambda = lambda c: cv2.arcLength(c, closed=True) > MIN_CONTOUR_LEN
+    contours = list(filter(min_length_lambda, contours))
+    print(f'Num contours: {len(contours)}')
 
     while True:
         pressed_key = cv2.waitKey(1)
@@ -138,11 +142,11 @@ def run_camera_loop(img_path):
 
         if pressed_key == ord('n'):
             img_crop_volatile = img_crop.copy()
-            curr_contour = decimated_contours[curr_contour_idx]
+            curr_contour = contours[curr_contour_idx]
             trans_contour = transform_contour_with_h(curr_contour, work_env_homog)
             cv2.drawContours(img_crop_volatile, [trans_contour],\
                              0, (255, 0, 0), 1)
-            curr_contour_idx = (curr_contour_idx + 1) % len(decimated_contours)
+            curr_contour_idx = (curr_contour_idx + 1) % len(contours)
             cv2.imshow('crop', img_crop_volatile)
             # print(f'Showing contour {curr_contour_idx}')
 
@@ -152,6 +156,8 @@ def run_camera_loop(img_path):
 class Camera:
     def __init__(self):
         self.PROJ_SCREEN_SIZE_HW = (720, 1280)
+        self.CM_TO_PX = 37.7952755906
+        self.MIN_CONTOUR_LEN = 100
         self.path = 'test_images/work_env_lines.jpg'
         self.img_orig = cv2.imread(self.path)
         self.contours = []
@@ -164,15 +170,21 @@ class Camera:
         img = cv2.Canny(img, 50, 80)
         return img
 
-    def calc_candidate_contours(self):
+    def calc_candidate_contours(self, envelope_hw):
         img = self._process_image()
         contours = calc_contours(img)
         work_env_contour = find_work_env_in_contours(contours)
+        envelope_hw_px = (round(envelope_hw[0] * self.CM_TO_PX),\
+                          round(envelope_hw[1] * self.CM_TO_PX))
         work_env_homog = calc_work_env_homog(self.img_orig, work_env_contour,\
-                                             self.PROJ_SCREEN_SIZE_HW)
+                                             envelope_hw_px)
         decimated_contours = decimate_contours(contours)
+        # Not sure whether/how closed=T/F matters here
+        min_length_lambda = lambda c: cv2.arcLength(c, closed=True)\
+                            > self.MIN_CONTOUR_LEN
+        culled_contours = list(filter(min_length_lambda, decimated_contours))
         trans_contours = list(map(lambda c: transform_contour_with_h(c,\
-                                work_env_homog), decimated_contours))
+                                work_env_homog), culled_contours))
         self.contours = trans_contours
 
     @property
