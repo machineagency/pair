@@ -69,11 +69,17 @@ class Interaction:
                 optimal_contour = c
         return optimal_contour
 
-    def _render_candidate_contours(self, contours, img):
+    def calc_offset_contours(self, contours):
+        if len(contours) == 0:
+            return []
         translated_contours = list(map(lambda c: np.copy(c), contours))
         for c in translated_contours:
             for p in c:
                 p += np.array([0, self.Y_OFFSET_PX])
+        return translated_contours
+
+    def _render_candidate_contours(self, contours, img):
+        translated_contours = self.calc_offset_contours(self.canditate_contours)
         cv2.drawContours(img, translated_contours, -1, (255, 0, 0), 1)
 
     def _render_sel_box(self):
@@ -82,7 +88,8 @@ class Interaction:
 
     def _render_sel_contour(self):
         if self.curr_sel_contour is not None:
-            cv2.drawContours(self.img, [self.curr_sel_contour], 0, (255, 255, 255), 3)
+            trans_contours = self.calc_offset_contours([self.curr_sel_contour])
+            cv2.drawContours(self.img, trans_contours, 0, (255, 255, 255), 3)
 
     def render(self):
         self.img = np.zeros(self.img.shape, np.float32)
