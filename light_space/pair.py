@@ -12,6 +12,7 @@ class Interaction:
         self.img = img
         self.gui = gui
         self.set_cam_color('red')
+        self.set_listening_click_to_move(False)
         self.set_listening_translate(False)
         self.set_listening_spacing(False)
         self.canditate_contours = []
@@ -32,6 +33,9 @@ class Interaction:
 
     def set_cam_color(self, color_name):
         self.color_name = color_name
+
+    def set_listening_click_to_move(self, flag):
+        self.listening_click_to_move = flag
 
     def set_listening_translate(self, flag):
         self.listening_translate = flag
@@ -130,7 +134,7 @@ def make_machine_ixn_click_handler(machine, ixn):
                 ixn.set_cam_color('red')
                 ixn.set_listening_translate(False)
                 ixn.render()
-        else:
+        elif ixn.listening_click_to_move:
             if event == cv2.EVENT_LBUTTONDOWN:
                 scaled_x = x / CM_TO_PX
                 scaled_y = y / CM_TO_PX
@@ -138,6 +142,8 @@ def make_machine_ixn_click_handler(machine, ixn):
                 scaled_y = round(scaled_y, 2)
                 instr = machine.travel((scaled_x, scaled_y))
                 print(instr)
+        else:
+            pass
 
     return handle_click
 
@@ -177,19 +183,39 @@ def run_canvas_loop():
                 ixn.spacing -= 10
                 ixn.render()
 
+            if pressed_key == ord('m'):
+                """
+                Toggle click-to-move mode.
+                """
+                ixn.set_listening_click_to_move(not ixn.listening_click_to_move)
+                if ixn.listening_click_to_move:
+                    ixn.set_listening_spacing(False)
+                    ixn.set_listening_translate(False)
+                    ixn.set_cam_color('red')
+                ixn.render()
+
             if pressed_key == ord('s'):
+                """
+                Toggle selection spacing adjustment mode.
+                """
                 ixn.set_listening_spacing(not ixn.listening_spacing)
                 if ixn.listening_spacing:
                     ixn.set_listening_translate(False)
+                    ixn.set_listening_click_to_move(False)
                     ixn.set_cam_color('green')
                 else:
                     ixn.set_cam_color('red')
                 ixn.render()
 
             if pressed_key == ord('t'):
-                ixn.set_listening_spacing(False)
-                ixn.set_listening_translate(True)
-                ixn.set_cam_color('green')
+                """
+                Toggle selection translation mode.
+                """
+                ixn.set_listening_translate(not ixn.listening_translate)
+                if ixn.listening_translate:
+                    ixn.set_listening_click_to_move(False)
+                    ixn.set_listening_spacing(False)
+                    ixn.set_cam_color('green')
                 ixn.render()
 
             if pressed_key == ord('q'):
