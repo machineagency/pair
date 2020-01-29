@@ -57,7 +57,7 @@ def find_work_env_in_contours(contours):
         return candidate
 
     rect_contour = select_contour(contours)
-    if len(rect_contour) > 4:
+    if rect_contour is None or len(rect_contour) > 4:
         # TODO: increase max dist if this happens, or something.
         raise ValueError('Cannot find a contour with four points.')
     return rect_contour
