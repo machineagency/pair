@@ -69,12 +69,20 @@ class Interaction:
                 optimal_contour = c
         return optimal_contour
 
-    def _draw_contours_to_img(self, contours, img):
+    def _render_candidate_contours(self, contours, img):
         translated_contours = list(map(lambda c: np.copy(c), contours))
         for c in translated_contours:
             for p in c:
                 p += np.array([0, self.Y_OFFSET_PX])
         cv2.drawContours(img, translated_contours, -1, (255, 0, 0), 1)
+
+    def _render_sel_box(self):
+        if self.drawing_sel_box:
+            projection.rectangle_from_to(self.pt_mdown, self.pt_mdrag, 'white', self.img)
+
+    def _render_sel_contour(self):
+        if self.curr_sel_contour is not None:
+            cv2.drawContours(self.img, [self.curr_sel_contour], 0, (255, 255, 255), 3)
 
     def render(self):
         self.img = np.zeros(self.img.shape, np.float32)
@@ -82,12 +90,10 @@ class Interaction:
             start_pt = (self.translate_x, i * self.spacing + self.translate_y)
             end_pt = (self.length + self.translate_x, i * self.spacing + self.translate_y)
             projection.line_from_to(start_pt, end_pt, self.color_name, self.img)
-        self._draw_contours_to_img(self.canditate_contours, self.img)
         self.gui.render_gui(self.img)
-        if self.drawing_sel_box:
-            projection.rectangle_from_to(self.pt_mdown, self.pt_mdrag, 'white', self.img)
-        if self.curr_sel_contour is not None:
-            cv2.drawContours(self.img, [self.curr_sel_contour], 0, (255, 255, 255), 3)
+        self._render_candidate_contours(self.canditate_contours, self.img)
+        self._render_sel_box()
+        self._render_sel_contour()
         cv2.imshow('Projection', self.img)
 
 class GuiControl:
