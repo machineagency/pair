@@ -17,6 +17,11 @@ class Interaction:
         self.set_listening_spacing(False)
         self.canditate_contours = []
 
+        # Selection
+        self.pt_mdown = (0, 0)
+        self.pt_mdrag = (0, 0)
+        self.set_drawing_sel_box(False)
+
         # Set arbitrary CAM data
         self.length = screen_size[1] // 2
         self.spacing = screen_size[0] // 5
@@ -34,6 +39,9 @@ class Interaction:
     def set_cam_color(self, color_name):
         self.color_name = color_name
 
+    def set_drawing_sel_box(self, flag):
+        self.drawing_sel_box = flag;
+
     def set_listening_click_to_move(self, flag):
         self.listening_click_to_move = flag
 
@@ -47,8 +55,6 @@ class Interaction:
         self.canditate_contours = contours
 
     def _draw_contours_to_img(self, contours, img):
-        # translate_lambda = lambda c:
-        # translated_contours = list(map(translate_lambda, contours))
         translated_contours = contours.copy()
         for c in translated_contours:
             for p in c:
@@ -63,6 +69,9 @@ class Interaction:
             projection.line_from_to(start_pt, end_pt, self.color_name, self.img)
         self._draw_contours_to_img(self.canditate_contours, self.img)
         self.gui.render_gui(self.img)
+        # TODO: selection line--make box and functionalize
+        if self.drawing_sel_box:
+            projection.rectangle_from_to(self.pt_mdown, self.pt_mdrag, 'white', self.img)
         cv2.imshow('Projection', self.img)
 
 class GuiControl:
@@ -128,22 +137,35 @@ def make_machine_ixn_click_handler(machine, ixn):
         # TODO: way of sharing image dimensions
         CM_TO_PX = 37.7952755906
 
-        if ixn.listening_translate:
-            if event == cv2.EVENT_LBUTTONDOWN:
-                ixn.translate(x, y)
-                ixn.set_cam_color('red')
-                ixn.set_listening_translate(False)
+        if event == cv2.EVENT_LBUTTONDOWN:
+            if ixn.listening_translate:
+                    ixn.translate(x, y)
+                    ixn.set_cam_color('red')
+                    ixn.set_listening_translate(False)
+                    ixn.render()
+            elif ixn.listening_click_to_move:
+                    scaled_x = x / CM_TO_PX
+                    scaled_y = y / CM_TO_PX
+                    scaled_x = round(scaled_x, 2)
+                    scaled_y = round(scaled_y, 2)
+                    instr = machine.travel((scaled_x, scaled_y))
+                    print(instr)
+            else:
+                ixn.set_drawing_sel_box(True)
+                ixn.pt_mdown = (x, y)
+
+        # On mouse move, if we are drawing sel box, actually draw it
+        if event == cv2.EVENT_MOUSEMOVE:
+            if ixn.drawing_sel_box:
+                ixn.pt_mdrag = (x, y)
                 ixn.render()
-        elif ixn.listening_click_to_move:
-            if event == cv2.EVENT_LBUTTONDOWN:
-                scaled_x = x / CM_TO_PX
-                scaled_y = y / CM_TO_PX
-                scaled_x = round(scaled_x, 2)
-                scaled_y = round(scaled_y, 2)
-                instr = machine.travel((scaled_x, scaled_y))
-                print(instr)
-        else:
-            pass
+
+        if event == cv2.EVENT_LBUTTONUP:
+            if ixn.drawing_sel_box:
+                ixn.pt_mdown = (0, 0)
+                ixn.pt_mdrag = (0, 0)
+                ixn.set_drawing_sel_box(False)
+                ixn.render()
 
     return handle_click
 
