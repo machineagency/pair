@@ -7,7 +7,7 @@ def process_image(img_path):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     img = cv2.GaussianBlur(img, (11, 11), 1, 1)
     # _, img = cv2.threshold(img, 150, 255, cv2.THRESH_BINARY)
-    img = cv2.Canny(img, 50, 80)
+    img = cv2.Canny(img, 200, 300)
     return img
 
 def draw_hough_lines(edge_img, out_img):
