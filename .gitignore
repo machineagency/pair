@@ -30,3 +30,5 @@ tags
 # Python
 *.pyc
 
+light_space/test_images/secret
+
