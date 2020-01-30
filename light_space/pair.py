@@ -15,7 +15,8 @@ class Interaction:
         self.set_listening_click_to_move(False)
         self.set_listening_translate(False)
         self.set_listening_spacing(False)
-        self.canditate_contours = []
+        self.candidate_contours = []
+        self.chosen_contours = []
 
         # Selection
         self.pt_mdown = (0, 0)
@@ -53,12 +54,27 @@ class Interaction:
         self.listening_spacing = flag
 
     def set_candidate_contours(self, contours):
-        self.canditate_contours = contours
+        self.candidate_contours = contours
+
+    def clear_candidate_contours(self):
+        self.candidate_contours = []
+
+    def set_curr_sel_contour(self, contours):
+        self.curr_sel_contour = contours
+
+    def clear_curr_sel_contour(self):
+        self.curr_sel_contour = None
+
+    def set_chosen_contours(self, contours):
+        self.chosen_contours = contours
+
+    def clear_chosen_contours(self):
+        self.chosen_contours = []
 
     def select_contour_at_point(self, pt):
         selected_contours = []
         eps_px = 10
-        for contour in self.canditate_contours:
+        for contour in self.candidate_contours:
             signed_dist = cv2.pointPolygonTest(contour, pt, measureDist=True)
             if abs(signed_dist) <= eps_px:
                 selected_contours.append(contour)
@@ -78,9 +94,13 @@ class Interaction:
                 p += np.array([0, self.Y_OFFSET_PX])
         return translated_contours
 
-    def _render_candidate_contours(self, contours, img):
-        translated_contours = self.calc_offset_contours(self.canditate_contours)
-        cv2.drawContours(img, translated_contours, -1, (255, 0, 0), 1)
+    def _render_candidate_contours(self):
+        translated_contours = self.calc_offset_contours(self.candidate_contours)
+        cv2.drawContours(self.img, translated_contours, -1, (255, 0, 0), 1)
+
+    def _render_chosen_contours(self):
+        translated_contours = self.calc_offset_contours(self.chosen_contours)
+        cv2.drawContours(self.img, translated_contours, -1, (0, 255, 255), 3)
 
     def _render_sel_box(self):
         if self.drawing_sel_box:
@@ -91,12 +111,14 @@ class Interaction:
             trans_contours = self.calc_offset_contours([self.curr_sel_contour])
             cv2.drawContours(self.img, trans_contours, 0, (255, 255, 255), 3)
 
-    def _render_cam(self):
+    def _render_cam(self, fake_cam=True):
         # TODO: work for actual cam
-        for i in range(0, 3):
-            start_pt = (self.translate_x, i * self.spacing + self.translate_y)
-            end_pt = (self.length + self.translate_x, i * self.spacing + self.translate_y)
-            projection.line_from_to(start_pt, end_pt, self.color_name, self.img)
+        if fake_cam:
+            for i in range(0, 3):
+                start_pt = (self.translate_x, i * self.spacing + self.translate_y)
+                end_pt = (self.length + self.translate_x,\
+                          i * self.spacing + self.translate_y)
+                projection.line_from_to(start_pt, end_pt, self.color_name, self.img)
 
     def render(self):
         """
@@ -104,7 +126,8 @@ class Interaction:
         to the effect of being an informal z-buffer.
         """
         self.img = np.zeros(self.img.shape, np.float32)
-        self._render_candidate_contours(self.canditate_contours, self.img)
+        self._render_candidate_contours()
+        self._render_chosen_contours()
         self._render_sel_box()
         self._render_sel_contour()
         self._render_cam()
@@ -204,7 +227,7 @@ def make_machine_ixn_click_handler(machine, ixn):
                 ixn.set_drawing_sel_box(False)
                 ixn.render()
 
-            ixn.curr_sel_contour = ixn.select_contour_at_point((x, y))
+            ixn.set_curr_sel_contour(ixn.select_contour_at_point((x, y)))
             ixn.render()
 
     return handle_click
@@ -329,9 +352,23 @@ def run_canvas_loop():
             if pressed_key == ord('c'):
                 """
                 Show candidate contours from camera feed.
+                Clear existing chosen and candidate contours.
                 """
+                ixn.clear_chosen_contours()
+                ixn.clear_candidate_contours()
+                ixn.clear_curr_sel_contour()
                 camera.calc_candidate_contours(ixn.envelope_hw)
                 ixn.set_candidate_contours(camera.candidate_contours)
+                ixn.render()
+
+            if pressed_key == 13:
+                """
+                Move candidate contours to chosen contours on ENTER.
+                """
+                ixn.set_chosen_contours(list(map(lambda c: np.copy(c),\
+                                               [ixn.curr_sel_contour])))
+                ixn.clear_candidate_contours()
+                ixn.clear_curr_sel_contour()
                 ixn.render()
 
     finally:
