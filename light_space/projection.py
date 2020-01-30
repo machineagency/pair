@@ -38,6 +38,18 @@ def rectangle_at(pt, width, height, img):
     thickness = cv2.FILLED
     return cv2.rectangle(img, pt, end_pt, color, thickness)
 
+def rectangle_from_to(from_pt, to_pt, color_name, img):
+    if color_name == 'white':
+        color = (255, 255, 255)
+    elif color_name == 'green':
+        color = (0, 255, 0)
+    elif color_name == 'red':
+        color = (0, 0, 255)
+    else:
+        color = (255, 255, 255)
+    thickness = 3
+    return cv2.rectangle(img, from_pt, to_pt, color, thickness)
+
 def text_at(text, pt, color_name='white', img=None):
     """
     Creates text where PT is top left corner (not bottom left).
