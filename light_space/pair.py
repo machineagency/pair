@@ -29,6 +29,7 @@ class Interaction:
             np.array([[[937, 539]], [[660, 583]], [[878, 636]]]),
             np.array([[[754, 496]], [[900, 636]], [[936, 554]]]),
         ]
+        self.trans_mat = np.array([[1, 0, 0], [0, 1, 0]])
         self.length = screen_size[1] // 2
         self.spacing = screen_size[0] // 5
         self.translate_x = screen_size[1] // 4
@@ -39,6 +40,9 @@ class Interaction:
     def translate(self, x, y):
         self.translate_x = x
         self.translate_y = y
+        # TODO: use distance between centroid and click rather than click alone
+        self.trans_mat[0, 2] = x
+        self.trans_mat[1, 2] = y
         self.calib_pt = (self.translate_x, self.translate_y)
         self.render()
 
@@ -134,7 +138,9 @@ class Interaction:
                 color = (0, 255, 0)
             else:
                 color = (255, 255, 255)
-            cv2.drawContours(self.img, self.cam_contours, -1, color, 3)
+            trans_contours = list(map(lambda c: cv2.transform(c, self.trans_mat),\
+                                      self.cam_contours))
+            cv2.drawContours(self.img, trans_contours, -1, color, 3)
 
     def render(self):
         """
