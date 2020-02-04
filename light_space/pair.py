@@ -124,7 +124,17 @@ class Interaction:
                           i * self.spacing + self.translate_y)
                 projection.line_from_to(start_pt, end_pt, self.color_name, self.img)
         else:
-            cv2.drawContours(self.img, self.cam_contours, -1, (0, 0, 255), 3)
+            if self.color_name == 'white':
+                color = (255, 255, 255)
+            elif self.color_name == 'black':
+                color = (0, 0, 0)
+            elif self.color_name == 'red':
+                color = (0, 0, 255)
+            elif self.color_name == 'green':
+                color = (0, 255, 0)
+            else:
+                color = (255, 255, 255)
+            cv2.drawContours(self.img, self.cam_contours, -1, color, 3)
 
     def render(self):
         """
