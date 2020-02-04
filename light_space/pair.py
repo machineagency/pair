@@ -25,6 +25,10 @@ class Interaction:
         self.curr_sel_contour = None
 
         # Set arbitrary CAM data
+        self.cam_contours = [\
+            np.array([[[937, 539]], [[660, 583]], [[878, 636]]]),
+            np.array([[[754, 496]], [[900, 636]], [[936, 554]]]),
+        ]
         self.length = screen_size[1] // 2
         self.spacing = screen_size[0] // 5
         self.translate_x = screen_size[1] // 4
@@ -119,6 +123,8 @@ class Interaction:
                 end_pt = (self.length + self.translate_x,\
                           i * self.spacing + self.translate_y)
                 projection.line_from_to(start_pt, end_pt, self.color_name, self.img)
+        else:
+            cv2.drawContours(self.img, self.cam_contours, -1, (0, 0, 255), 3)
 
     def render(self):
         """
@@ -130,7 +136,7 @@ class Interaction:
         self._render_chosen_contours()
         self._render_sel_box()
         self._render_sel_contour()
-        self._render_cam()
+        self._render_cam(False)
         self.gui.render_gui(self.img)
         cv2.imshow('Projection', self.img)
 
