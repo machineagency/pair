@@ -1,3 +1,4 @@
+from functools import reduce
 import cv2
 import numpy as np
 from machine import Machine
@@ -40,9 +41,10 @@ class Interaction:
     def translate(self, x, y):
         self.translate_x = x
         self.translate_y = y
+        centroid = self.calc_cam_centroid()
         # TODO: use distance between centroid and click rather than click alone
-        self.trans_mat[0, 2] = x
-        self.trans_mat[1, 2] = y
+        self.trans_mat[0, 2] = x - centroid[0]
+        self.trans_mat[1, 2] = y - centroid[1]
         self.calib_pt = (self.translate_x, self.translate_y)
         self.render()
 
@@ -101,6 +103,20 @@ class Interaction:
             for p in c:
                 p += np.array([0, self.Y_OFFSET_PX])
         return translated_contours
+
+    def calc_cam_centroid(self):
+        centroids = []
+        for c in self.cam_contours:
+            moments = cv2.moments(c)
+            cx = int(moments['m10'] / moments['m00'])
+            cy = int(moments['m01'] / moments['m00'])
+            centroids.append((cx, cy))
+        def add_pts(p0, p1):
+            return ((p0[0] + p1[0], p0[1] + p1[1]))
+        avg_centroid = reduce(add_pts, centroids)
+        avg_centroid = (avg_centroid[0] // len(centroids),\
+                        avg_centroid[1] // len(centroids))
+        return avg_centroid
 
     def _render_candidate_contours(self):
         translated_contours = self.calc_offset_contours(self.candidate_contours)
