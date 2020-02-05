@@ -36,25 +36,20 @@ class Interaction:
         self.theta = 0
         self.length = screen_size[1] // 2
         self.spacing = screen_size[0] // 5
-        self.translate_x = screen_size[1] // 4
-        self.translate_y = screen_size[0] // 4
+        self.translate_x = 0
+        self.translate_y = 0
         self.calib_pt = (self.translate_x, self.translate_y)
         self.render()
 
     def translate(self, x, y):
-        self.translate_x = x
-        self.translate_y = y
         centroid = self.calc_cam_centroid()
-        # TODO: use distance between centroid and click rather than click alone
-        self.trans_mat[0, 2] = x - centroid[0]
-        self.trans_mat[1, 2] = y - centroid[1]
+        self.translate_x = x - centroid[0]
+        self.translate_y = y - centroid[1]
         self.calib_pt = (self.translate_x, self.translate_y)
         self.render()
 
     def rotate(self, theta):
-        centroid = self.calc_cam_centroid()
-        rotate_mat = cv2.getRotationMatrix2D(centroid, theta, 1)
-        self.trans_mat = rotate_mat
+        self.theta = theta
         self.render()
 
     # Getters and setters
@@ -168,6 +163,10 @@ class Interaction:
                 color = (0, 255, 0)
             else:
                 color = (255, 255, 255)
+            centroid = self.calc_cam_centroid()
+            self.trans_mat = cv2.getRotationMatrix2D(centroid, self.theta, 1)
+            self.trans_mat[0, 2] += self.translate_x
+            self.trans_mat[1, 2] += self.translate_y
             trans_contours = list(map(lambda c: cv2.transform(c, self.trans_mat),\
                                       self.cam_contours))
             print(self.trans_mat)
@@ -335,8 +334,8 @@ def run_canvas_loop():
                 if ixn.listening_spacing:
                     ixn.spacing -= 10
                 if ixn.listening_rotation:
-                    curr_theta = math.acos(ixn.trans_mat[0, 0])
-                    ixn.rotate((curr_theta - math.pi / 6))
+                    ixn.theta = (ixn.theta - 45) % 360
+                    ixn.rotate(ixn.theta)
                 ixn.render()
 
             if pressed_key == ord('m'):
