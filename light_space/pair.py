@@ -451,8 +451,9 @@ def run_canvas_loop():
                 """
                 Move candidate contours to chosen contours on ENTER.
                 """
-                ixn.set_chosen_contours(list(map(lambda c: np.copy(c),\
-                                               [ixn.curr_sel_contour])))
+                if ixn.curr_sel_contour is not None:
+                    ixn.set_chosen_contours(list(map(lambda c: np.copy(c),\
+                                                   [ixn.curr_sel_contour])))
                 ixn.clear_candidate_contours()
                 ixn.clear_curr_sel_contour()
                 ixn.render()
