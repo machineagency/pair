@@ -127,6 +127,11 @@ class Interaction:
                         avg_centroid[1] // len(centroids))
         return avg_centroid
 
+    def combine_contours(self, contours):
+        def combine(c0, c1):
+            return np.append(c0, c1, axis=0)
+        return reduce(combine, contours).astype(np.int32)
+
     def calc_min_bbox_for_contour(self, contour, add_offset=True):
         rectangle = cv2.minAreaRect(contour)
         box_pts = np.int32(cv2.boxPoints(rectangle))
@@ -184,9 +189,9 @@ class Interaction:
                                       self.cam_contours))
             cv2.drawContours(self.img, trans_contours, -1, color, 3)
             if self.listening_translate or self.listening_rotate:
-                for contour in trans_contours:
-                    box_pts = self.calc_min_bbox_for_contour(contour, False)
-                    cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
+                combined_contour = self.combine_contours(trans_contours)
+                box_pts = self.calc_min_bbox_for_contour(combined_contour, False)
+                cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
 
     def render(self):
         """
