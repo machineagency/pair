@@ -1,4 +1,5 @@
 from functools import reduce
+import math
 import cv2
 import numpy as np
 from machine import Machine
@@ -15,6 +16,7 @@ class Interaction:
         self.set_cam_color('red')
         self.set_listening_click_to_move(False)
         self.set_listening_translate(False)
+        self.set_listening_rotate(False)
         self.set_listening_spacing(False)
         self.candidate_contours = []
         self.chosen_contours = []
@@ -31,6 +33,7 @@ class Interaction:
             np.array([[[754, 496]], [[900, 636]], [[936, 554]]]),
         ]
         self.trans_mat = np.array([[1, 0, 0], [0, 1, 0]])
+        self.theta = 0
         self.length = screen_size[1] // 2
         self.spacing = screen_size[0] // 5
         self.translate_x = screen_size[1] // 4
@@ -48,6 +51,14 @@ class Interaction:
         self.calib_pt = (self.translate_x, self.translate_y)
         self.render()
 
+    def rotate(self, theta):
+        centroid = self.calc_cam_centroid()
+        rotate_mat = cv2.getRotationMatrix2D(centroid, theta, 1)
+        self.trans_mat = rotate_mat
+        self.render()
+
+    # Getters and setters
+
     def set_cam_color(self, color_name):
         self.color_name = color_name
 
@@ -59,6 +70,9 @@ class Interaction:
 
     def set_listening_translate(self, flag):
         self.listening_translate = flag
+
+    def set_listening_rotate(self, flag):
+        self.listening_rotate = flag
 
     def set_listening_spacing(self, flag):
         self.listening_spacing = flag
@@ -156,6 +170,7 @@ class Interaction:
                 color = (255, 255, 255)
             trans_contours = list(map(lambda c: cv2.transform(c, self.trans_mat),\
                                       self.cam_contours))
+            print(self.trans_mat)
             cv2.drawContours(self.img, trans_contours, -1, color, 3)
 
     def render(self):
@@ -300,18 +315,28 @@ def run_canvas_loop():
                 """
                 break
 
-            if pressed_key == ord('=') and ixn.listening_spacing:
+            if pressed_key == ord('='):
                 """
                 If spacing adjustment mode on, increase spacing.
+                If rotation adjustment mode on, rotate CCW.
                 """
-                ixn.spacing += 10
+                if ixn.listening_spacing:
+                    ixn.spacing += 10
+                if ixn.listening_rotate:
+                    ixn.theta = (ixn.theta + 45) % 360
+                    ixn.rotate(ixn.theta)
                 ixn.render()
 
             if pressed_key == ord('-') and ixn.listening_spacing:
                 """
                 If spacing adjustment mode on, reduce spacing.
+                If rotation adjustment mode on, rotate CW.
                 """
-                ixn.spacing -= 10
+                if ixn.listening_spacing:
+                    ixn.spacing -= 10
+                if ixn.listening_rotation:
+                    curr_theta = math.acos(ixn.trans_mat[0, 0])
+                    ixn.rotate((curr_theta - math.pi / 6))
                 ixn.render()
 
             if pressed_key == ord('m'):
@@ -321,6 +346,7 @@ def run_canvas_loop():
                 ixn.set_listening_click_to_move(not ixn.listening_click_to_move)
                 if ixn.listening_click_to_move:
                     ixn.set_listening_spacing(False)
+                    ixn.set_listening_rotate(False)
                     ixn.set_listening_translate(False)
                     ixn.set_cam_color('red')
                 ixn.render()
@@ -333,6 +359,7 @@ def run_canvas_loop():
                 if ixn.listening_spacing:
                     ixn.set_listening_translate(False)
                     ixn.set_listening_click_to_move(False)
+                    ixn.set_listening_rotate(False)
                     ixn.set_cam_color('green')
                 else:
                     ixn.set_cam_color('red')
@@ -346,7 +373,19 @@ def run_canvas_loop():
                 if ixn.listening_translate:
                     ixn.set_listening_click_to_move(False)
                     ixn.set_listening_spacing(False)
+                    ixn.set_listening_rotate(False)
                     ixn.set_cam_color('green')
+                ixn.render()
+
+            if pressed_key == ord('r'):
+                ixn.set_listening_rotate(not ixn.listening_rotate)
+                if ixn.listening_rotate:
+                    ixn.set_listening_click_to_move(False)
+                    ixn.set_listening_spacing(False)
+                    ixn.set_listening_translate(False)
+                    ixn.set_cam_color('green')
+                else:
+                    ixn.set_cam_color('red')
                 ixn.render()
 
             if pressed_key == ord('q'):
