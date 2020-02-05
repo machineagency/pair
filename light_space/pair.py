@@ -127,21 +127,24 @@ class Interaction:
                         avg_centroid[1] // len(centroids))
         return avg_centroid
 
-    def calc_min_bbox_for_contour(self, contour):
+    def calc_min_bbox_for_contour(self, contour, add_offset=True):
         rectangle = cv2.minAreaRect(contour)
         box_pts = np.int32(cv2.boxPoints(rectangle))
-        return np.array(self.calc_offset_contours([box_pts]))
+        if add_offset:
+            return np.array(self.calc_offset_contours([box_pts]))
+        return np.array(box_pts)
 
     def _render_candidate_contours(self):
         translated_contours = self.calc_offset_contours(self.candidate_contours)
         cv2.drawContours(self.img, translated_contours, -1, (255, 0, 0), 1)
 
     def _render_chosen_contours(self):
-        translated_contours = self.calc_offset_contours(self.chosen_contours)
-        cv2.drawContours(self.img, translated_contours, -1, (0, 255, 255), 3)
-        for contour in self.chosen_contours:
-            box_pts = self.calc_min_bbox_for_contour(contour)
-            cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
+        if len(self.chosen_contours) > 0:
+            translated_contours = self.calc_offset_contours(self.chosen_contours)
+            cv2.drawContours(self.img, translated_contours, -1, (0, 255, 255), 3)
+            for contour in self.chosen_contours:
+                box_pts = self.calc_min_bbox_for_contour(contour)
+                cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
 
     def _render_sel_box(self):
         if self.drawing_sel_box:
@@ -155,7 +158,7 @@ class Interaction:
             cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
 
     def _render_cam(self, fake_cam=True):
-        # TODO: work for actual cam
+        # TODO: add Y_OFFSET to cam curves?
         if fake_cam:
             for i in range(0, 3):
                 start_pt = (self.translate_x, i * self.spacing + self.translate_y)
@@ -179,8 +182,11 @@ class Interaction:
             self.trans_mat[1, 2] += self.translate_y
             trans_contours = list(map(lambda c: cv2.transform(c, self.trans_mat),\
                                       self.cam_contours))
-            print(self.trans_mat)
             cv2.drawContours(self.img, trans_contours, -1, color, 3)
+            if self.listening_translate or self.listening_rotate:
+                for contour in trans_contours:
+                    box_pts = self.calc_min_bbox_for_contour(contour, False)
+                    cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
 
     def render(self):
         """
