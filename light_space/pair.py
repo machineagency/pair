@@ -139,6 +139,10 @@ class Interaction:
             return np.array(self.calc_offset_contours([box_pts]))
         return np.array(box_pts)
 
+    def calc_line_for_contour(self, contour, add_offset=True):
+        [vx, vy, x, y] = cv2.fitLine(contour, cv2.DIST_L2, 0, 0.01, 0.01)
+        return ((x[0], y[0]), (vx[0], vy[0]))
+
     def _render_candidate_contours(self):
         translated_contours = self.calc_offset_contours(self.candidate_contours)
         cv2.drawContours(self.img, translated_contours, -1, (255, 0, 0), 1)
