@@ -127,6 +127,11 @@ class Interaction:
                         avg_centroid[1] // len(centroids))
         return avg_centroid
 
+    def calc_min_bbox_for_contour(self, contour):
+        rectangle = cv2.minAreaRect(contour)
+        box_pts = np.int32(cv2.boxPoints(rectangle))
+        return np.array(self.calc_offset_contours([box_pts]))
+
     def _render_candidate_contours(self):
         translated_contours = self.calc_offset_contours(self.candidate_contours)
         cv2.drawContours(self.img, translated_contours, -1, (255, 0, 0), 1)
@@ -134,6 +139,9 @@ class Interaction:
     def _render_chosen_contours(self):
         translated_contours = self.calc_offset_contours(self.chosen_contours)
         cv2.drawContours(self.img, translated_contours, -1, (0, 255, 255), 3)
+        for contour in self.chosen_contours:
+            box_pts = self.calc_min_bbox_for_contour(contour)
+            cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
 
     def _render_sel_box(self):
         if self.drawing_sel_box:
@@ -143,6 +151,8 @@ class Interaction:
         if self.curr_sel_contour is not None:
             trans_contours = self.calc_offset_contours([self.curr_sel_contour])
             cv2.drawContours(self.img, trans_contours, 0, (255, 255, 255), 3)
+            box_pts = self.calc_min_bbox_for_contour(self.curr_sel_contour)
+            cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
 
     def _render_cam(self, fake_cam=True):
         # TODO: work for actual cam
