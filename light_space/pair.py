@@ -86,6 +86,10 @@ class Interaction:
 
     def set_chosen_contours(self, contours):
         self.chosen_contours = contours
+        for c in contours:
+            box_contour = self.calc_min_bbox_for_contour(c)
+            box_lines = self.calc_bbox_lines(box_contour)
+            print(self.calc_line_angle(box_lines['top']))
 
     def clear_chosen_contours(self):
         self.chosen_contours = []
@@ -128,13 +132,24 @@ class Interaction:
         return avg_centroid
 
     def calc_line_angle(self, line_tup):
-        v = (line_tup[1][0] - line_tup[0][0], line_tup[1][1] - line_tup[0][1])
-        x_unit = (1, 0)
-        numer = np.dot(np.array(v), np.array(x_unit))
+        v0 = line_tup[0].reshape((2, 1))
+        v1 = line_tup[1].reshape((2, 1))
+        v = [v1[0] - v0[0], v1[1] - v0[1]]
+        x_unit = np.array([1, 0]).reshape((1, 2))
+        numer = np.dot(np.array(x_unit), np.array(v))
         denom = math.sqrt(v[0] ** 2 + v[1] ** 2)
-        return math.acos(numer / denom)
+        print(f'Num: {numer}, denom: {denom}')
+        if denom == 0:
+            print('Calculated angle on overlapping points, returning 0 deg')
+            return 0
+        angle_rad = math.acos(numer / denom)
+        return round((angle_rad / math.pi) * 180)
 
     def calc_bbox_lines(self, box_pts):
+        try:
+            box_pts = box_pts.reshape(4, 2)
+        except:
+            raise ValueError('Cannot calculate bbox lines for non-box contour')
         bbox_lines = {}
         bbox_lines['top'] = (box_pts[2], box_pts[3])
         bbox_lines['bottom'] = (box_pts[0], box_pts[1])
