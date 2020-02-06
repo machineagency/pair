@@ -127,6 +127,13 @@ class Interaction:
                         avg_centroid[1] // len(centroids))
         return avg_centroid
 
+    def calc_line_angle(self, line_tup):
+        v = (line_tup[1][0] - line_tup[0][0], line_tup[1][1] - line_tup[0][1])
+        x_unit = (1, 0)
+        numer = np.dot(np.array(v), np.array(x_unit))
+        denom = math.sqrt(v[0] ** 2 + v[1] ** 2)
+        return math.acos(numer / denom)
+
     def combine_contours(self, contours):
         def combine(c0, c1):
             return np.append(c0, c1, axis=0)
