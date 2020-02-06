@@ -86,10 +86,6 @@ class Interaction:
 
     def set_chosen_contours(self, contours):
         self.chosen_contours = contours
-        for c in contours:
-            box_contour = self.calc_min_bbox_for_contour(c)
-            box_lines = self.calc_bbox_lines(box_contour)
-            print(self.calc_line_angle(box_lines['top']))
 
     def clear_chosen_contours(self):
         self.chosen_contours = []
@@ -138,13 +134,21 @@ class Interaction:
         x_unit = np.array([1, 0]).reshape((1, 2))
         numer = np.dot(np.array(x_unit), np.array(v))
         denom = math.sqrt(v[0] ** 2 + v[1] ** 2)
-        print(f'Num: {numer}, denom: {denom}')
         if denom == 0:
             print('Calculated angle on overlapping points, returning 0 deg')
             return 0
         angle_rad = math.acos(numer / denom)
         return round((angle_rad / math.pi) * 180)
 
+    def find_longest_bbox_line(self, box_contour):
+        box = box_contour.reshape(4, 2)
+        dist_side_a = np.linalg.norm(box[0] - box[1])
+        dist_side_b = np.linalg.norm(box[0] - box[3])
+        if dist_side_a > dist_side_b:
+            return (box[0], box[1])
+        return (box[0], box[3])
+
+    # TODO: get rid of this function it's bad
     def calc_bbox_lines(self, box_pts):
         try:
             box_pts = box_pts.reshape(4, 2)
@@ -320,17 +324,27 @@ def make_machine_ixn_click_handler(machine, ixn):
 
         if event == cv2.EVENT_LBUTTONDOWN:
             if ixn.listening_translate:
-                    ixn.translate(x, y)
+                ixn.translate(x, y)
+                ixn.set_cam_color('red')
+                ixn.set_listening_translate(False)
+                ixn.render()
+            elif ixn.listening_rotate:
+                if len(ixn.chosen_contours) > 0:
+                    contour = ixn.chosen_contours[0]
+                    box = ixn.calc_min_bbox_for_contour(contour)
+                    line = ixn.find_longest_bbox_line(box)
+                    angle = ixn.calc_line_angle(line)
+                    ixn.theta = angle
                     ixn.set_cam_color('red')
-                    ixn.set_listening_translate(False)
+                    ixn.set_listening_rotate(False)
                     ixn.render()
             elif ixn.listening_click_to_move:
-                    scaled_x = x / CM_TO_PX
-                    scaled_y = y / CM_TO_PX
-                    scaled_x = round(scaled_x, 2)
-                    scaled_y = round(scaled_y, 2)
-                    instr = machine.travel((scaled_x, scaled_y))
-                    print(instr)
+                scaled_x = x / CM_TO_PX
+                scaled_y = y / CM_TO_PX
+                scaled_x = round(scaled_x, 2)
+                scaled_y = round(scaled_y, 2)
+                instr = machine.travel((scaled_x, scaled_y))
+                print(instr)
             else:
                 ixn.set_drawing_sel_box(True)
                 ixn.pt_mdown = (x, y)
