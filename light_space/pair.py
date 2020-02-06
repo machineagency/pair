@@ -166,6 +166,25 @@ class Interaction:
             box_pts = self.calc_min_bbox_for_contour(self.curr_sel_contour)
             cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
 
+    def _render_cam_bbox(self, transformed_cam_contours, preview_lines=False):
+        combined_contour = self.combine_contours(transformed_cam_contours)
+        box_pts = self.calc_min_bbox_for_contour(combined_contour, False)
+        self.cam_bbox = box_pts
+        self.cam_bbox_pts_top = (box_pts[2], box_pts[3])
+        self.cam_bbox_pts_bottom = (box_pts[0], box_pts[1])
+        self.cam_bbox_pts_left = (box_pts[1], box_pts[2])
+        self.cam_bbox_pts_right = (box_pts[3], box_pts[0])
+        cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
+        if preview_lines:
+            projection.line_from_to(self.cam_bbox_pts_top[0], self.cam_bbox_pts_top[1],\
+                                    'white', self.img)
+            projection.line_from_to(self.cam_bbox_pts_bottom[0], self.cam_bbox_pts_bottom[1],\
+                                    'red', self.img)
+            projection.line_from_to(self.cam_bbox_pts_left[0], self.cam_bbox_pts_left[1],\
+                                    'cyan', self.img)
+            projection.line_from_to(self.cam_bbox_pts_right[0], self.cam_bbox_pts_right[1],\
+                                'yellow', self.img)
+
     def _render_cam(self, fake_cam=True):
         # TODO: add Y_OFFSET to cam curves?
         if fake_cam:
@@ -193,9 +212,7 @@ class Interaction:
                                       self.cam_contours))
             cv2.drawContours(self.img, trans_contours, -1, color, 3)
             if self.listening_translate or self.listening_rotate:
-                combined_contour = self.combine_contours(trans_contours)
-                box_pts = self.calc_min_bbox_for_contour(combined_contour, False)
-                cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
+                self._render_cam_bbox(trans_contours)
 
     def render(self):
         """
