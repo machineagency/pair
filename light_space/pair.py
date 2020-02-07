@@ -40,7 +40,7 @@ class Interaction:
         self.render()
 
     def move_cam(self, x, y):
-        centroid = self.calc_cam_centroid()
+        centroid = self.calc_centroid_contours(self.cam_contours)
         self.translate_x = x - centroid[0]
         self.translate_y = y - centroid[1]
         self.calib_pt = (self.translate_x, self.translate_y)
@@ -114,9 +114,9 @@ class Interaction:
                 p += np.array([0, self.Y_OFFSET_PX])
         return translated_contours
 
-    def calc_cam_centroid(self):
+    def calc_centroid_contours(self, contours):
         centroids = []
-        for c in self.cam_contours:
+        for c in contours:
             moments = cv2.moments(c)
             cx = int(moments['m10'] / moments['m00'])
             cy = int(moments['m01'] / moments['m00'])
@@ -236,7 +236,7 @@ class Interaction:
             color = (0, 255, 0)
         else:
             color = (255, 255, 255)
-        centroid = self.calc_cam_centroid()
+        centroid = self.calc_centroid_contours(self.cam_contours)
         self.trans_mat = cv2.getRotationMatrix2D(centroid, self.theta, 1)
         self.trans_mat[0, 2] += self.translate_x
         self.trans_mat[1, 2] += self.translate_y
