@@ -39,12 +39,15 @@ class Interaction:
         self.calib_pt = (self.translate_x, self.translate_y)
         self.render()
 
-    def translate(self, x, y):
+    def move_cam(self, x, y):
         centroid = self.calc_cam_centroid()
         self.translate_x = x - centroid[0]
         self.translate_y = y - centroid[1]
         self.calib_pt = (self.translate_x, self.translate_y)
         self.render()
+
+    def translate(self, x, y):
+        pass
 
     def rotate(self, theta):
         self.theta = theta
@@ -241,7 +244,8 @@ class Interaction:
                                   self.cam_contours))
         self.curr_trans_cam = trans_contours
         cv2.drawContours(self.img, trans_contours, -1, color, 3)
-        if self.listening_translate or self.listening_rotate:
+        if self.listening_translate or self.listening_rotate\
+            or self.listening_click_to_move:
             self._render_cam_bbox()
 
     def render(self):
@@ -326,6 +330,11 @@ def make_machine_ixn_click_handler(machine, ixn):
                 ixn.translate(x, y)
                 ixn.set_cam_color('red')
                 ixn.set_listening_translate(False)
+                ixn.render()
+            elif ixn.listening_click_to_move:
+                ixn.move_cam(x, y)
+                ixn.set_cam_color('red')
+                ixn.set_listening_click_to_move(False)
                 ixn.render()
             elif ixn.listening_rotate:
                 if len(ixn.chosen_contours) > 0:
@@ -429,6 +438,8 @@ def run_canvas_loop():
                     ixn.set_listening_spacing(False)
                     ixn.set_listening_rotate(False)
                     ixn.set_listening_translate(False)
+                    ixn.set_cam_color('green')
+                else:
                     ixn.set_cam_color('red')
                 ixn.render()
 
