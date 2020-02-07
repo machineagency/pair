@@ -172,6 +172,11 @@ class Interaction:
             return np.array(self.calc_offset_contours([box_pts]))
         return np.array(box_pts)
 
+    def calc_straight_bbox_for_contour(self, contour, add_offset=True):
+        x, y, w, h = cv2.boundingRect(contour)
+        matrix = np.array([[x, y], [x + w, y], [x + w, y + h], [x, y + h]])
+        return matrix.reshape((4, 2))
+
     def calc_line_for_contour(self, contour, add_offset=True):
         [vx, vy, x, y] = cv2.fitLine(contour, cv2.DIST_L2, 0, 0.01, 0.01)
         return ((x[0], y[0]), (vx[0], vy[0]))
