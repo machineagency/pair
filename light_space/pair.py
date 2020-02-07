@@ -33,8 +33,6 @@ class Interaction:
         ]
         self.trans_mat = np.array([[1, 0, 0], [0, 1, 0]])
         self.theta = 0
-        self.length = screen_size[1] // 2
-        self.spacing = screen_size[0] // 5
         self.translate_x = 0
         self.translate_y = 0
         self.calib_pt = (self.translate_x, self.translate_y)
@@ -223,35 +221,27 @@ class Interaction:
         projection.line_from_to(bbox_lines['right'][0], bbox_lines['right'][1],\
                                 'yellow', self.img)
 
-    def _render_cam(self, fake_cam=True):
-        # TODO: add Y_OFFSET to cam curves?
-        if fake_cam:
-            for i in range(0, 3):
-                start_pt = (self.translate_x, i * self.spacing + self.translate_y)
-                end_pt = (self.length + self.translate_x,\
-                          i * self.spacing + self.translate_y)
-                projection.line_from_to(start_pt, end_pt, self.color_name, self.img)
+    def _render_cam(self):
+        if self.color_name == 'white':
+            color = (255, 255, 255)
+        elif self.color_name == 'black':
+            color = (0, 0, 0)
+        elif self.color_name == 'red':
+            color = (0, 0, 255)
+        elif self.color_name == 'green':
+            color = (0, 255, 0)
         else:
-            if self.color_name == 'white':
-                color = (255, 255, 255)
-            elif self.color_name == 'black':
-                color = (0, 0, 0)
-            elif self.color_name == 'red':
-                color = (0, 0, 255)
-            elif self.color_name == 'green':
-                color = (0, 255, 0)
-            else:
-                color = (255, 255, 255)
-            centroid = self.calc_cam_centroid()
-            self.trans_mat = cv2.getRotationMatrix2D(centroid, self.theta, 1)
-            self.trans_mat[0, 2] += self.translate_x
-            self.trans_mat[1, 2] += self.translate_y
-            trans_contours = list(map(lambda c: cv2.transform(c, self.trans_mat),\
-                                      self.cam_contours))
-            self.curr_trans_cam = trans_contours
-            cv2.drawContours(self.img, trans_contours, -1, color, 3)
-            if self.listening_translate or self.listening_rotate:
-                self._render_cam_bbox(trans_contours)
+            color = (255, 255, 255)
+        centroid = self.calc_cam_centroid()
+        self.trans_mat = cv2.getRotationMatrix2D(centroid, self.theta, 1)
+        self.trans_mat[0, 2] += self.translate_x
+        self.trans_mat[1, 2] += self.translate_y
+        trans_contours = list(map(lambda c: cv2.transform(c, self.trans_mat),\
+                                  self.cam_contours))
+        self.curr_trans_cam = trans_contours
+        cv2.drawContours(self.img, trans_contours, -1, color, 3)
+        if self.listening_translate or self.listening_rotate:
+            self._render_cam_bbox()
 
     def render(self):
         """
@@ -263,7 +253,7 @@ class Interaction:
         self._render_chosen_contours()
         self._render_sel_box()
         self._render_sel_contour()
-        self._render_cam(False)
+        self._render_cam()
         self.gui.render_gui(self.img)
         cv2.imshow('Projection', self.img)
 
@@ -276,7 +266,7 @@ class GuiControl:
 
         self.button_params = {\
             'start_pt' : (screen_size[1] // 10, screen_size[0] - screen_size[0] // 8),\
-            'gutter' : 75\
+            'gutter' : 100\
         }
 
     def add_bottom_button(self, text, img):
@@ -316,7 +306,7 @@ class GuiControl:
         # TODO: don't recreate buttons, just separate rendering vs data
         self.bottom_buttons = []
         self.add_bottom_button('translate', img)
-        self.add_bottom_button('spacing', img)
+        self.add_bottom_button('rotate', img)
         self.calibration_envelope(self.envelope_hw, img)
 
 def make_machine_ixn_click_handler(machine, ixn):
