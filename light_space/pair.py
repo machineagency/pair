@@ -206,6 +206,9 @@ class Interaction:
 
     def _render_cam_bbox(self, transformed_cam_contours):
         combined_contour = self.combine_contours(transformed_cam_contours)
+        # box_pts = self.calc_straight_bbox_for_contour(combined_contour, False)
+        # trans_box = cv2.transform(box_pts, self.trans_mat)
+        # self.cam_bbox = trans_box
         box_pts = self.calc_min_bbox_for_contour(combined_contour, False)
         self.cam_bbox = box_pts
         cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
@@ -245,6 +248,7 @@ class Interaction:
             self.trans_mat[1, 2] += self.translate_y
             trans_contours = list(map(lambda c: cv2.transform(c, self.trans_mat),\
                                       self.cam_contours))
+            self.curr_trans_cam = trans_contours
             cv2.drawContours(self.img, trans_contours, -1, color, 3)
             if self.listening_translate or self.listening_rotate:
                 self._render_cam_bbox(trans_contours)
@@ -511,6 +515,12 @@ def run_canvas_loop():
                 machine.travel(start_pt)
                 machine.line(end_pt)
                 machine.pen_up()
+
+            if pressed_key == ord('d'):
+                for c in ixn.curr_trans_cam:
+                    for p in c:
+                        pt_tup = (p[0, 0] / CM_TO_PX, p[0, 1] / CM_TO_PX)
+                        machine.travel(pt_tup)
 
             if pressed_key == ord('c'):
                 """
