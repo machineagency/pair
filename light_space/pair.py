@@ -9,7 +9,6 @@ import projection
 class Interaction:
     def __init__(self, img, screen_size, gui):
         self.Y_OFFSET_PX = 20
-        self.m = Machine(dry=False)
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
         self.img = img
         self.gui = gui
@@ -380,7 +379,7 @@ def run_canvas_loop():
     gui = GuiControl(PROJ_SCREEN_SIZE_HW)
     ixn = Interaction(img, PROJ_SCREEN_SIZE_HW, gui)
 
-    machine = Machine(dry=False)
+    machine = Machine(dry=True)
     camera = Camera()
     handle_click = make_machine_ixn_click_handler(machine, ixn)
     cv2.setMouseCallback(window_name, handle_click)

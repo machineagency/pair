@@ -35,7 +35,9 @@ class Machine:
         return 'disconnect'
 
     def return_to_origin(self):
-        return self.travel((0, 0))
+        if not self.dry:
+            self.travel((0, 0))
+        return 'return_to_origin'
 
     def plot_rect_hw(self, start_pt, height, width):
         if not self.dry:
