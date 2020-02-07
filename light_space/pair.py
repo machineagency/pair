@@ -31,6 +31,7 @@ class Interaction:
             np.array([[[937, 539]], [[660, 583]], [[878, 636]]]),
             np.array([[[754, 496]], [[900, 636]], [[936, 554]]]),
         ]
+        self.init_cam_bbox()
         self.trans_mat = np.array([[1, 0, 0], [0, 1, 0]])
         self.theta = 0
         self.translate_x = 0
@@ -175,6 +176,10 @@ class Interaction:
         matrix = np.array([[x, y], [x + w, y], [x + w, y + h], [x, y + h]])
         return matrix.reshape((4, 2))
 
+    def init_cam_bbox(self):
+        combined_contour = self.combine_contours(self.cam_contours)
+        self.cam_bbox = self.calc_straight_bbox_for_contour(combined_contour, False)
+
     def calc_line_for_contour(self, contour, add_offset=True):
         [vx, vy, x, y] = cv2.fitLine(contour, cv2.DIST_L2, 0, 0.01, 0.01)
         return ((x[0], y[0]), (vx[0], vy[0]))
@@ -202,14 +207,10 @@ class Interaction:
             box_pts = self.calc_min_bbox_for_contour(self.curr_sel_contour)
             cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
 
-    def _render_cam_bbox(self, transformed_cam_contours):
-        combined_contour = self.combine_contours(transformed_cam_contours)
-        # box_pts = self.calc_straight_bbox_for_contour(combined_contour, False)
-        # trans_box = cv2.transform(box_pts, self.trans_mat)
-        # self.cam_bbox = trans_box
-        box_pts = self.calc_min_bbox_for_contour(combined_contour, False)
-        self.cam_bbox = box_pts
-        cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
+    def _render_cam_bbox(self):
+        bbox_reshaped = self.cam_bbox.reshape((4, 1, 2))
+        trans_bbox = cv2.transform(bbox_reshaped, self.trans_mat)
+        cv2.drawContours(self.img, [trans_bbox], 0, (255, 255, 0), 1)
 
     def _render_bbox_lines(self, bbox_lines):
         projection.line_from_to(bbox_lines['top'][0], bbox_lines['top'][1],\
