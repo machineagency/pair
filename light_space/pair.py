@@ -371,7 +371,7 @@ def make_machine_ixn_click_handler(machine, ixn):
                     box = ixn.calc_min_bbox_for_contour(contour)
                     line = ixn.find_longest_bbox_line(box)
                     angle = ixn.calc_line_angle(line)
-                    ixn.theta = angle
+                    ixn.rotate(angle)
                     ixn.set_cam_color('red')
                     ixn.set_listening_rotate(False)
                     ixn.render()
