@@ -1,3 +1,5 @@
+from functools import reduce
+import math
 import cv2
 import numpy as np
 from machine import Machine
@@ -6,16 +8,16 @@ import projection
 
 class Interaction:
     def __init__(self, img, screen_size, gui):
-        self.Y_OFFSET_PX = 20
-        self.m = Machine(dry=False)
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
         self.img = img
         self.gui = gui
         self.set_cam_color('red')
         self.set_listening_click_to_move(False)
         self.set_listening_translate(False)
+        self.set_listening_rotate(False)
         self.set_listening_spacing(False)
-        self.canditate_contours = []
+        self.candidate_contours = []
+        self.chosen_contours = []
 
         # Selection
         self.pt_mdown = (0, 0)
@@ -24,18 +26,35 @@ class Interaction:
         self.curr_sel_contour = None
 
         # Set arbitrary CAM data
-        self.length = screen_size[1] // 2
-        self.spacing = screen_size[0] // 5
-        self.translate_x = screen_size[1] // 4
-        self.translate_y = screen_size[0] // 4
+        self.cam_contours = [\
+            np.array([[[937, 539]], [[660, 583]], [[878, 636]]]),
+            np.array([[[754, 496]], [[900, 636]], [[936, 554]]]),
+        ]
+        self.init_cam_bbox()
+        self.trans_mat = np.array([[1, 0, 0], [0, 1, 0]])
+        self.theta = 0
+        self.translate_x = 0
+        self.translate_y = 0
+        self.calib_pt = (self.translate_x, self.translate_y)
+        self.render()
+
+    def move_cam(self, x, y):
+        centroid = self.calc_bbox_center(self.cam_bbox)
+        self.translate_x = x - centroid[0]
+        self.translate_y = y - centroid[1]
         self.calib_pt = (self.translate_x, self.translate_y)
         self.render()
 
     def translate(self, x, y):
         self.translate_x = x
         self.translate_y = y
-        self.calib_pt = (self.translate_x, self.translate_y)
         self.render()
+
+    def rotate(self, theta):
+        self.theta = theta
+        self.render()
+
+    # Getters and setters
 
     def set_cam_color(self, color_name):
         self.color_name = color_name
@@ -49,16 +68,34 @@ class Interaction:
     def set_listening_translate(self, flag):
         self.listening_translate = flag
 
+    def set_listening_rotate(self, flag):
+        self.listening_rotate = flag
+
     def set_listening_spacing(self, flag):
         self.listening_spacing = flag
 
     def set_candidate_contours(self, contours):
-        self.canditate_contours = contours
+        self.candidate_contours = contours
+
+    def clear_candidate_contours(self):
+        self.candidate_contours = []
+
+    def set_curr_sel_contour(self, contours):
+        self.curr_sel_contour = contours
+
+    def clear_curr_sel_contour(self):
+        self.curr_sel_contour = None
+
+    def set_chosen_contours(self, contours):
+        self.chosen_contours = contours
+
+    def clear_chosen_contours(self):
+        self.chosen_contours = []
 
     def select_contour_at_point(self, pt):
         selected_contours = []
         eps_px = 10
-        for contour in self.canditate_contours:
+        for contour in self.candidate_contours:
             signed_dist = cv2.pointPolygonTest(contour, pt, measureDist=True)
             if abs(signed_dist) <= eps_px:
                 selected_contours.append(contour)
@@ -69,18 +106,104 @@ class Interaction:
                 optimal_contour = c
         return optimal_contour
 
-    def calc_offset_contours(self, contours):
-        if len(contours) == 0:
-            return []
-        translated_contours = list(map(lambda c: np.copy(c), contours))
-        for c in translated_contours:
-            for p in c:
-                p += np.array([0, self.Y_OFFSET_PX])
-        return translated_contours
+    def calc_bbox_center(self, contour):
+        c_rs = contour.reshape((4, 2))
+        p0_x = c_rs[0, 0]
+        p0_y = c_rs[0, 1]
+        p1_x = c_rs[2, 0]
+        p1_y = c_rs[2, 1]
+        return (int(round((p0_x + p1_x) / 2)), int(round((p0_y + p1_y) / 2)))
 
-    def _render_candidate_contours(self, contours, img):
-        translated_contours = self.calc_offset_contours(self.canditate_contours)
-        cv2.drawContours(img, translated_contours, -1, (255, 0, 0), 1)
+    def calc_centroid(self, contours):
+        """
+        True centroid, probably not a case where we need this.
+        """
+        centroids = []
+        eps = 0.001
+        for c in contours:
+            moments = cv2.moments(c)
+            try:
+                cx = int(moments['m10'] / moments['m00'])
+            except ZeroDivisionError:
+                cx = eps
+            try:
+                cy = int(moments['m01'] / moments['m00'])
+            except ZeroDivisionError:
+                cy = eps
+            centroids.append((cx, cy))
+        def add_pts(p0, p1):
+            return ((p0[0] + p1[0], p0[1] + p1[1]))
+        avg_centroid = reduce(add_pts, centroids)
+        avg_centroid = (avg_centroid[0] // len(centroids),\
+                        avg_centroid[1] // len(centroids))
+        return avg_centroid
+
+    def calc_line_angle(self, line_tup):
+        v0 = line_tup[0].reshape((2, 1))
+        v1 = line_tup[1].reshape((2, 1))
+        v = [v1[0] - v0[0], v1[1] - v0[1]]
+        x_unit = np.array([1, 0]).reshape((1, 2))
+        numer = np.dot(np.array(x_unit), np.array(v))
+        denom = math.sqrt(v[0] ** 2 + v[1] ** 2)
+        if denom == 0:
+            print('Calculated angle on overlapping points, returning 0 deg')
+            return 0
+        angle_rad = math.acos(numer / denom)
+        return round((angle_rad / math.pi) * 180)
+
+    def find_longest_bbox_line(self, box_contour):
+        box = box_contour.reshape(4, 2)
+        dist_side_a = np.linalg.norm(box[0] - box[1])
+        dist_side_b = np.linalg.norm(box[0] - box[3])
+        if dist_side_a > dist_side_b:
+            return (box[0], box[1])
+        return (box[0], box[3])
+
+    # TODO: get rid of this function it's bad
+    def calc_bbox_lines(self, box_pts):
+        try:
+            box_pts = box_pts.reshape(4, 2)
+        except:
+            raise ValueError('Cannot calculate bbox lines for non-box contour')
+        bbox_lines = {}
+        bbox_lines['top'] = (box_pts[2], box_pts[3])
+        bbox_lines['bottom'] = (box_pts[0], box_pts[1])
+        bbox_lines['left'] = (box_pts[1], box_pts[2])
+        bbox_lines['right'] = (box_pts[3], box_pts[0])
+        return bbox_lines
+
+    def combine_contours(self, contours):
+        def combine(c0, c1):
+            return np.append(c0, c1, axis=0)
+        return reduce(combine, contours).astype(np.int32)
+
+    def calc_min_bbox_for_contour(self, contour):
+        rectangle = cv2.minAreaRect(contour)
+        box_pts = np.int32(cv2.boxPoints(rectangle))
+        return np.array(box_pts)
+
+    def calc_straight_bbox_for_contour(self, contour):
+        x, y, w, h = cv2.boundingRect(contour)
+        matrix = np.array([[x, y], [x + w, y], [x + w, y + h], [x, y + h]])
+        return matrix.reshape((4, 2))
+
+    def init_cam_bbox(self):
+        combined_contour = self.combine_contours(self.cam_contours)
+        self.cam_bbox = self.calc_straight_bbox_for_contour(combined_contour)
+
+    def calc_line_for_contour(self, contour):
+        [vx, vy, x, y] = cv2.fitLine(contour, cv2.DIST_L2, 0, 0.01, 0.01)
+        return ((x[0], y[0]), (vx[0], vy[0]))
+
+    def _render_candidate_contours(self):
+        cv2.drawContours(self.img, self.candidate_contours, -1, (255, 0, 0), 1)
+
+    def _render_chosen_contours(self):
+        if len(self.chosen_contours) > 0:
+            cv2.drawContours(self.img, self.chosen_contours, -1, (0, 255, 255), 3)
+            for contour in self.chosen_contours:
+                box_pts = self.calc_min_bbox_for_contour(contour)
+                cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
 
     def _render_sel_box(self):
         if self.drawing_sel_box:
@@ -88,15 +211,47 @@ class Interaction:
 
     def _render_sel_contour(self):
         if self.curr_sel_contour is not None:
-            trans_contours = self.calc_offset_contours([self.curr_sel_contour])
-            cv2.drawContours(self.img, trans_contours, 0, (255, 255, 255), 3)
+            cv2.drawContours(self.img, [self.curr_sel_contour], 0, (255, 255, 255), 3)
+            box_pts = self.calc_min_bbox_for_contour(self.curr_sel_contour)
+            cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
+
+    def _render_cam_bbox(self):
+        bbox_reshaped = self.cam_bbox.reshape((4, 1, 2))
+        trans_bbox = cv2.transform(bbox_reshaped, self.trans_mat)
+        cv2.drawContours(self.img, [trans_bbox], 0, (255, 255, 0), 1)
+
+    def _render_bbox_lines(self, bbox_lines):
+        projection.line_from_to(bbox_lines['top'][0], bbox_lines['top'][1],\
+                                'white', self.img)
+        projection.line_from_to(bbox_lines['bottom'][0], bbox_lines['bottom'][1],\
+                                'red', self.img)
+        projection.line_from_to(bbox_lines['left'][0], bbox_lines['left'][1],\
+                                'cyan', self.img)
+        projection.line_from_to(bbox_lines['right'][0], bbox_lines['right'][1],\
+                                'yellow', self.img)
 
     def _render_cam(self):
-        # TODO: work for actual cam
-        for i in range(0, 3):
-            start_pt = (self.translate_x, i * self.spacing + self.translate_y)
-            end_pt = (self.length + self.translate_x, i * self.spacing + self.translate_y)
-            projection.line_from_to(start_pt, end_pt, self.color_name, self.img)
+        if self.color_name == 'white':
+            color = (255, 255, 255)
+        elif self.color_name == 'black':
+            color = (0, 0, 0)
+        elif self.color_name == 'red':
+            color = (0, 0, 255)
+        elif self.color_name == 'green':
+            color = (0, 255, 0)
+        else:
+            color = (255, 255, 255)
+        centroid = self.calc_bbox_center(self.cam_bbox)
+        self.trans_mat = cv2.getRotationMatrix2D(centroid, self.theta, 1)
+        self.trans_mat[0, 2] += self.translate_x
+        self.trans_mat[1, 2] += self.translate_y
+        trans_contours = list(map(lambda c: cv2.transform(c, self.trans_mat),\
+                                  self.cam_contours))
+        self.curr_trans_cam = trans_contours
+        cv2.drawContours(self.img, trans_contours, -1, color, 3)
+        if self.listening_translate or self.listening_rotate\
+            or self.listening_click_to_move:
+            self._render_cam_bbox()
 
     def render(self):
         """
@@ -104,7 +259,8 @@ class Interaction:
         to the effect of being an informal z-buffer.
         """
         self.img = np.zeros(self.img.shape, np.float32)
-        self._render_candidate_contours(self.canditate_contours, self.img)
+        self._render_candidate_contours()
+        self._render_chosen_contours()
         self._render_sel_box()
         self._render_sel_contour()
         self._render_cam()
@@ -115,12 +271,11 @@ class GuiControl:
     def __init__(self, screen_size):
         self.bottom_buttons = []
         self.CM_TO_PX = 37.7952755906
-        self.Y_OFFSET = 20
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
 
         self.button_params = {\
             'start_pt' : (screen_size[1] // 10, screen_size[0] - screen_size[0] // 8),\
-            'gutter' : 75\
+            'gutter' : 100\
         }
 
     def add_bottom_button(self, text, img):
@@ -147,10 +302,10 @@ class GuiControl:
         height_px = envelope_hw[0] * self.CM_TO_PX
         width_px = envelope_hw[1] * self.CM_TO_PX
         thickness = 3
-        pt0 = (thickness, thickness + self.Y_OFFSET)
-        pt1 = (width_px - thickness, thickness + self.Y_OFFSET)
-        pt2 = (width_px - thickness, height_px - thickness + self.Y_OFFSET)
-        pt3 = (thickness, height_px - thickness + self.Y_OFFSET)
+        pt0 = (thickness, thickness)
+        pt1 = (width_px - thickness, thickness)
+        pt2 = (width_px - thickness, height_px - thickness)
+        pt3 = (thickness, height_px - thickness)
         projection.line_from_to(pt0, pt1, 'red', img)
         projection.line_from_to(pt1, pt2, 'red', img)
         projection.line_from_to(pt2, pt3, 'red', img)
@@ -160,7 +315,7 @@ class GuiControl:
         # TODO: don't recreate buttons, just separate rendering vs data
         self.bottom_buttons = []
         self.add_bottom_button('translate', img)
-        self.add_bottom_button('spacing', img)
+        self.add_bottom_button('rotate', img)
         self.calibration_envelope(self.envelope_hw, img)
 
 def make_machine_ixn_click_handler(machine, ixn):
@@ -175,18 +330,41 @@ def make_machine_ixn_click_handler(machine, ixn):
         CM_TO_PX = 37.7952755906
 
         if event == cv2.EVENT_LBUTTONDOWN:
+            # TODO: calc centroids of BBOX, NOT the contour
             if ixn.listening_translate:
-                    ixn.translate(x, y)
+                if len(ixn.chosen_contours) > 0:
+                    contour = ixn.chosen_contours[0]
+                    contour_bbox = ixn.calc_straight_bbox_for_contour(contour)
+                    center_contour = ixn.calc_bbox_center(contour_bbox)
+                    center_cam = ixn.calc_bbox_center(ixn.cam_bbox)
+                    diff_x = center_contour[0] - center_cam[0]
+                    diff_y = center_contour[1] - center_cam[1]
+                    ixn.translate(diff_x, diff_y)
                     ixn.set_cam_color('red')
                     ixn.set_listening_translate(False)
                     ixn.render()
             elif ixn.listening_click_to_move:
-                    scaled_x = x / CM_TO_PX
-                    scaled_y = y / CM_TO_PX
-                    scaled_x = round(scaled_x, 2)
-                    scaled_y = round(scaled_y, 2)
-                    instr = machine.travel((scaled_x, scaled_y))
-                    print(instr)
+                ixn.move_cam(x, y)
+                ixn.set_cam_color('red')
+                ixn.set_listening_click_to_move(False)
+                ixn.render()
+            elif ixn.listening_rotate:
+                if len(ixn.chosen_contours) > 0:
+                    contour = ixn.chosen_contours[0]
+                    box = ixn.calc_min_bbox_for_contour(contour)
+                    line = ixn.find_longest_bbox_line(box)
+                    angle = ixn.calc_line_angle(line)
+                    ixn.rotate(angle)
+                    ixn.set_cam_color('red')
+                    ixn.set_listening_rotate(False)
+                    ixn.render()
+            elif ixn.listening_click_to_move:
+                scaled_x = x / CM_TO_PX
+                scaled_y = y / CM_TO_PX
+                scaled_x = round(scaled_x, 2)
+                scaled_y = round(scaled_y, 2)
+                instr = machine.travel((scaled_x, scaled_y))
+                print(instr)
             else:
                 ixn.set_drawing_sel_box(True)
                 ixn.pt_mdown = (x, y)
@@ -204,7 +382,7 @@ def make_machine_ixn_click_handler(machine, ixn):
                 ixn.set_drawing_sel_box(False)
                 ixn.render()
 
-            ixn.curr_sel_contour = ixn.select_contour_at_point((x, y))
+            ixn.set_curr_sel_contour(ixn.select_contour_at_point((x, y)))
             ixn.render()
 
     return handle_click
@@ -222,7 +400,7 @@ def run_canvas_loop():
     gui = GuiControl(PROJ_SCREEN_SIZE_HW)
     ixn = Interaction(img, PROJ_SCREEN_SIZE_HW, gui)
 
-    machine = Machine(dry=False)
+    machine = Machine(dry=True)
     camera = Camera()
     handle_click = make_machine_ixn_click_handler(machine, ixn)
     cv2.setMouseCallback(window_name, handle_click)
@@ -239,18 +417,28 @@ def run_canvas_loop():
                 """
                 break
 
-            if pressed_key == ord('=') and ixn.listening_spacing:
+            if pressed_key == ord('='):
                 """
                 If spacing adjustment mode on, increase spacing.
+                If rotation adjustment mode on, rotate CCW.
                 """
-                ixn.spacing += 10
+                if ixn.listening_spacing:
+                    ixn.spacing += 10
+                if ixn.listening_rotate:
+                    ixn.theta = (ixn.theta + 45) % 360
+                    ixn.rotate(ixn.theta)
                 ixn.render()
 
             if pressed_key == ord('-') and ixn.listening_spacing:
                 """
                 If spacing adjustment mode on, reduce spacing.
+                If rotation adjustment mode on, rotate CW.
                 """
-                ixn.spacing -= 10
+                if ixn.listening_spacing:
+                    ixn.spacing -= 10
+                if ixn.listening_rotation:
+                    ixn.theta = (ixn.theta - 45) % 360
+                    ixn.rotate(ixn.theta)
                 ixn.render()
 
             if pressed_key == ord('m'):
@@ -260,7 +448,10 @@ def run_canvas_loop():
                 ixn.set_listening_click_to_move(not ixn.listening_click_to_move)
                 if ixn.listening_click_to_move:
                     ixn.set_listening_spacing(False)
+                    ixn.set_listening_rotate(False)
                     ixn.set_listening_translate(False)
+                    ixn.set_cam_color('green')
+                else:
                     ixn.set_cam_color('red')
                 ixn.render()
 
@@ -272,6 +463,7 @@ def run_canvas_loop():
                 if ixn.listening_spacing:
                     ixn.set_listening_translate(False)
                     ixn.set_listening_click_to_move(False)
+                    ixn.set_listening_rotate(False)
                     ixn.set_cam_color('green')
                 else:
                     ixn.set_cam_color('red')
@@ -285,7 +477,19 @@ def run_canvas_loop():
                 if ixn.listening_translate:
                     ixn.set_listening_click_to_move(False)
                     ixn.set_listening_spacing(False)
+                    ixn.set_listening_rotate(False)
                     ixn.set_cam_color('green')
+                ixn.render()
+
+            if pressed_key == ord('r'):
+                ixn.set_listening_rotate(not ixn.listening_rotate)
+                if ixn.listening_rotate:
+                    ixn.set_listening_click_to_move(False)
+                    ixn.set_listening_spacing(False)
+                    ixn.set_listening_translate(False)
+                    ixn.set_cam_color('green')
+                else:
+                    ixn.set_cam_color('red')
                 ixn.render()
 
             if pressed_key == ord('q'):
@@ -300,7 +504,7 @@ def run_canvas_loop():
                 """
                 Machine draws work envelope.
                 """
-                pt = (0, ixn.Y_OFFSET_PX / CM_TO_PX)
+                pt = (0, 0)
                 instr = machine.plot_rect_hw(pt, ixn.envelope_hw[0],\
                                              ixn.envelope_hw[1])
                 print(instr)
@@ -326,12 +530,33 @@ def run_canvas_loop():
                 machine.line(end_pt)
                 machine.pen_up()
 
+            if pressed_key == ord('d'):
+                for c in ixn.curr_trans_cam:
+                    for p in c:
+                        pt_tup = (p[0, 0] / CM_TO_PX, p[0, 1] / CM_TO_PX)
+                        machine.travel(pt_tup)
+
             if pressed_key == ord('c'):
                 """
                 Show candidate contours from camera feed.
+                Clear existing chosen and candidate contours.
                 """
+                ixn.clear_chosen_contours()
+                ixn.clear_candidate_contours()
+                ixn.clear_curr_sel_contour()
                 camera.calc_candidate_contours(ixn.envelope_hw)
                 ixn.set_candidate_contours(camera.candidate_contours)
+                ixn.render()
+
+            if pressed_key == 13:
+                """
+                Move candidate contours to chosen contours on ENTER.
+                """
+                if ixn.curr_sel_contour is not None:
+                    ixn.set_chosen_contours(list(map(lambda c: np.copy(c),\
+                                                   [ixn.curr_sel_contour])))
+                ixn.clear_candidate_contours()
+                ixn.clear_curr_sel_contour()
                 ixn.render()
 
     finally:

@@ -158,7 +158,7 @@ class Camera:
         self.PROJ_SCREEN_SIZE_HW = (720, 1280)
         self.CM_TO_PX = 37.7952755906
         self.MIN_CONTOUR_LEN = 100
-        self.path = 'test_images/form.png'
+        self.path = 'test_images/shapes.png'
         self.img_orig = cv2.imread(self.path)
         self.contours = []
 

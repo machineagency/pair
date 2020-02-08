@@ -21,6 +21,10 @@ def line_from_to(p0, p1, color_name='red', img=None):
         color = (0, 255, 0)
     elif color_name == 'red':
         color = (0, 0, 255)
+    elif color_name == 'yellow':
+        color = (0, 255, 255)
+    elif color_name == 'cyan':
+        color = (255, 255, 0)
     else:
         color = (255, 255, 255)
     thickness = 5
