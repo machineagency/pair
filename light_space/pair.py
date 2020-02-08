@@ -8,7 +8,6 @@ import projection
 
 class Interaction:
     def __init__(self, img, screen_size, gui):
-        self.Y_OFFSET_PX = 20
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
         self.img = img
         self.gui = gui
@@ -107,15 +106,6 @@ class Interaction:
                 optimal_contour = c
         return optimal_contour
 
-    def calc_offset_contours(self, contours):
-        if len(contours) == 0:
-            return []
-        translated_contours = list(map(lambda c: np.copy(c), contours))
-        for c in translated_contours:
-            for p in c:
-                p += np.array([0, self.Y_OFFSET_PX])
-        return translated_contours
-
     def calc_bbox_center(self, contour):
         c_rs = contour.reshape((4, 2))
         p0_x = c_rs[0, 0]
@@ -132,6 +122,7 @@ class Interaction:
         eps = 0.001
         for c in contours:
             moments = cv2.moments(c)
+            try:
                 cx = int(moments['m10'] / moments['m00'])
             except ZeroDivisionError:
                 cx = eps
@@ -186,34 +177,30 @@ class Interaction:
             return np.append(c0, c1, axis=0)
         return reduce(combine, contours).astype(np.int32)
 
-    def calc_min_bbox_for_contour(self, contour, add_offset=True):
+    def calc_min_bbox_for_contour(self, contour):
         rectangle = cv2.minAreaRect(contour)
         box_pts = np.int32(cv2.boxPoints(rectangle))
-        if add_offset:
-            return np.array(self.calc_offset_contours([box_pts]))
         return np.array(box_pts)
 
-    def calc_straight_bbox_for_contour(self, contour, add_offset=True):
+    def calc_straight_bbox_for_contour(self, contour):
         x, y, w, h = cv2.boundingRect(contour)
         matrix = np.array([[x, y], [x + w, y], [x + w, y + h], [x, y + h]])
         return matrix.reshape((4, 2))
 
     def init_cam_bbox(self):
         combined_contour = self.combine_contours(self.cam_contours)
-        self.cam_bbox = self.calc_straight_bbox_for_contour(combined_contour, False)
+        self.cam_bbox = self.calc_straight_bbox_for_contour(combined_contour)
 
-    def calc_line_for_contour(self, contour, add_offset=True):
+    def calc_line_for_contour(self, contour):
         [vx, vy, x, y] = cv2.fitLine(contour, cv2.DIST_L2, 0, 0.01, 0.01)
         return ((x[0], y[0]), (vx[0], vy[0]))
 
     def _render_candidate_contours(self):
-        translated_contours = self.calc_offset_contours(self.candidate_contours)
-        cv2.drawContours(self.img, translated_contours, -1, (255, 0, 0), 1)
+        cv2.drawContours(self.img, self.candidate_contours, -1, (255, 0, 0), 1)
 
     def _render_chosen_contours(self):
         if len(self.chosen_contours) > 0:
-            translated_contours = self.calc_offset_contours(self.chosen_contours)
-            cv2.drawContours(self.img, translated_contours, -1, (0, 255, 255), 3)
+            cv2.drawContours(self.img, self.chosen_contours, -1, (0, 255, 255), 3)
             for contour in self.chosen_contours:
                 box_pts = self.calc_min_bbox_for_contour(contour)
                 cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
@@ -224,8 +211,7 @@ class Interaction:
 
     def _render_sel_contour(self):
         if self.curr_sel_contour is not None:
-            trans_contours = self.calc_offset_contours([self.curr_sel_contour])
-            cv2.drawContours(self.img, trans_contours, 0, (255, 255, 255), 3)
+            cv2.drawContours(self.img, [self.curr_sel_contour], 0, (255, 255, 255), 3)
             box_pts = self.calc_min_bbox_for_contour(self.curr_sel_contour)
             cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
 
@@ -285,7 +271,6 @@ class GuiControl:
     def __init__(self, screen_size):
         self.bottom_buttons = []
         self.CM_TO_PX = 37.7952755906
-        self.Y_OFFSET = 20
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
 
         self.button_params = {\
@@ -317,10 +302,10 @@ class GuiControl:
         height_px = envelope_hw[0] * self.CM_TO_PX
         width_px = envelope_hw[1] * self.CM_TO_PX
         thickness = 3
-        pt0 = (thickness, thickness + self.Y_OFFSET)
-        pt1 = (width_px - thickness, thickness + self.Y_OFFSET)
-        pt2 = (width_px - thickness, height_px - thickness + self.Y_OFFSET)
-        pt3 = (thickness, height_px - thickness + self.Y_OFFSET)
+        pt0 = (thickness, thickness)
+        pt1 = (width_px - thickness, thickness)
+        pt2 = (width_px - thickness, height_px - thickness)
+        pt3 = (thickness, height_px - thickness)
         projection.line_from_to(pt0, pt1, 'red', img)
         projection.line_from_to(pt1, pt2, 'red', img)
         projection.line_from_to(pt2, pt3, 'red', img)
@@ -521,7 +506,7 @@ def run_canvas_loop():
                 """
                 Machine draws work envelope.
                 """
-                pt = (0, ixn.Y_OFFSET_PX / CM_TO_PX)
+                pt = (0, 0)
                 instr = machine.plot_rect_hw(pt, ixn.envelope_hw[0],\
                                              ixn.envelope_hw[1])
                 print(instr)
