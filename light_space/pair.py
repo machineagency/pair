@@ -112,7 +112,7 @@ class Interaction:
         p0_y = c_rs[0, 1]
         p1_x = c_rs[2, 0]
         p1_y = c_rs[2, 1]
-        return (round((p0_x + p1_x) / 2), round((p0_y + p1_y) / 2))
+        return (int(round((p0_x + p1_x) / 2)), int(round((p0_y + p1_y) / 2)))
 
     def calc_centroid(self, contours):
         """
@@ -335,16 +335,14 @@ def make_machine_ixn_click_handler(machine, ixn):
                 if len(ixn.chosen_contours) > 0:
                     contour = ixn.chosen_contours[0]
                     contour_bbox = ixn.calc_straight_bbox_for_contour(contour)
-                    centroid_contour = ixn.calc_bbox_center(contour_bbox)
-                    centroid_cam = ixn.calc_bbox_center(self.cam_bbox)
-                    diff_x = centroid_contour[0] - centroid_cam[0]
-                    diff_y = centroid_contour[1] - centroid_cam[1]
+                    center_contour = ixn.calc_bbox_center(contour_bbox)
+                    center_cam = ixn.calc_bbox_center(ixn.cam_bbox)
+                    diff_x = center_contour[0] - center_cam[0]
+                    diff_y = center_contour[1] - center_cam[1]
                     ixn.translate(diff_x, diff_y)
                     ixn.set_cam_color('red')
                     ixn.set_listening_translate(False)
                     ixn.render()
-                    cv2.circle(ixn.img, centroid_contour, 10, (255, 255, 255))
-                    cv2.imshow('Projection', ixn.img)
             elif ixn.listening_click_to_move:
                 ixn.move_cam(x, y)
                 ixn.set_cam_color('red')
