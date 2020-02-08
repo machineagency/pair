@@ -40,14 +40,16 @@ class Interaction:
         self.render()
 
     def move_cam(self, x, y):
-        centroid = self.calc_centroid_contours(self.cam_contours)
+        centroid = self.calc_bbox_center(self.cam_bbox)
         self.translate_x = x - centroid[0]
         self.translate_y = y - centroid[1]
         self.calib_pt = (self.translate_x, self.translate_y)
         self.render()
 
     def translate(self, x, y):
-        pass
+        self.translate_x = x
+        self.translate_y = y
+        self.render()
 
     def rotate(self, theta):
         self.theta = theta
@@ -114,12 +116,29 @@ class Interaction:
                 p += np.array([0, self.Y_OFFSET_PX])
         return translated_contours
 
-    def calc_centroid_contours(self, contours):
+    def calc_bbox_center(self, contour):
+        c_rs = contour.reshape((4, 2))
+        p0_x = c_rs[0, 0]
+        p0_y = c_rs[0, 1]
+        p1_x = c_rs[2, 0]
+        p1_y = c_rs[2, 1]
+        return (round((p0_x + p1_x) / 2), round((p0_y + p1_y) / 2))
+
+    def calc_centroid(self, contours):
+        """
+        True centroid, probably not a case where we need this.
+        """
         centroids = []
+        eps = 0.001
         for c in contours:
             moments = cv2.moments(c)
-            cx = int(moments['m10'] / moments['m00'])
-            cy = int(moments['m01'] / moments['m00'])
+                cx = int(moments['m10'] / moments['m00'])
+            except ZeroDivisionError:
+                cx = eps
+            try:
+                cy = int(moments['m01'] / moments['m00'])
+            except ZeroDivisionError:
+                cy = eps
             centroids.append((cx, cy))
         def add_pts(p0, p1):
             return ((p0[0] + p1[0], p0[1] + p1[1]))
@@ -236,7 +255,7 @@ class Interaction:
             color = (0, 255, 0)
         else:
             color = (255, 255, 255)
-        centroid = self.calc_centroid_contours(self.cam_contours)
+        centroid = self.calc_bbox_center(self.cam_bbox)
         self.trans_mat = cv2.getRotationMatrix2D(centroid, self.theta, 1)
         self.trans_mat[0, 2] += self.translate_x
         self.trans_mat[1, 2] += self.translate_y
@@ -326,11 +345,21 @@ def make_machine_ixn_click_handler(machine, ixn):
         CM_TO_PX = 37.7952755906
 
         if event == cv2.EVENT_LBUTTONDOWN:
+            # TODO: calc centroids of BBOX, NOT the contour
             if ixn.listening_translate:
-                ixn.translate(x, y)
-                ixn.set_cam_color('red')
-                ixn.set_listening_translate(False)
-                ixn.render()
+                if len(ixn.chosen_contours) > 0:
+                    contour = ixn.chosen_contours[0]
+                    contour_bbox = ixn.calc_straight_bbox_for_contour(contour)
+                    centroid_contour = ixn.calc_bbox_center(contour_bbox)
+                    centroid_cam = ixn.calc_bbox_center(self.cam_bbox)
+                    diff_x = centroid_contour[0] - centroid_cam[0]
+                    diff_y = centroid_contour[1] - centroid_cam[1]
+                    ixn.translate(diff_x, diff_y)
+                    ixn.set_cam_color('red')
+                    ixn.set_listening_translate(False)
+                    ixn.render()
+                    cv2.circle(ixn.img, centroid_contour, 10, (255, 255, 255))
+                    cv2.imshow('Projection', ixn.img)
             elif ixn.listening_click_to_move:
                 ixn.move_cam(x, y)
                 ixn.set_cam_color('red')
