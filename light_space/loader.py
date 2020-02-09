@@ -1,6 +1,7 @@
 import numpy as np
 import svgpathtools as pt
 import math
+from functools import reduce
 
 class Loader:
     def __init__(self):
@@ -19,8 +20,6 @@ class Loader:
             except KeyError:
                 path_trans = path
             for subpath in path_trans:
-                print(type(subpath))
-                print(subpath)
                 if type(subpath) == pt.CubicBezier:
                     sp_mtx = np.zeros((T_SAMP + 1, 1, 2))
                     for step in range(0, T_SAMP + 1):
@@ -28,20 +27,28 @@ class Loader:
                         point = subpath.point(t)
                         x = point.real
                         y = point.imag
-                        sp_mtx[step, 0 , 0] = x
-                        sp_mtx[step, 0 , 1] = y
-                    print(sp_mtx)
+                        sp_mtx[step, 0 , 0] = round(x)
+                        sp_mtx[step, 0 , 1] = round(y)
 
                 if type(subpath) == pt.Line:
                     sp_mtx = np.zeros((2, 1, 2))
-                    sp_mtx[0, 0, 0] = 42
-                    sp_mtx[0, 0, 1] = 42
-                    sp_mtx[1, 0, 0] = 42
-                    sp_mtx[1, 0, 1] = 42
+                    sp_mtx[0, 0, 0] = round(subpath.start.real)
+                    sp_mtx[0, 0, 1] = round(subpath.start.imag)
+                    sp_mtx[1, 0, 0] = round(subpath.end.real)
+                    sp_mtx[1, 0, 1] = round(subpath.end.imag)
 
                 if type(subpath) == pt.Arc:
                     # TODO
                     pass
+
+                subpath_matrices.append(sp_mtx)
+            contours.append(self._combine_subpath_matrices(subpath_matrices))
+        return contours
+
+    def _combine_subpath_matrices(self, matrices):
+        def combine(c0, c1):
+            return np.append(c0, c1, axis=0)
+        return reduce(combine, matrices).astype(np.int32)
 
     def _parse_translate_attr(self, translate_attr):
         '''
@@ -55,5 +62,5 @@ class Loader:
 if __name__ == '__main__':
     loader = Loader()
     contours = loader.load_svg('test_images/secret/nadya-sig.svg')
-    print(contours)
+    print(contours[0].shape)
 
