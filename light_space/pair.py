@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from machine import Machine
 from camera import Camera
+from loader import Loader
 import projection
 
 class Interaction:
@@ -26,10 +27,12 @@ class Interaction:
         self.curr_sel_contour = None
 
         # Set arbitrary CAM data
-        self.cam_contours = [\
-            np.array([[[937, 539]], [[660, 583]], [[878, 636]]]),
-            np.array([[[754, 496]], [[900, 636]], [[936, 554]]]),
-        ]
+        # self.cam_contours = [\
+        #     np.array([[[937, 539]], [[660, 583]], [[878, 636]]]),
+        #     np.array([[[754, 496]], [[900, 636]], [[936, 554]]]),
+        # ]
+        self.loader = Loader()
+        self.cam_contours = self.loader.load_svg('test_images/secret/nadya-sig.svg')
         self.init_cam_bbox()
         self.trans_mat = np.array([[1, 0, 0], [0, 1, 0]])
         self.theta = 0
