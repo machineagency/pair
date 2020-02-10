@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from machine import Machine
 from camera import Camera
+from loader import Loader
 import projection
 
 class Interaction:
@@ -25,11 +26,8 @@ class Interaction:
         self.set_drawing_sel_box(False)
         self.curr_sel_contour = None
 
-        # Set arbitrary CAM data
-        self.cam_contours = [\
-            np.array([[[937, 539]], [[660, 583]], [[878, 636]]]),
-            np.array([[[754, 496]], [[900, 636]], [[936, 554]]]),
-        ]
+        self.loader = Loader()
+        self.cam_contours = self.loader.load_svg('test_images/secret/nadya-sig.svg')
         self.init_cam_bbox()
         self.trans_mat = np.array([[1, 0, 0], [0, 1, 0]])
         self.theta = 0
@@ -159,19 +157,6 @@ class Interaction:
             return (box[0], box[1])
         return (box[0], box[3])
 
-    # TODO: get rid of this function it's bad
-    def calc_bbox_lines(self, box_pts):
-        try:
-            box_pts = box_pts.reshape(4, 2)
-        except:
-            raise ValueError('Cannot calculate bbox lines for non-box contour')
-        bbox_lines = {}
-        bbox_lines['top'] = (box_pts[2], box_pts[3])
-        bbox_lines['bottom'] = (box_pts[0], box_pts[1])
-        bbox_lines['left'] = (box_pts[1], box_pts[2])
-        bbox_lines['right'] = (box_pts[3], box_pts[0])
-        return bbox_lines
-
     def combine_contours(self, contours):
         def combine(c0, c1):
             return np.append(c0, c1, axis=0)
@@ -248,7 +233,7 @@ class Interaction:
         trans_contours = list(map(lambda c: cv2.transform(c, self.trans_mat),\
                                   self.cam_contours))
         self.curr_trans_cam = trans_contours
-        cv2.drawContours(self.img, trans_contours, -1, color, 3)
+        cv2.polylines(self.img, trans_contours, False, color, 2)
         if self.listening_translate or self.listening_rotate\
             or self.listening_click_to_move:
             self._render_cam_bbox()
@@ -330,7 +315,6 @@ def make_machine_ixn_click_handler(machine, ixn):
         CM_TO_PX = 37.7952755906
 
         if event == cv2.EVENT_LBUTTONDOWN:
-            # TODO: calc centroids of BBOX, NOT the contour
             if ixn.listening_translate:
                 if len(ixn.chosen_contours) > 0:
                     contour = ixn.chosen_contours[0]
