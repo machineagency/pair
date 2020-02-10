@@ -26,11 +26,6 @@ class Interaction:
         self.set_drawing_sel_box(False)
         self.curr_sel_contour = None
 
-        # Set arbitrary CAM data
-        # self.cam_contours = [\
-        #     np.array([[[937, 539]], [[660, 583]], [[878, 636]]]),
-        #     np.array([[[754, 496]], [[900, 636]], [[936, 554]]]),
-        # ]
         self.loader = Loader()
         self.cam_contours = self.loader.load_svg('test_images/secret/nadya-sig.svg')
         self.init_cam_bbox()
@@ -251,7 +246,7 @@ class Interaction:
         trans_contours = list(map(lambda c: cv2.transform(c, self.trans_mat),\
                                   self.cam_contours))
         self.curr_trans_cam = trans_contours
-        cv2.drawContours(self.img, trans_contours, -1, color, 3)
+        cv2.polylines(self.img, trans_contours, False, color, 2)
         if self.listening_translate or self.listening_rotate\
             or self.listening_click_to_move:
             self._render_cam_bbox()
