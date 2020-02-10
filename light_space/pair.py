@@ -43,6 +43,24 @@ class Interaction:
         self.calib_pt = (self.translate_x, self.translate_y)
         self.render()
 
+    def snap_translate(self):
+        # TODO: offset doesn't work when rotation angle past pi radians
+        contour = self.chosen_contours[0]
+        contour_bbox = self.calc_min_bbox_for_contour(contour)
+        center_contour = self.calc_bbox_center(contour_bbox)
+        center_cam = self.calc_bbox_center(self.cam_bbox)
+        diff_x = center_contour[0] - center_cam[0]
+        diff_y = center_contour[1] - center_cam[1]
+        edge_contour = self.find_shortest_bbox_line(contour_bbox)
+        edge_cam = self.find_shortest_bbox_line(self.cam_bbox)
+        edge_len_contour = np.linalg.norm(edge_contour[0]\
+                            - edge_contour[1])
+        edge_len_cam = np.linalg.norm(edge_cam[0] - edge_cam[1])
+        offset_hyp = 0.5 * (edge_len_contour + edge_len_cam)
+        offset_x = math.sin(self.theta) * offset_hyp
+        offset_y = math.cos(self.theta) * offset_hyp
+        self.translate(diff_x + offset_x, diff_y + offset_y)
+
     def translate(self, x, y):
         self.translate_x = x
         self.translate_y = y
@@ -154,6 +172,14 @@ class Interaction:
         dist_side_a = np.linalg.norm(box[0] - box[1])
         dist_side_b = np.linalg.norm(box[0] - box[3])
         if dist_side_a > dist_side_b:
+            return (box[0], box[1])
+        return (box[0], box[3])
+
+    def find_shortest_bbox_line(self, box_contour):
+        box = box_contour.reshape(4, 2)
+        dist_side_a = np.linalg.norm(box[0] - box[1])
+        dist_side_b = np.linalg.norm(box[0] - box[3])
+        if dist_side_a < dist_side_b:
             return (box[0], box[1])
         return (box[0], box[3])
 
@@ -317,13 +343,7 @@ def make_machine_ixn_click_handler(machine, ixn):
         if event == cv2.EVENT_LBUTTONDOWN:
             if ixn.listening_translate:
                 if len(ixn.chosen_contours) > 0:
-                    contour = ixn.chosen_contours[0]
-                    contour_bbox = ixn.calc_straight_bbox_for_contour(contour)
-                    center_contour = ixn.calc_bbox_center(contour_bbox)
-                    center_cam = ixn.calc_bbox_center(ixn.cam_bbox)
-                    diff_x = center_contour[0] - center_cam[0]
-                    diff_y = center_contour[1] - center_cam[1]
-                    ixn.translate(diff_x, diff_y)
+                    ixn.snap_translate()
                     ixn.set_cam_color('red')
                     ixn.set_listening_translate(False)
                     ixn.render()
