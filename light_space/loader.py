@@ -20,7 +20,7 @@ class Loader:
             except KeyError:
                 path_trans = path
             for subpath in path_trans:
-                if type(subpath) == pt.CubicBezier:
+                if type(subpath) == pt.CubicBezier or type(subpath) == pt.Arc:
                     sp_mtx = np.zeros((T_SAMP + 1, 1, 2))
                     for step in range(0, T_SAMP + 1):
                         t = step / T_SAMP
@@ -36,10 +36,6 @@ class Loader:
                     sp_mtx[0, 0, 1] = round(subpath.start.imag)
                     sp_mtx[1, 0, 0] = round(subpath.end.real)
                     sp_mtx[1, 0, 1] = round(subpath.end.imag)
-
-                if type(subpath) == pt.Arc:
-                    # TODO
-                    pass
 
                 subpath_matrices.append(sp_mtx)
             contours.append(self._combine_subpath_matrices(subpath_matrices))
