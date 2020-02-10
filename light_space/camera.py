@@ -191,10 +191,6 @@ class Camera:
     def candidate_contours(self):
         return self.contours
 
-    def user_vote_contours(self):
-        # TODO: how to let user delete bad ones?
-        pass
-
 def main():
     run_camera_loop('./test_images/form.png')
 

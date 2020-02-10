@@ -157,19 +157,6 @@ class Interaction:
             return (box[0], box[1])
         return (box[0], box[3])
 
-    # TODO: get rid of this function it's bad
-    def calc_bbox_lines(self, box_pts):
-        try:
-            box_pts = box_pts.reshape(4, 2)
-        except:
-            raise ValueError('Cannot calculate bbox lines for non-box contour')
-        bbox_lines = {}
-        bbox_lines['top'] = (box_pts[2], box_pts[3])
-        bbox_lines['bottom'] = (box_pts[0], box_pts[1])
-        bbox_lines['left'] = (box_pts[1], box_pts[2])
-        bbox_lines['right'] = (box_pts[3], box_pts[0])
-        return bbox_lines
-
     def combine_contours(self, contours):
         def combine(c0, c1):
             return np.append(c0, c1, axis=0)
@@ -328,7 +315,6 @@ def make_machine_ixn_click_handler(machine, ixn):
         CM_TO_PX = 37.7952755906
 
         if event == cv2.EVENT_LBUTTONDOWN:
-            # TODO: calc centroids of BBOX, NOT the contour
             if ixn.listening_translate:
                 if len(ixn.chosen_contours) > 0:
                     contour = ixn.chosen_contours[0]
