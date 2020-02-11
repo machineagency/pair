@@ -70,7 +70,7 @@ def calc_work_env_homog(raw_img, env_corner_points, out_shape):
         """
         img_height, img_width, _ = img_contour.shape
         abs_upper_left = np.array([0, 0])
-        abs_upper_right = np.array([0, img_width])
+        abs_upper_right = np.array([img_width, 0])
         dists_upper_left = [dist(pt, abs_upper_left) \
                                 for pt in contour_pts]
         dists_upper_right = [dist(pt, abs_upper_right) \
@@ -100,7 +100,7 @@ def calc_work_env_homog(raw_img, env_corner_points, out_shape):
     output_img = np.zeros(out_shape)
     out_img_corners = get_img_corner_pts(output_img)
     ordered_env_corner_pts = order_contour_points(env_corner_points, raw_img)
-    h, status = cv2.findHomography(np.array(env_corner_points, np.float32), \
+    h, status = cv2.findHomography(np.array(ordered_env_corner_pts, np.float32), \
                                    np.array(out_img_corners, np.float32))
     return h
 
