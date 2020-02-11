@@ -16,7 +16,7 @@ class Interaction:
         self.set_listening_click_to_move(False)
         self.set_listening_translate(False)
         self.set_listening_rotate(False)
-        self.set_listening_spacing(False)
+        self.set_listening_scale(False)
         self.candidate_contours = []
         self.chosen_contours = []
 
@@ -31,6 +31,7 @@ class Interaction:
         self.init_cam_bbox()
         self.trans_mat = np.array([[1, 0, 0], [0, 1, 0]])
         self.theta = 0
+        self.scale_factor = 1
         self.translate_x = 0
         self.translate_y = 0
         self.calib_pt = (self.translate_x, self.translate_y)
@@ -70,6 +71,10 @@ class Interaction:
         self.theta = theta
         self.render()
 
+    def scale(self, scale_factor):
+        self.scale_factor = scale_factor
+        self.render()
+
     # Getters and setters
 
     def set_cam_color(self, color_name):
@@ -87,8 +92,8 @@ class Interaction:
     def set_listening_rotate(self, flag):
         self.listening_rotate = flag
 
-    def set_listening_spacing(self, flag):
-        self.listening_spacing = flag
+    def set_listening_scale(self, flag):
+        self.listening_scale = flag
 
     def set_candidate_contours(self, contours):
         self.candidate_contours = contours
@@ -253,7 +258,7 @@ class Interaction:
         else:
             color = (255, 255, 255)
         centroid = self.calc_bbox_center(self.cam_bbox)
-        self.trans_mat = cv2.getRotationMatrix2D(centroid, self.theta, 1)
+        self.trans_mat = cv2.getRotationMatrix2D(centroid, self.theta, self.scale_factor)
         self.trans_mat[0, 2] += self.translate_x
         self.trans_mat[1, 2] += self.translate_y
         trans_contours = list(map(lambda c: cv2.transform(c, self.trans_mat),\
@@ -347,11 +352,13 @@ def make_machine_ixn_click_handler(machine, ixn):
                     ixn.set_cam_color('red')
                     ixn.set_listening_translate(False)
                     ixn.render()
+
             elif ixn.listening_click_to_move:
                 ixn.move_cam(x, y)
                 ixn.set_cam_color('red')
                 ixn.set_listening_click_to_move(False)
                 ixn.render()
+
             elif ixn.listening_rotate:
                 if len(ixn.chosen_contours) > 0:
                     contour = ixn.chosen_contours[0]
@@ -362,6 +369,20 @@ def make_machine_ixn_click_handler(machine, ixn):
                     ixn.set_cam_color('red')
                     ixn.set_listening_rotate(False)
                     ixn.render()
+
+            elif ixn.listening_scale:
+                contour = ixn.chosen_contours[0]
+                bbox_contour = ixn.calc_min_bbox_for_contour(contour)
+                edge_contour = ixn.find_longest_bbox_line(bbox_contour)
+                edge_cam = ixn.find_longest_bbox_line(ixn.cam_bbox)
+                edge_len_contour = np.linalg.norm(edge_contour[0] - edge_contour[1])
+                edge_len_cam = np.linalg.norm(edge_cam[0] - edge_cam[1])
+                edge_ratio = edge_len_contour / edge_len_cam
+                ixn.scale(edge_ratio)
+                ixn.set_cam_color('red')
+                ixn.set_listening_scale(False)
+                ixn.render()
+
             elif ixn.listening_click_to_move:
                 scaled_x = x / CM_TO_PX
                 scaled_y = y / CM_TO_PX
@@ -369,6 +390,7 @@ def make_machine_ixn_click_handler(machine, ixn):
                 scaled_y = round(scaled_y, 2)
                 instr = machine.travel((scaled_x, scaled_y))
                 print(instr)
+
             else:
                 ixn.set_drawing_sel_box(True)
                 ixn.pt_mdown = (x, y)
@@ -426,19 +448,19 @@ def run_canvas_loop():
                 If spacing adjustment mode on, increase spacing.
                 If rotation adjustment mode on, rotate CCW.
                 """
-                if ixn.listening_spacing:
+                if ixn.listening_scale:
                     ixn.spacing += 10
                 if ixn.listening_rotate:
                     ixn.theta = (ixn.theta + 45) % 360
                     ixn.rotate(ixn.theta)
                 ixn.render()
 
-            if pressed_key == ord('-') and ixn.listening_spacing:
+            if pressed_key == ord('-') and ixn.listening_scale:
                 """
                 If spacing adjustment mode on, reduce spacing.
                 If rotation adjustment mode on, rotate CW.
                 """
-                if ixn.listening_spacing:
+                if ixn.listening_scale:
                     ixn.spacing -= 10
                 if ixn.listening_rotation:
                     ixn.theta = (ixn.theta - 45) % 360
@@ -451,7 +473,7 @@ def run_canvas_loop():
                 """
                 ixn.set_listening_click_to_move(not ixn.listening_click_to_move)
                 if ixn.listening_click_to_move:
-                    ixn.set_listening_spacing(False)
+                    ixn.set_listening_scale(False)
                     ixn.set_listening_rotate(False)
                     ixn.set_listening_translate(False)
                     ixn.set_cam_color('green')
@@ -461,10 +483,10 @@ def run_canvas_loop():
 
             if pressed_key == ord('s'):
                 """
-                Toggle selection spacing adjustment mode.
+                Toggle selection scaling adjustment mode.
                 """
-                ixn.set_listening_spacing(not ixn.listening_spacing)
-                if ixn.listening_spacing:
+                ixn.set_listening_scale(not ixn.listening_scale)
+                if ixn.listening_scale:
                     ixn.set_listening_translate(False)
                     ixn.set_listening_click_to_move(False)
                     ixn.set_listening_rotate(False)
@@ -480,7 +502,7 @@ def run_canvas_loop():
                 ixn.set_listening_translate(not ixn.listening_translate)
                 if ixn.listening_translate:
                     ixn.set_listening_click_to_move(False)
-                    ixn.set_listening_spacing(False)
+                    ixn.set_listening_scale(False)
                     ixn.set_listening_rotate(False)
                     ixn.set_cam_color('green')
                 ixn.render()
@@ -489,7 +511,7 @@ def run_canvas_loop():
                 ixn.set_listening_rotate(not ixn.listening_rotate)
                 if ixn.listening_rotate:
                     ixn.set_listening_click_to_move(False)
-                    ixn.set_listening_spacing(False)
+                    ixn.set_listening_scale(False)
                     ixn.set_listening_translate(False)
                     ixn.set_cam_color('green')
                 else:
@@ -520,7 +542,7 @@ def run_canvas_loop():
                 """
                 # Exit any edit mode first
                 ixn.set_listening_translate(False)
-                ixn.set_listening_spacing(False)
+                ixn.set_listening_scale(False)
                 ixn.set_cam_color('red')
                 ixn.render()
 
