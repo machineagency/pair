@@ -124,14 +124,18 @@ def run_camera_loop(img_path):
             img_raw = img.copy()
             img = c._process_image(img)
             try:
-                c.calc_candidate_contours((18, 28))
+                envelope_hw = (18, 28)
+                c.calc_candidate_contours(envelope_hw)
                 print(len(c.candidate_contours))
                 # TODO: figure out homography with camera -> projector dimensions
-                # work_env_homog = calc_work_env_homog(img_raw, c.work_env_contour, PROJ_SCREEN_SIZE_HW)
-                # img_crop = cv2.warpPerspective(img_raw, work_env_homog, (PROJ_SCREEN_SIZE_HW[1],\
-                #                   PROJ_SCREEN_SIZE_HW[0]))
-                cv2.drawContours(img_raw, c.candidate_contours, -1, (255, 0, 0), 1)
-                cv2.imshow('contours', img_raw)
+                envelope_hw_px = (round(envelope_hw[0] * c.CM_TO_PX),\
+                                  round(envelope_hw[1] * c.CM_TO_PX))
+                work_env_homog = calc_work_env_homog(img_raw, c.work_env_contour,\
+                                                     envelope_hw_px)
+                img_crop = cv2.warpPerspective(img_raw, work_env_homog,\
+                             (envelope_hw_px[1], envelope_hw_px[0]))
+                cv2.drawContours(img_crop, c.candidate_contours, -1, (255, 0, 0), 1)
+                cv2.imshow('contours', img_crop)
                 cv2.imshow('edges', img)
             except ValueError:
                 print('Found no rectangle')
