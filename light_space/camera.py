@@ -163,6 +163,7 @@ class Camera:
         self.contours = []
         self.work_env_contour = None
         self.video_capture = cv2.VideoCapture(0)
+        self.video_preview_open = False
 
     def _process_image(self, img):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -177,6 +178,25 @@ class Camera:
     def _read_video_image(self):
         ret, frame = self.video_capture.read()
         return frame
+
+    def open_video_preview(self):
+        self.video_preview_open = True
+        cv2.imshow('preview', self._read_video_image())
+
+    def update_video_preview(self):
+        img = self._read_video_image()
+        img_edge = self._process_image(img)
+        contours = calc_contours(img_edge)
+        try:
+            work_env_contour = find_work_env_in_contours(contours)
+            cv2drawContours(img, [work_env_contour], -1, (0, 255, 0), 3)
+        except ValueError:
+            pass
+        cv2.imshow('preview', img)
+
+    def close_video_preview(self):
+        self.video_preview_open = False
+        cv2.destroyWindow('preview')
 
     def calc_candidate_contours(self, envelope_hw):
         img = self._read_video_image()

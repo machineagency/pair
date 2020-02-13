@@ -570,9 +570,21 @@ def run_canvas_loop():
                 ixn.clear_chosen_contours()
                 ixn.clear_candidate_contours()
                 ixn.clear_curr_sel_contour()
-                camera.calc_candidate_contours(ixn.envelope_hw)
-                ixn.set_candidate_contours(camera.candidate_contours)
-                ixn.render()
+                try:
+                    camera.calc_candidate_contours(ixn.envelope_hw)
+                    ixn.set_candidate_contours(camera.candidate_contours)
+                    ixn.render()
+                except ValueError:
+                    print('Found no rectangle.')
+
+            if pressed_key == ord('v'):
+                """
+                Open a video capture preview.
+                """
+                if not camera.video_preview_open:
+                    camera.open_video_preview()
+                else:
+                    camera.update_video_preview()
 
             if pressed_key == 13:
                 """
