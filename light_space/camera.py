@@ -189,7 +189,7 @@ class Camera:
         contours = calc_contours(img_edge)
         try:
             work_env_contour = find_work_env_in_contours(contours)
-            cv2drawContours(img, [work_env_contour], -1, (0, 255, 0), 3)
+            cv2.drawContours(img, [work_env_contour], -1, (0, 255, 0), 3)
         except ValueError:
             pass
         cv2.imshow('preview', img)
