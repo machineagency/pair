@@ -1,0 +1,13 @@
+<svg id="test" data-name="test">
+<defs>
+	<style>
+		.class {
+			fill: none;
+			stroke: #000;
+			stroke-miterlimit: 10;
+			stroke-width: 0.25px;
+		}
+	</style>
+</defs>
+<title>test</title>
+</svg>

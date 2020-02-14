@@ -558,9 +558,15 @@ def run_canvas_loop():
 
             if pressed_key == ord('d'):
                 for c in ixn.curr_trans_cam:
+                    pt_init = (c[0][0, 0] / CM_TO_PX, c[0][0, 1] / CM_TO_PX)
+                    machine.travel(pt_init)
+                    machine.pen_down()
                     for p in c:
                         pt_tup = (p[0, 0] / CM_TO_PX, p[0, 1] / CM_TO_PX)
-                        machine.travel(pt_tup)
+                        machine.line(pt_tup)
+                    machine.pen_up()
+                machine.pen_up()
+                machine.return_to_origin()
 
             if pressed_key == ord('c'):
                 """
@@ -570,9 +576,28 @@ def run_canvas_loop():
                 ixn.clear_chosen_contours()
                 ixn.clear_candidate_contours()
                 ixn.clear_curr_sel_contour()
-                camera.calc_candidate_contours(ixn.envelope_hw)
-                ixn.set_candidate_contours(camera.candidate_contours)
-                ixn.render()
+                try:
+                    camera.calc_candidate_contours(ixn.envelope_hw)
+                    ixn.set_candidate_contours(camera.candidate_contours)
+                    ixn.render()
+                except ValueError:
+                    print('Found no rectangle.')
+
+            if pressed_key == ord('v'):
+                """
+                Open a video capture preview.
+                """
+                if not camera.video_preview_open:
+                    camera.open_video_preview()
+                else:
+                    camera.update_video_preview()
+
+            if pressed_key == ord('w'):
+                """
+                Write transformed CAM contour to SVG.
+                """
+                l = Loader()
+                l.export_contours_as_svg(ixn.curr_trans_cam, 'test')
 
             if pressed_key == 13:
                 """
