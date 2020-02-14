@@ -558,9 +558,15 @@ def run_canvas_loop():
 
             if pressed_key == ord('d'):
                 for c in ixn.curr_trans_cam:
+                    pt_init = (c[0][0, 0] / CM_TO_PX, c[0][0, 1] / CM_TO_PX)
+                    machine.travel(pt_init)
+                    machine.pen_down()
                     for p in c:
                         pt_tup = (p[0, 0] / CM_TO_PX, p[0, 1] / CM_TO_PX)
-                        machine.travel(pt_tup)
+                        machine.line(pt_tup)
+                    machine.pen_up()
+                machine.pen_up()
+                machine.return_to_origin()
 
             if pressed_key == ord('c'):
                 """
