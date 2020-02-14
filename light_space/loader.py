@@ -41,6 +41,30 @@ class Loader:
             contours.append(self._combine_subpath_matrices(subpath_matrices))
         return contours
 
+    def export_contours_as_svg(self, contours, title):
+        CM_TO_PX = 37.7952755906
+        fp = open(f'output_vectors/{title}.svg', mode='w+')
+        fp.write(f'<svg id="{title}" data-name="{title}">\n')
+        fp.write('<defs>\n')
+        fp.write('\t<style>\n')
+        fp.write('\t\t.class {\n')
+        fp.write('\t\t\tfill: none;\n')
+        fp.write('\t\t\tstroke: #000;\n')
+        fp.write('\t\t\tstroke-miterlimit: 10;\n')
+        fp.write('\t\t\tstroke-width: 0.25px;\n')
+        fp.write('\t\t}\n')
+        fp.write('\t</style>\n')
+        fp.write('</defs>\n')
+        fp.write(f'<title>{title}</title>\n')
+        for contour in contours:
+            fp.write('<path class="class" d="M')
+            for point in contour:
+                pt_tup = (point[0, 0] / CM_TO_PX, point[0, 1] / CM_TO_PX)
+                fp.write(f'{"%.2f"%(pt_tup[0])},{"%.2f"%(pt_tup[1])} ')
+            fp.write('"/>\n')
+        fp.write('</svg>\n')
+        fp.close()
+
     def _combine_subpath_matrices(self, matrices):
         def combine(c0, c1):
             return np.append(c0, c1, axis=0)

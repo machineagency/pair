@@ -592,6 +592,13 @@ def run_canvas_loop():
                 else:
                     camera.update_video_preview()
 
+            if pressed_key == ord('w'):
+                """
+                Write transformed CAM contour to SVG.
+                """
+                l = Loader()
+                l.export_contours_as_svg(ixn.curr_trans_cam, 'test')
+
             if pressed_key == 13:
                 """
                 Move candidate contours to chosen contours on ENTER.
