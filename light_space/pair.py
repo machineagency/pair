@@ -447,11 +447,11 @@ def run_canvas_loop():
 
             if pressed_key == ord('='):
                 """
-                If spacing adjustment mode on, increase spacing.
+                If scale adjustment mode on, increase scale.
                 If rotation adjustment mode on, rotate CCW.
                 """
                 if ixn.listening_scale:
-                    ixn.spacing += 10
+                    ixn.scale_factor += 0.01
                 if ixn.listening_rotate:
                     ixn.theta = (ixn.theta + 45) % 360
                     ixn.rotate(ixn.theta)
@@ -459,12 +459,12 @@ def run_canvas_loop():
 
             if pressed_key == ord('-') and ixn.listening_scale:
                 """
-                If spacing adjustment mode on, reduce spacing.
+                If scale adjustment mode on, reduce scale.
                 If rotation adjustment mode on, rotate CW.
                 """
                 if ixn.listening_scale:
-                    ixn.spacing -= 10
-                if ixn.listening_rotation:
+                    ixn.scale_factor -= 0.01
+                if ixn.listening_rotate:
                     ixn.theta = (ixn.theta - 45) % 360
                     ixn.rotate(ixn.theta)
                 ixn.render()
