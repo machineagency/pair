@@ -8,6 +8,8 @@ class Machine:
             self.ad.interactive()
             self.ad.options.units = 1 # Use centimeters
             self.ad.connect()
+        else:
+            print('Running in DRY mode.')
 
     def pen_up(self):
         if not self.dry:
