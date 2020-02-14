@@ -27,7 +27,9 @@ class Interaction:
         self.curr_sel_contour = None
 
         self.loader = Loader()
-        self.cam_contours = self.loader.load_svg('test_images/secret/nadya-sig.svg')
+        # self.cam_contours = self.loader.load_svg('test_images/secret/nadya-sig.svg')
+        self.cam_contours = self.loader.extract_contours_from_img_file(\
+                                'test_images/brochacho.png')
         self.init_cam_bbox()
         self.trans_mat = np.array([[1, 0, 0], [0, 1, 0]])
         self.theta = 0

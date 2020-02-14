@@ -1,6 +1,7 @@
 import numpy as np
 import svgpathtools as pt
 import math
+import cv2
 from functools import reduce
 
 class Loader:
@@ -39,6 +40,14 @@ class Loader:
 
                 subpath_matrices.append(sp_mtx)
             contours.append(self._combine_subpath_matrices(subpath_matrices))
+        return contours
+
+    def extract_contours_from_img_file(self, img_filepath):
+        img = cv2.imread(img_filepath)
+        # cv2.imshow('loaded', img)
+        edge_img = cv2.Canny(img, 50, 80)
+        contours, hierarchy = cv2.findContours(edge_img, cv2.RETR_TREE,\
+                                               cv2.CHAIN_APPROX_SIMPLE)
         return contours
 
     def export_contours_as_svg(self, contours, title):
