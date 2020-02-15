@@ -1,6 +1,7 @@
 import numpy as np
 import svgpathtools as pt
 import math
+import cv2
 from functools import reduce
 
 class Loader:
@@ -41,10 +42,19 @@ class Loader:
             contours.append(self._combine_subpath_matrices(subpath_matrices))
         return contours
 
+    def extract_contours_from_img_file(self, img_filepath):
+        img = cv2.imread(img_filepath)
+        _, edge_img = cv2.threshold(img, 100, 255, cv2.THRESH_BINARY)
+        edge_img = cv2.cvtColor(edge_img, cv2.COLOR_BGR2GRAY)
+        contours, hierarchy = cv2.findContours(edge_img, cv2.RETR_TREE,\
+                                               cv2.CHAIN_APPROX_SIMPLE)
+        return contours
+
     def export_contours_as_svg(self, contours, title):
+        culled_contours = self._cull_small_contours(contours)
         CM_TO_PX = 37.7952755906
         fp = open(f'output_vectors/{title}.svg', mode='w+')
-        fp.write(f'<svg id="{title}" data-name="{title}">\n')
+        fp.write(f'<svg id="{title}" data-name="{title}" width="25cm" height="25cm" xmlns="http://www.w3.org/2000/svg">\n')
         fp.write('<defs>\n')
         fp.write('\t<style>\n')
         fp.write('\t\t.class {\n')
@@ -56,12 +66,13 @@ class Loader:
         fp.write('\t</style>\n')
         fp.write('</defs>\n')
         fp.write(f'<title>{title}</title>\n')
-        for contour in contours:
-            fp.write('<path class="class" d="M')
-            for point in contour:
-                pt_tup = (point[0, 0] / CM_TO_PX, point[0, 1] / CM_TO_PX)
-                fp.write(f'{"%.2f"%(pt_tup[0])},{"%.2f"%(pt_tup[1])} ')
-            fp.write('"/>\n')
+        for contour in culled_contours:
+            init_pt_tup = (contour[0][0, 0], contour[0][0, 1])
+            fp.write(f'<path d="M{"%.4f"%(init_pt_tup[0])},{"%.4f"%(init_pt_tup[1])}')
+            for point in contour[1:]:
+                pt_tup = (point[0, 0], point[0, 1])
+                fp.write(f'L{"%.4f"%(pt_tup[0])},{"%.4f"%(pt_tup[1])}')
+            fp.write('Z" translate="(0, 0)" style="fill:none; stroke:#231f20;"/>\n')
         fp.write('</svg>\n')
         fp.close()
 
@@ -69,6 +80,13 @@ class Loader:
         def combine(c0, c1):
             return np.append(c0, c1, axis=0)
         return reduce(combine, matrices).astype(np.int32)
+
+    def _cull_small_contours(self, contours):
+        MIN_CONTOUR_LEN = 10
+        min_length_lambda = lambda c: cv2.arcLength(c, closed=True)\
+                            > MIN_CONTOUR_LEN
+        culled_contours = list(filter(min_length_lambda, contours))
+        return culled_contours
 
     def _parse_translate_attr(self, translate_attr):
         '''

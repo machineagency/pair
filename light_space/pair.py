@@ -27,7 +27,9 @@ class Interaction:
         self.curr_sel_contour = None
 
         self.loader = Loader()
-        self.cam_contours = self.loader.load_svg('test_images/secret/nadya-sig.svg')
+        # self.cam_contours = self.loader.load_svg('test_images/secret/nadya-sig.svg')
+        self.cam_contours = self.loader.extract_contours_from_img_file(\
+                                'test_images/brochacho.png')
         self.init_cam_bbox()
         self.trans_mat = np.array([[1, 0, 0], [0, 1, 0]])
         self.theta = 0
@@ -445,11 +447,11 @@ def run_canvas_loop():
 
             if pressed_key == ord('='):
                 """
-                If spacing adjustment mode on, increase spacing.
+                If scale adjustment mode on, increase scale.
                 If rotation adjustment mode on, rotate CCW.
                 """
                 if ixn.listening_scale:
-                    ixn.spacing += 10
+                    ixn.scale_factor += 0.01
                 if ixn.listening_rotate:
                     ixn.theta = (ixn.theta + 45) % 360
                     ixn.rotate(ixn.theta)
@@ -457,12 +459,12 @@ def run_canvas_loop():
 
             if pressed_key == ord('-') and ixn.listening_scale:
                 """
-                If spacing adjustment mode on, reduce spacing.
+                If scale adjustment mode on, reduce scale.
                 If rotation adjustment mode on, rotate CW.
                 """
                 if ixn.listening_scale:
-                    ixn.spacing -= 10
-                if ixn.listening_rotation:
+                    ixn.scale_factor -= 0.01
+                if ixn.listening_rotate:
                     ixn.theta = (ixn.theta - 45) % 360
                     ixn.rotate(ixn.theta)
                 ixn.render()
@@ -557,16 +559,8 @@ def run_canvas_loop():
                 machine.pen_up()
 
             if pressed_key == ord('d'):
-                for c in ixn.curr_trans_cam:
-                    pt_init = (c[0][0, 0] / CM_TO_PX, c[0][0, 1] / CM_TO_PX)
-                    machine.travel(pt_init)
-                    machine.pen_down()
-                    for p in c:
-                        pt_tup = (p[0, 0] / CM_TO_PX, p[0, 1] / CM_TO_PX)
-                        machine.line(pt_tup)
-                    machine.pen_up()
-                machine.pen_up()
-                machine.return_to_origin()
+                ixn.loader.export_contours_as_svg(ixn.curr_trans_cam, 'drawing')
+                machine.plot_svg('output_vectors/drawing.svg')
 
             if pressed_key == ord('c'):
                 """
@@ -596,8 +590,7 @@ def run_canvas_loop():
                 """
                 Write transformed CAM contour to SVG.
                 """
-                l = Loader()
-                l.export_contours_as_svg(ixn.curr_trans_cam, 'test')
+                ixn.loader.export_contours_as_svg(ixn.curr_trans_cam, 'test')
 
             if pressed_key == 13:
                 """
