@@ -54,7 +54,7 @@ class Loader:
         culled_contours = self._cull_small_contours(contours)
         CM_TO_PX = 37.7952755906
         fp = open(f'output_vectors/{title}.svg', mode='w+')
-        fp.write(f'<svg id="{title}" data-name="{title}">\n')
+        fp.write(f'<svg id="{title}" data-name="{title}" width="25cm" height="25cm" xmlns="http://www.w3.org/2000/svg">\n')
         fp.write('<defs>\n')
         fp.write('\t<style>\n')
         fp.write('\t\t.class {\n')
@@ -66,12 +66,13 @@ class Loader:
         fp.write('\t</style>\n')
         fp.write('</defs>\n')
         fp.write(f'<title>{title}</title>\n')
-        for contour in contours:
-            fp.write('<path class="class" d="M')
-            for point in contour:
-                pt_tup = (point[0, 0] / CM_TO_PX, point[0, 1] / CM_TO_PX)
-                fp.write(f'{"%.2f"%(pt_tup[0])},{"%.2f"%(pt_tup[1])} ')
-            fp.write('"/>\n')
+        for contour in culled_contours:
+            init_pt_tup = (contour[0][0, 0], contour[0][0, 1])
+            fp.write(f'<path d="M{"%.4f"%(init_pt_tup[0])},{"%.4f"%(init_pt_tup[1])}')
+            for point in contour[1:]:
+                pt_tup = (point[0, 0], point[0, 1])
+                fp.write(f'L{"%.4f"%(pt_tup[0])},{"%.4f"%(pt_tup[1])}')
+            fp.write('Z" translate="(0, 0)" style="fill:none; stroke:#231f20;"/>\n')
         fp.write('</svg>\n')
         fp.close()
 

@@ -54,3 +54,9 @@ class Machine:
             self.pen_up()
         return f'square at {start_pt} height {height} width {width}'
 
+    def plot_svg(self, filepath):
+        if not self.dry:
+            self.ad.plot_setup(filepath)
+            self.ad.plot_run()
+        return f'plotted {filepath}'
+

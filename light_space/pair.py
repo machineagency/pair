@@ -559,16 +559,8 @@ def run_canvas_loop():
                 machine.pen_up()
 
             if pressed_key == ord('d'):
-                for c in ixn.curr_trans_cam:
-                    pt_init = (c[0][0, 0] / CM_TO_PX, c[0][0, 1] / CM_TO_PX)
-                    machine.travel(pt_init)
-                    machine.pen_down()
-                    for p in c:
-                        pt_tup = (p[0, 0] / CM_TO_PX, p[0, 1] / CM_TO_PX)
-                        machine.line(pt_tup)
-                    machine.pen_up()
-                machine.pen_up()
-                machine.return_to_origin()
+                ixn.loader.export_contours_as_svg(ixn.curr_trans_cam, 'drawing')
+                machine.plot_svg('output_vectors/drawing.svg')
 
             if pressed_key == ord('c'):
                 """
@@ -598,8 +590,7 @@ def run_canvas_loop():
                 """
                 Write transformed CAM contour to SVG.
                 """
-                l = Loader()
-                l.export_contours_as_svg(ixn.curr_trans_cam, 'test')
+                ixn.loader.export_contours_as_svg(ixn.curr_trans_cam, 'test')
 
             if pressed_key == 13:
                 """
