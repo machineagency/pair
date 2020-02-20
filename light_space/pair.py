@@ -58,7 +58,8 @@ class Interaction:
         edge_cam = self.find_shortest_bbox_line(self.cam_bbox)
         edge_len_contour = np.linalg.norm(edge_contour[0]\
                             - edge_contour[1])
-        edge_len_cam = np.linalg.norm(edge_cam[0] - edge_cam[1])
+        edge_len_cam = np.linalg.norm(edge_cam[0] - edge_cam[1])\
+                        * self.scale_factor
         offset_hyp = 0.5 * (edge_len_contour + edge_len_cam)
         offset_x = math.sin(self.theta) * offset_hyp
         offset_y = math.cos(self.theta) * offset_hyp
