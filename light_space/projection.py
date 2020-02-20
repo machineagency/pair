@@ -3,6 +3,9 @@ import numpy as np
 
 GRID_IMG_SIZE = (400, 400)
 
+def flood_env_white(img, envelope_hw):
+    return cv2.rectangle(img, (0, 0), envelope_hw, (255, 255, 255), cv2.FILLED)
+
 def dot_at(pt, img=None):
     if img is None:
         img_size_three_channel = GRID_IMG_SIZE + (3,)

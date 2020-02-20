@@ -430,7 +430,7 @@ def run_canvas_loop():
     gui = GuiControl(PROJ_SCREEN_SIZE_HW)
     ixn = Interaction(img, PROJ_SCREEN_SIZE_HW, gui)
 
-    machine = Machine(dry=True)
+    machine = Machine(dry=False)
     camera = Camera()
     handle_click = make_machine_ixn_click_handler(machine, ixn)
     cv2.setMouseCallback(window_name, handle_click)
@@ -583,6 +583,11 @@ def run_canvas_loop():
                 """
                 Open a video capture preview.
                 """
+                def __render_white():
+                    env_hw_px = (round(ixn.envelope_hw[1] * CM_TO_PX),\
+                                 round(ixn.envelope_hw[0] * CM_TO_PX))
+                    projection.flood_env_white(ixn.img, env_hw_px)
+                ixn.render(__render_white)
                 if not camera.video_preview_open:
                     camera.open_video_preview()
                 else:
