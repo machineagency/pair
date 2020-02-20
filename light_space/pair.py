@@ -457,9 +457,11 @@ def run_canvas_loop():
                 if ixn.listening_rotate:
                     ixn.theta = (ixn.theta + 45) % 360
                     ixn.rotate(ixn.theta)
+                if ixn.listening_translate:
+                    ixn.translate(0, ixn.translate_y + 10)
                 ixn.render()
 
-            if pressed_key == ord('-') and ixn.listening_scale:
+            if pressed_key == ord('-'):
                 """
                 If scale adjustment mode on, reduce scale.
                 If rotation adjustment mode on, rotate CW.
@@ -469,6 +471,8 @@ def run_canvas_loop():
                 if ixn.listening_rotate:
                     ixn.theta = (ixn.theta - 45) % 360
                     ixn.rotate(ixn.theta)
+                if ixn.listening_translate:
+                    ixn.translate(0, ixn.translate_y - 10)
                 ixn.render()
 
             if pressed_key == ord('m'):
