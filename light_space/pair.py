@@ -29,7 +29,7 @@ class Interaction:
         self.loader = Loader()
         # self.cam_contours = self.loader.load_svg('test_images/secret/nadya-sig.svg')
         self.cam_contours = self.loader.extract_contours_from_img_file(\
-                                'test_images/brochacho.png')
+                                'test_images/secret/real-nadya-sig.jpg')
         self.init_cam_bbox()
         self.trans_mat = np.array([[1, 0, 0], [0, 1, 0]])
         self.theta = 0
@@ -271,7 +271,7 @@ class Interaction:
             or self.listening_click_to_move:
             self._render_cam_bbox()
 
-    def render(self):
+    def render(self, extras_fn=None):
         """
         Note: this function draws each render subroutine over the last call
         to the effect of being an informal z-buffer.
@@ -283,6 +283,8 @@ class Interaction:
         self._render_sel_contour()
         self._render_cam()
         self.gui.render_gui(self.img)
+        if extras_fn:
+            extras_fn()
         cv2.imshow('Projection', self.img)
 
 class GuiControl:
