@@ -35,6 +35,27 @@ def line_from_to(p0, p1, color_name='red', img=None):
     p1 = (int(round(p1[0])), int(round(p1[1])))
     return cv2.line(img, p0, p1, color, thickness, cv2.LINE_AA)
 
+def guide_through_pts(p0, p1, proj_screen_hw, img):
+    m_numer = p0[1] - p1[1]
+    m_denom = p0[0] - p1[0]
+    if m_numer == 0 and m_denom == 0:
+        # Don't draw guides for co-point points
+        return
+    elif m_denom == 0:
+        p_min = (p0[0], 0)
+        p_max = (p0[0], proj_screen_hw[0])
+    elif m_numer == 0:
+        p_min = (0, p0[1])
+        p_max = (proj_screen_hw[1], p0[1])
+    else:
+        m = m_numer / m_denom
+        b = p0[1] - m * p0[0]
+        # TODO: find out how to find points in non-axis-aligned case
+        # Below is just a placeholder for now
+        p_min = (0, 0)
+        p_max = (proj_screen_hw[1], proj_screen_hw[0])
+    return cv2.line(img, p_min, p_max, (255, 255, 0), 1, cv2.LINE_AA)
+
 def rectangle_at(pt, width, height, img):
     """
     Creates a rectangle whose top left corner is at PT, with WIDTH (delta X)

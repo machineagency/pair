@@ -613,7 +613,16 @@ def run_canvas_loop():
                                                    [ixn.curr_sel_contour])))
                 ixn.clear_candidate_contours()
                 ixn.clear_curr_sel_contour()
-                ixn.render()
+                # TODO: add this to render routine
+                def __draw_guides():
+                    contour = ixn.chosen_contours[0]
+                    bbox = ixn.calc_straight_bbox_for_contour(contour)
+                    edges = [(bbox[0], bbox[1]), (bbox[1], bbox[2]),\
+                             (bbox[2], bbox[3]), (bbox[3], bbox[0])]
+                    for edge in edges:
+                        projection.guide_through_pts(edge[0], edge[1],\
+                                PROJ_SCREEN_SIZE_HW, ixn.img)
+                ixn.render(__draw_guides)
 
     finally:
         cv2.destroyAllWindows()

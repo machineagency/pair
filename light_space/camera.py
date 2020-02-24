@@ -199,7 +199,8 @@ class Camera:
         cv2.destroyWindow('preview')
 
     def calc_candidate_contours(self, envelope_hw):
-        img = self._read_video_image()
+        # img = self._read_video_image()
+        img = self._load_file_image()
         img = self._process_image(img)
         contours = calc_contours(img)
         work_env_contour = find_work_env_in_contours(contours)
