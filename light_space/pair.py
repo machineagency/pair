@@ -21,11 +21,6 @@ class Interaction:
         self.candidate_contours = []
         self.chosen_contour = None
         self.chosen_contour_bbox = []
-
-        # Selection
-        self.pt_mdown = (0, 0)
-        self.pt_mdrag = (0, 0)
-        self.set_drawing_sel_box(False)
         self.curr_sel_contour = None
 
         self.loader = Loader()
@@ -84,9 +79,6 @@ class Interaction:
 
     def set_cam_color(self, color_name):
         self.color_name = color_name
-
-    def set_drawing_sel_box(self, flag):
-        self.drawing_sel_box = flag;
 
     def set_listening_click_to_move(self, flag):
         self.listening_click_to_move = flag
@@ -227,10 +219,6 @@ class Interaction:
             box_pts = self.calc_min_bbox_for_contour(self.chosen_contour)
             cv2.drawContours(self.img, [box_pts], 0, (0, 255, 255), 1)
 
-    def _render_sel_box(self):
-        if self.drawing_sel_box:
-            projection.rectangle_from_to(self.pt_mdown, self.pt_mdrag, 'white', self.img)
-
     def _render_sel_contour(self):
         if self.curr_sel_contour is not None:
             cv2.drawContours(self.img, [self.curr_sel_contour], 0, (255, 255, 255), 3)
@@ -293,7 +281,6 @@ class Interaction:
         self._render_candidate_contours()
         self._render_chosen_contour()
         self._render_guides()
-        self._render_sel_box()
         self._render_sel_contour()
         self._render_cam()
         self.gui.render_gui(self.img)
@@ -373,8 +360,7 @@ def make_machine_ixn_click_handler(machine, ixn):
 
             elif ixn.listening_click_to_move:
                 ixn.move_cam(x, y)
-                ixn.set_cam_color('red')
-                ixn.set_listening_click_to_move(False)
+                ixn.set_cam_color('green')
                 ixn.render()
 
             elif ixn.listening_rotate:
@@ -409,21 +395,16 @@ def make_machine_ixn_click_handler(machine, ixn):
                 instr = machine.travel((scaled_x, scaled_y))
                 print(instr)
 
-            else:
-                ixn.set_drawing_sel_box(True)
-                ixn.pt_mdown = (x, y)
-
         # On mouse move, if we are drawing sel box, actually draw it
         if event == cv2.EVENT_MOUSEMOVE:
-            if ixn.drawing_sel_box:
-                ixn.pt_mdrag = (x, y)
+            if ixn.listening_click_to_move:
+                ixn.move_cam(x, y)
                 ixn.render()
 
         if event == cv2.EVENT_LBUTTONUP:
-            if ixn.drawing_sel_box:
-                ixn.pt_mdown = (0, 0)
-                ixn.pt_mdrag = (0, 0)
-                ixn.set_drawing_sel_box(False)
+            if ixn.listening_click_to_move:
+                ixn.set_listening_click_to_move(False)
+                ixn.set_cam_color('red')
                 ixn.render()
 
             ixn.set_curr_sel_contour(ixn.select_contour_at_point((x, y)))
