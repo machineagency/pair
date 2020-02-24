@@ -18,7 +18,8 @@ class Interaction:
         self.set_listening_rotate(False)
         self.set_listening_scale(False)
         self.candidate_contours = []
-        self.chosen_contours = []
+        self.chosen_contour = None
+        self.chosen_contour_bbox = []
 
         # Selection
         self.pt_mdown = (0, 0)
@@ -48,7 +49,7 @@ class Interaction:
 
     def snap_translate(self):
         # TODO: offset doesn't work when rotation angle past pi radians
-        contour = self.chosen_contours[0]
+        contour = self.chosen_contour
         contour_bbox = self.calc_min_bbox_for_contour(contour)
         center_contour = self.calc_bbox_center(contour_bbox)
         center_cam = self.calc_bbox_center(self.cam_bbox)
@@ -110,11 +111,13 @@ class Interaction:
     def clear_curr_sel_contour(self):
         self.curr_sel_contour = None
 
-    def set_chosen_contours(self, contours):
-        self.chosen_contours = contours
+    def set_chosen_contour(self, contour):
+        self.chosen_contour = contour
+        self.chosen_contour_bbox = self.calc_straight_bbox_for_contour(contour)
 
-    def clear_chosen_contours(self):
-        self.chosen_contours = []
+    def clear_chosen_contour(self):
+        self.chosen_contour = None
+        self.chosen_contour_bbox = []
 
     def select_contour_at_point(self, pt):
         selected_contours = []
@@ -217,12 +220,11 @@ class Interaction:
     def _render_candidate_contours(self):
         cv2.drawContours(self.img, self.candidate_contours, -1, (255, 0, 0), 1)
 
-    def _render_chosen_contours(self):
-        if len(self.chosen_contours) > 0:
-            cv2.drawContours(self.img, self.chosen_contours, -1, (0, 255, 255), 3)
-            for contour in self.chosen_contours:
-                box_pts = self.calc_min_bbox_for_contour(contour)
-                cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
+    def _render_chosen_contour(self):
+        if self.chosen_contour is not None:
+            cv2.drawContours(self.img, self.chosen_contour, -1, (0, 255, 255), 3)
+            box_pts = self.calc_min_bbox_for_contour(self.chosen_contour)
+            cv2.drawContours(self.img, [box_pts], 0, (0, 255, 255), 1)
 
     def _render_sel_box(self):
         if self.drawing_sel_box:
@@ -279,7 +281,7 @@ class Interaction:
         """
         self.img = np.zeros(self.img.shape, np.float32)
         self._render_candidate_contours()
-        self._render_chosen_contours()
+        self._render_chosen_contour()
         self._render_sel_box()
         self._render_sel_contour()
         self._render_cam()
@@ -352,7 +354,7 @@ def make_machine_ixn_click_handler(machine, ixn):
 
         if event == cv2.EVENT_LBUTTONDOWN:
             if ixn.listening_translate:
-                if len(ixn.chosen_contours) > 0:
+                if ixn.chosen_contour is not None:
                     ixn.snap_translate()
                     ixn.set_cam_color('red')
                     ixn.set_listening_translate(False)
@@ -365,8 +367,8 @@ def make_machine_ixn_click_handler(machine, ixn):
                 ixn.render()
 
             elif ixn.listening_rotate:
-                if len(ixn.chosen_contours) > 0:
-                    contour = ixn.chosen_contours[0]
+                if ixn.chosen_contour is not None:
+                    contour = ixn.chosen_contour
                     box = ixn.calc_min_bbox_for_contour(contour)
                     line = ixn.find_longest_bbox_line(box)
                     angle = ixn.calc_line_angle(line)
@@ -376,7 +378,7 @@ def make_machine_ixn_click_handler(machine, ixn):
                     ixn.render()
 
             elif ixn.listening_scale:
-                contour = ixn.chosen_contours[0]
+                contour = ixn.chosen_contour
                 bbox_contour = ixn.calc_min_bbox_for_contour(contour)
                 edge_contour = ixn.find_longest_bbox_line(bbox_contour)
                 edge_cam = ixn.find_longest_bbox_line(ixn.cam_bbox)
@@ -574,7 +576,7 @@ def run_canvas_loop():
                 Show candidate contours from camera feed.
                 Clear existing chosen and candidate contours.
                 """
-                ixn.clear_chosen_contours()
+                ixn.clear_chosen_contour()
                 ixn.clear_candidate_contours()
                 ixn.clear_curr_sel_contour()
                 try:
@@ -609,13 +611,12 @@ def run_canvas_loop():
                 Move candidate contours to chosen contours on ENTER.
                 """
                 if ixn.curr_sel_contour is not None:
-                    ixn.set_chosen_contours(list(map(lambda c: np.copy(c),\
-                                                   [ixn.curr_sel_contour])))
+                    ixn.set_chosen_contour(np.copy(ixn.curr_sel_contour))
                 ixn.clear_candidate_contours()
                 ixn.clear_curr_sel_contour()
                 # TODO: add this to render routine
                 def __draw_guides():
-                    contour = ixn.chosen_contours[0]
+                    contour = ixn.chosen_contour
                     bbox = ixn.calc_straight_bbox_for_contour(contour)
                     edges = [(bbox[0], bbox[1]), (bbox[1], bbox[2]),\
                              (bbox[2], bbox[3]), (bbox[3], bbox[0])]
