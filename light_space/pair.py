@@ -10,6 +10,7 @@ import projection
 class Interaction:
     def __init__(self, img, screen_size, gui):
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
+        self.proj_screen_hw = (720, 1280)
         self.img = img
         self.gui = gui
         self.set_cam_color('red')
@@ -251,6 +252,15 @@ class Interaction:
         projection.line_from_to(bbox_lines['right'][0], bbox_lines['right'][1],\
                                 'yellow', self.img)
 
+    def _render_guides(self):
+        if len(self.chosen_contour_bbox) > 0:
+            bbox = self.chosen_contour_bbox
+            edges = [(bbox[0], bbox[1]), (bbox[1], bbox[2]),\
+                     (bbox[2], bbox[3]), (bbox[3], bbox[0])]
+            for edge in edges:
+                projection.guide_through_pts(edge[0], edge[1],\
+                        self.proj_screen_hw, self.img)
+
     def _render_cam(self):
         if self.color_name == 'white':
             color = (255, 255, 255)
@@ -282,6 +292,7 @@ class Interaction:
         self.img = np.zeros(self.img.shape, np.float32)
         self._render_candidate_contours()
         self._render_chosen_contour()
+        self._render_guides()
         self._render_sel_box()
         self._render_sel_contour()
         self._render_cam()
@@ -614,16 +625,7 @@ def run_canvas_loop():
                     ixn.set_chosen_contour(np.copy(ixn.curr_sel_contour))
                 ixn.clear_candidate_contours()
                 ixn.clear_curr_sel_contour()
-                # TODO: add this to render routine
-                def __draw_guides():
-                    contour = ixn.chosen_contour
-                    bbox = ixn.calc_straight_bbox_for_contour(contour)
-                    edges = [(bbox[0], bbox[1]), (bbox[1], bbox[2]),\
-                             (bbox[2], bbox[3]), (bbox[3], bbox[0])]
-                    for edge in edges:
-                        projection.guide_through_pts(edge[0], edge[1],\
-                                PROJ_SCREEN_SIZE_HW, ixn.img)
-                ixn.render(__draw_guides)
+                ixn.render()
 
     finally:
         cv2.destroyAllWindows()
