@@ -135,10 +135,10 @@ class Interaction:
         return (int(round((p0_x + p1_x) / 2)), int(round((p0_y + p1_y) / 2)))
 
     def check_pt_inside_cam_bbox(self, pt):
-        # TODO: find w/o assuming ordering
-        # return > xmin & < xmax & > ymin & < ymax
-        x_vals = [pt[0] for pt in self.cam_bbox]
-        y_vals = [pt[1] for pt in self.cam_bbox]
+        bbox_reshaped = self.cam_bbox.reshape((4, 1, 2))
+        trans_bbox = cv2.transform(bbox_reshaped, self.trans_mat)
+        x_vals = trans_bbox[:, 0, 0]
+        y_vals = trans_bbox[:, 0, 1]
         x_min = x_vals[np.argmin(x_vals)]
         x_max = x_vals[np.argmax(x_vals)]
         y_min = y_vals[np.argmin(y_vals)]
