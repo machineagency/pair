@@ -33,14 +33,12 @@ class Interaction:
         self.scale_factor = 1
         self.translate_x = 0
         self.translate_y = 0
-        self.calib_pt = (self.translate_x, self.translate_y)
         self.render()
 
     def move_cam(self, x, y):
         centroid = self.calc_bbox_center(self.cam_bbox)
         self.translate_x = x - centroid[0]
         self.translate_y = y - centroid[1]
-        self.calib_pt = (self.translate_x, self.translate_y)
         self.render()
 
     def snap_translate(self):
@@ -526,14 +524,6 @@ def run_canvas_loop():
                 else:
                     ixn.set_cam_color('red')
                 ixn.render()
-
-            if pressed_key == ord('q'):
-                """
-                Calibration square.
-                """
-                pt = (ixn.calib_pt[0] / CM_TO_PX, ixn.calib_pt[1] / CM_TO_PX)
-                instr = machine.plot_rect_hw(pt, 2, 2)
-                print(instr)
 
             if pressed_key == ord('e'):
                 """
