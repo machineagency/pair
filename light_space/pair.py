@@ -365,18 +365,21 @@ def make_machine_ixn_click_handler(machine, ixn):
         CM_TO_PX = 37.7952755906
 
         if event == cv2.EVENT_LBUTTONDOWN:
-            print(ixn.check_pt_inside_cam_bbox((x, y)))
+            if ixn.check_pt_inside_cam_bbox((x, y)):
+                ixn.set_listening_click_to_move(True)
+                ixn.set_listening_scale(False)
+                ixn.set_listening_rotate(False)
+                ixn.set_listening_translate(False)
+                ixn.move_cam(x, y)
+                ixn.set_cam_color('green')
+                ixn.render()
+
             if ixn.listening_translate:
                 if ixn.chosen_contour is not None:
                     ixn.snap_translate()
                     ixn.set_cam_color('red')
                     ixn.set_listening_translate(False)
                     ixn.render()
-
-            elif ixn.listening_click_to_move:
-                ixn.move_cam(x, y)
-                ixn.set_cam_color('green')
-                ixn.render()
 
             elif ixn.listening_rotate:
                 if ixn.chosen_contour is not None:
@@ -402,7 +405,10 @@ def make_machine_ixn_click_handler(machine, ixn):
                 ixn.set_listening_scale(False)
                 ixn.render()
 
-            elif ixn.listening_click_to_move:
+            elif False:
+                # TODO: this used to be for click to move mode, but would be
+                # unhelpful if we moved the head when the CAM moves.
+                # instead, make a new mode for moving machine head
                 scaled_x = x / CM_TO_PX
                 scaled_y = y / CM_TO_PX
                 scaled_x = round(scaled_x, 2)
@@ -410,7 +416,6 @@ def make_machine_ixn_click_handler(machine, ixn):
                 instr = machine.travel((scaled_x, scaled_y))
                 print(instr)
 
-        # On mouse move, if we are drawing sel box, actually draw it
         if event == cv2.EVENT_MOUSEMOVE:
             if ixn.listening_click_to_move:
                 ixn.move_cam(x, y)
@@ -483,20 +488,6 @@ def run_canvas_loop():
                     ixn.rotate(ixn.theta)
                 if ixn.listening_translate:
                     ixn.translate(0, ixn.translate_y - 10)
-                ixn.render()
-
-            if pressed_key == ord('m'):
-                """
-                Toggle click-to-move mode.
-                """
-                ixn.set_listening_click_to_move(not ixn.listening_click_to_move)
-                if ixn.listening_click_to_move:
-                    ixn.set_listening_scale(False)
-                    ixn.set_listening_rotate(False)
-                    ixn.set_listening_translate(False)
-                    ixn.set_cam_color('green')
-                else:
-                    ixn.set_cam_color('red')
                 ixn.render()
 
             if pressed_key == ord('s'):
