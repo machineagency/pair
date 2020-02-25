@@ -134,6 +134,20 @@ class Interaction:
         p1_y = c_rs[2, 1]
         return (int(round((p0_x + p1_x) / 2)), int(round((p0_y + p1_y) / 2)))
 
+    def check_pt_inside_cam_bbox(self, pt):
+        # TODO: find w/o assuming ordering
+        # return > xmin & < xmax & > ymin & < ymax
+        x_vals = [pt[0] for pt in self.cam_bbox]
+        y_vals = [pt[1] for pt in self.cam_bbox]
+        x_min = x_vals[np.argmin(x_vals)]
+        x_max = x_vals[np.argmax(x_vals)]
+        y_min = y_vals[np.argmin(y_vals)]
+        y_max = y_vals[np.argmax(y_vals)]
+        x_pt = pt[0]
+        y_pt = pt[1]
+        return x_pt >= x_min and x_pt <= x_max\
+                and y_pt >= y_min and y_pt <= y_max
+
     def calc_centroid(self, contours):
         """
         True centroid, probably not a case where we need this.
@@ -351,6 +365,7 @@ def make_machine_ixn_click_handler(machine, ixn):
         CM_TO_PX = 37.7952755906
 
         if event == cv2.EVENT_LBUTTONDOWN:
+            print(ixn.check_pt_inside_cam_bbox((x, y)))
             if ixn.listening_translate:
                 if ixn.chosen_contour is not None:
                     ixn.snap_translate()
