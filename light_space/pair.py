@@ -11,6 +11,7 @@ class Interaction:
     def __init__(self, img, screen_size, gui):
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
         self.proj_screen_hw = (720, 1280)
+        self.GRID_SNAP_DIST = 20
         self.img = img
         self.gui = gui
         self.set_cam_color('red')
@@ -39,9 +40,27 @@ class Interaction:
         # TODO: the initial click snaps the CAM to have the center
         # over the mouse. Fixing this seems to be really annoying.
         centroid = self.calc_bbox_center(self.cam_bbox)
-        self.translate_x = x - centroid[0]
-        self.translate_y = y - centroid[1]
+        snap_y = self.check_snap_y(y)
+        if snap_y is not None:
+            self.translate_x = x - centroid[0]
+            self.translate_y = snap_y
+        else:
+            self.translate_x = x - centroid[0]
+            self.translate_y = y - centroid[1]
         self.render()
+
+    def check_snap_y(self, y_val):
+        if len(self.chosen_contour_bbox) > 0:
+            bbox = self.chosen_contour_bbox.reshape((4, 1, 2))
+            y_vals = bbox[:, 0, 1]
+            y_min = y_vals[np.argmin(y_vals)]
+            y_max = y_vals[np.argmax(y_vals)]
+            centroid_untrans = self.calc_bbox_center(self.cam_bbox)
+            half_height = centroid_untrans[1]
+            if abs(y_val + half_height - y_min) <= self.GRID_SNAP_DIST:
+                return y_min - 2 * half_height
+            if abs(y_val - half_height - y_max) <= self.GRID_SNAP_DIST:
+                return y_max
 
     def snap_translate(self):
         # TODO: offset doesn't work when rotation angle past pi radians
