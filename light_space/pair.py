@@ -36,6 +36,8 @@ class Interaction:
         self.render()
 
     def move_cam(self, x, y):
+        # TODO: the initial click snaps the CAM to have the center
+        # over the mouse. Fixing this seems to be really annoying.
         centroid = self.calc_bbox_center(self.cam_bbox)
         self.translate_x = x - centroid[0]
         self.translate_y = y - centroid[1]
@@ -56,8 +58,10 @@ class Interaction:
         edge_len_cam = np.linalg.norm(edge_cam[0] - edge_cam[1])\
                         * self.scale_factor
         offset_hyp = 0.5 * (edge_len_contour + edge_len_cam)
-        offset_x = math.sin(self.theta) * offset_hyp
-        offset_y = math.cos(self.theta) * offset_hyp
+        # TODO: based on where click is, do + vs. - ofset_hyp
+        # if we want to snap to the shorter edge, find an orthogonal vector
+        offset_x = math.sin(self.theta) * -offset_hyp
+        offset_y = math.cos(self.theta) * -offset_hyp
         self.translate(diff_x + offset_x, diff_y + offset_y)
 
     def translate(self, x, y):
