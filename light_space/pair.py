@@ -40,14 +40,28 @@ class Interaction:
         # TODO: the initial click snaps the CAM to have the center
         # over the mouse. Fixing this seems to be really annoying.
         centroid = self.calc_bbox_center(self.cam_bbox)
+        self.translate_x = x - centroid[0]
+        self.translate_y = y - centroid[1]
+        snap_x = self.check_snap_x(x)
         snap_y = self.check_snap_y(y)
+        if snap_x is not None:
+            self.translate_x = snap_x
         if snap_y is not None:
-            self.translate_x = x - centroid[0]
             self.translate_y = snap_y
-        else:
-            self.translate_x = x - centroid[0]
-            self.translate_y = y - centroid[1]
         self.render()
+
+    def check_snap_x(self, x_val):
+        if len(self.chosen_contour_bbox) > 0:
+            bbox = self.chosen_contour_bbox.reshape((4, 1, 2))
+            x_vals = bbox[:, 0, 0]
+            x_min = x_vals[np.argmin(x_vals)]
+            x_max = x_vals[np.argmax(x_vals)]
+            centroid_untrans = self.calc_bbox_center(self.cam_bbox)
+            half_width = centroid_untrans[0]
+            if abs(x_val + half_width - x_min) <= self.GRID_SNAP_DIST:
+                return x_min - 2 * half_width
+            if abs(x_val - half_width - x_max) <= self.GRID_SNAP_DIST:
+                return x_max
 
     def check_snap_y(self, y_val):
         if len(self.chosen_contour_bbox) > 0:
