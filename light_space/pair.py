@@ -287,8 +287,9 @@ class Interaction:
             cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
 
     def _render_cam_bbox(self):
-        bbox_reshaped = self.cam_bbox.reshape((4, 1, 2))
-        trans_bbox = cv2.transform(bbox_reshaped, self.trans_mat)
+        combined_contour = self.combine_contours(self.cam_contours)
+        trans_cam = cv2.transform(combined_contour, self.trans_mat)
+        trans_bbox = self.calc_straight_bbox_for_contour(trans_cam)
         cv2.drawContours(self.img, [trans_bbox], 0, (255, 255, 0), 1)
 
     def _render_bbox_lines(self, bbox_lines):
