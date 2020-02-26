@@ -40,9 +40,11 @@ class Interaction:
         # TODO: the initial click snaps the CAM to have the center
         # over the mouse. Fixing this seems to be really annoying.
         centroid = self.calc_bbox_center(self.cam_bbox)
-        self.translate_x = x - centroid[0]
-        self.translate_y = y - centroid[1]
-        snap_x, snap_y = self.check_snap(x, y)
+        trans_cam_bbox = self.calc_trans_bbox()
+        _, _, width, height = cv2.boundingRect(trans_cam_bbox)
+        self.translate_x = x - (width / 2)
+        self.translate_y = y - (height / 2)
+        snap_x, snap_y = self.check_snap(self.translate_x, self.translate_y)
         if snap_x is not None:
             self.translate_x = snap_x
         if snap_y is not None:
@@ -52,38 +54,37 @@ class Interaction:
     def check_snap(self, x_val, y_val):
         snaps = [None, None]
         if len(self.chosen_contour_bbox) > 0:
-            bbox = self.chosen_contour_bbox.reshape((4, 1, 2))
-            x_vals = bbox[:, 0, 0]
-            y_vals = bbox[:, 0, 1]
+            contour_bbox = self.chosen_contour_bbox.reshape((4, 1, 2))
+            x_vals = contour_bbox[:, 0, 0]
+            y_vals = contour_bbox[:, 0, 1]
             x_min = x_vals[np.argmin(x_vals)]
             x_max = x_vals[np.argmax(x_vals)]
             y_min = y_vals[np.argmin(y_vals)]
             y_max = y_vals[np.argmax(y_vals)]
-            centroid_untrans = self.calc_bbox_center(self.cam_bbox)
-            half_width = centroid_untrans[0]
-            half_height = centroid_untrans[1]
-            x_min_border_left = x_val + half_width - x_min
-            x_min_border_right = x_val - half_width - x_min
-            x_max_border_left = x_val + half_width - x_max
-            x_max_border_right = x_val - half_width - x_max
-            y_min_border_bottom = y_val + half_height - y_min
-            y_min_border_top = y_val - half_height - y_min
-            y_max_border_bottom = y_val + half_height - y_max
-            y_max_border_top = y_val - half_height - y_max
+            trans_cam_bbox = self.calc_trans_bbox()
+            _, _, width, height = cv2.boundingRect(trans_cam_bbox)
+            x_min_border_left = x_val + width - x_min
+            x_min_border_right = x_val - x_min
+            x_max_border_left = x_val + width - x_max
+            x_max_border_right = x_val - x_max
+            y_min_border_bottom = y_val + height - y_min
+            y_min_border_top = y_val - y_min
+            y_max_border_bottom = y_val + height - y_max
+            y_max_border_top = y_val - y_max
             if x_min_border_left >= -self.GRID_SNAP_DIST and x_min_border_left <= 0:
-                snaps[0] = x_min - 2 * half_width
+                snaps[0] = x_min - width
             if x_min_border_right <= self.GRID_SNAP_DIST and x_min_border_right > 0:
                 snaps[0] = x_min
             if x_max_border_left >= -self.GRID_SNAP_DIST and x_max_border_left <= 0:
-                snaps[0] = x_max - 2 * half_width
+                snaps[0] = x_max - width
             if x_max_border_right <= self.GRID_SNAP_DIST and x_max_border_right > 0:
                 snaps[0] = x_max
             if y_min_border_bottom >= -self.GRID_SNAP_DIST and y_min_border_bottom <= 0:
-                snaps[1] = y_min - 2 * half_height
+                snaps[1] = y_min - height
             if y_min_border_top <= self.GRID_SNAP_DIST and y_min_border_top > 0:
                 snaps[1] = y_min
             if y_max_border_bottom >= -self.GRID_SNAP_DIST and y_max_border_bottom <= 0:
-                snaps[1] = y_max - 2 * half_height
+                snaps[1] = y_max - height
             if y_max_border_top <= self.GRID_SNAP_DIST and y_max_border_top > 0:
                 snaps[1] = y_max
         return snaps
@@ -271,6 +272,11 @@ class Interaction:
         [vx, vy, x, y] = cv2.fitLine(contour, cv2.DIST_L2, 0, 0.01, 0.01)
         return ((x[0], y[0]), (vx[0], vy[0]))
 
+    def calc_trans_bbox(self):
+        combined_contour = self.combine_contours(self.cam_contours)
+        trans_cam = cv2.transform(combined_contour, self.trans_mat)
+        return self.calc_straight_bbox_for_contour(trans_cam)
+
     def _render_candidate_contours(self):
         cv2.drawContours(self.img, self.candidate_contours, -1, (255, 0, 0), 1)
 
@@ -287,9 +293,7 @@ class Interaction:
             cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
 
     def _render_cam_bbox(self):
-        combined_contour = self.combine_contours(self.cam_contours)
-        trans_cam = cv2.transform(combined_contour, self.trans_mat)
-        trans_bbox = self.calc_straight_bbox_for_contour(trans_cam)
+        trans_bbox = self.calc_trans_bbox()
         cv2.drawContours(self.img, [trans_bbox], 0, (255, 255, 0), 1)
 
     def _render_bbox_lines(self, bbox_lines):
