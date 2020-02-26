@@ -11,7 +11,7 @@ class Interaction:
     def __init__(self, img, screen_size, gui):
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
         self.proj_screen_hw = (720, 1280)
-        self.GRID_SNAP_DIST = 20
+        self.GRID_SNAP_DIST = 30
         self.img = img
         self.gui = gui
         self.set_cam_color('red')
@@ -58,9 +58,14 @@ class Interaction:
             x_max = x_vals[np.argmax(x_vals)]
             centroid_untrans = self.calc_bbox_center(self.cam_bbox)
             half_width = centroid_untrans[0]
-            if abs(x_val + half_width - x_min) <= self.GRID_SNAP_DIST:
+            # TODO: both min and max of guide, from either side (4 scenarios)
+            if x_val + half_width - x_min >= -self.GRID_SNAP_DIST and x_val + half_width - x_min <= 0:
                 return x_min - 2 * half_width
-            if abs(x_val - half_width - x_max) <= self.GRID_SNAP_DIST:
+            if x_val - half_width - x_min <= self.GRID_SNAP_DIST and x_val - half_width - x_min > 0:
+                return x_min
+            if x_val + half_width - x_max >= -self.GRID_SNAP_DIST and x_val + half_width - x_max <= 0:
+                return x_max - 2 * half_width
+            if x_val - half_width - x_max <= self.GRID_SNAP_DIST and x_val - half_width - x_max > 0:
                 return x_max
 
     def check_snap_y(self, y_val):
@@ -71,9 +76,13 @@ class Interaction:
             y_max = y_vals[np.argmax(y_vals)]
             centroid_untrans = self.calc_bbox_center(self.cam_bbox)
             half_height = centroid_untrans[1]
-            if abs(y_val + half_height - y_min) <= self.GRID_SNAP_DIST:
+            if y_val + half_height - y_min >= -self.GRID_SNAP_DIST and y_val + half_height - y_min <= 0:
                 return y_min - 2 * half_height
-            if abs(y_val - half_height - y_max) <= self.GRID_SNAP_DIST:
+            if y_val - half_height - y_min <= self.GRID_SNAP_DIST and y_val - half_height - y_min > 0:
+                return y_min
+            if y_val + half_height - y_max >= -self.GRID_SNAP_DIST and y_val + half_height - y_max <= 0:
+                return y_max - 2 * half_height
+            if y_val - half_height - y_max <= self.GRID_SNAP_DIST and y_val - half_height - y_max > 0:
                 return y_max
 
     def snap_translate(self):
