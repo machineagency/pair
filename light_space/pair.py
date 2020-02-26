@@ -42,48 +42,51 @@ class Interaction:
         centroid = self.calc_bbox_center(self.cam_bbox)
         self.translate_x = x - centroid[0]
         self.translate_y = y - centroid[1]
-        snap_x = self.check_snap_x(x)
-        snap_y = self.check_snap_y(y)
+        snap_x, snap_y = self.check_snap(x, y)
         if snap_x is not None:
             self.translate_x = snap_x
         if snap_y is not None:
             self.translate_y = snap_y
         self.render()
 
-    def check_snap_x(self, x_val):
+    def check_snap(self, x_val, y_val):
+        snaps = [None, None]
         if len(self.chosen_contour_bbox) > 0:
             bbox = self.chosen_contour_bbox.reshape((4, 1, 2))
             x_vals = bbox[:, 0, 0]
+            y_vals = bbox[:, 0, 1]
             x_min = x_vals[np.argmin(x_vals)]
             x_max = x_vals[np.argmax(x_vals)]
-            centroid_untrans = self.calc_bbox_center(self.cam_bbox)
-            half_width = centroid_untrans[0]
-            # TODO: both min and max of guide, from either side (4 scenarios)
-            if x_val + half_width - x_min >= -self.GRID_SNAP_DIST and x_val + half_width - x_min <= 0:
-                return x_min - 2 * half_width
-            if x_val - half_width - x_min <= self.GRID_SNAP_DIST and x_val - half_width - x_min > 0:
-                return x_min
-            if x_val + half_width - x_max >= -self.GRID_SNAP_DIST and x_val + half_width - x_max <= 0:
-                return x_max - 2 * half_width
-            if x_val - half_width - x_max <= self.GRID_SNAP_DIST and x_val - half_width - x_max > 0:
-                return x_max
-
-    def check_snap_y(self, y_val):
-        if len(self.chosen_contour_bbox) > 0:
-            bbox = self.chosen_contour_bbox.reshape((4, 1, 2))
-            y_vals = bbox[:, 0, 1]
             y_min = y_vals[np.argmin(y_vals)]
             y_max = y_vals[np.argmax(y_vals)]
             centroid_untrans = self.calc_bbox_center(self.cam_bbox)
+            half_width = centroid_untrans[0]
             half_height = centroid_untrans[1]
-            if y_val + half_height - y_min >= -self.GRID_SNAP_DIST and y_val + half_height - y_min <= 0:
-                return y_min - 2 * half_height
-            if y_val - half_height - y_min <= self.GRID_SNAP_DIST and y_val - half_height - y_min > 0:
-                return y_min
-            if y_val + half_height - y_max >= -self.GRID_SNAP_DIST and y_val + half_height - y_max <= 0:
-                return y_max - 2 * half_height
-            if y_val - half_height - y_max <= self.GRID_SNAP_DIST and y_val - half_height - y_max > 0:
-                return y_max
+            x_min_border_left = x_val + half_width - x_min
+            x_min_border_right = x_val - half_width - x_min
+            x_max_border_left = x_val + half_width - x_max
+            x_max_border_right = x_val - half_width - x_max
+            y_min_border_bottom = y_val + half_height - y_min
+            y_min_border_top = y_val - half_height - y_min
+            y_max_border_bottom = y_val + half_height - y_max
+            y_max_border_top = y_val - half_height - y_max
+            if x_min_border_left >= -self.GRID_SNAP_DIST and x_min_border_left <= 0:
+                snaps[0] = x_min - 2 * half_width
+            if x_min_border_right <= self.GRID_SNAP_DIST and x_min_border_right > 0:
+                snaps[0] = x_min
+            if x_max_border_left >= -self.GRID_SNAP_DIST and x_max_border_left <= 0:
+                snaps[0] = x_max - 2 * half_width
+            if x_max_border_right <= self.GRID_SNAP_DIST and x_max_border_right > 0:
+                snaps[0] = x_max
+            if y_min_border_bottom >= -self.GRID_SNAP_DIST and y_min_border_bottom <= 0:
+                snaps[1] = y_min - 2 * half_height
+            if y_min_border_top <= self.GRID_SNAP_DIST and y_min_border_top > 0:
+                snaps[1] = y_min
+            if y_max_border_bottom >= -self.GRID_SNAP_DIST and y_max_border_bottom <= 0:
+                snaps[1] = y_max - 2 * half_height
+            if y_max_border_top <= self.GRID_SNAP_DIST and y_max_border_top > 0:
+                snaps[1] = y_max
+        return snaps
 
     def snap_translate(self):
         # TODO: offset doesn't work when rotation angle past pi radians
