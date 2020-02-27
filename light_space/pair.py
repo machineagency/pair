@@ -34,18 +34,13 @@ class Interaction:
         self.scale_factor = 1
         self.translate_x = 0
         self.translate_y = 0
+        self.mdown_offset_x = 0
+        self.mdown_offset_y = 0
         self.render()
 
-    def move_cam(self, x, y):
-        # TODO: the initial click snaps the CAM to have the center
-        # over the mouse. Fixing this seems to be really annoying.
-        centroid = self.calc_bbox_center(self.cam_bbox)
-        trans_cam_bbox = self.calc_trans_cam_bbox()
-        _, _, width, height = cv2.boundingRect(trans_cam_bbox)
-        # self.translate_x = x - (width / 2)
-        # self.translate_y = y - (height / 2)
-        self.translate_x = x
-        self.translate_y = y
+    def move_cam_with_mdown_offset(self, x, y):
+        self.translate_x = x - self.mdown_offset_x
+        self.translate_y = y - self.mdown_offset_y
         snap_x, snap_y = self.check_snap(x, y)
         if snap_x is not None:
             self.translate_x = snap_x
@@ -73,10 +68,8 @@ class Interaction:
             y_min_border_top = y_val - y_min
             y_max_border_bottom = y_val + height - y_max
             y_max_border_top = y_val - y_max
-            print(f'{x_val} + {width} - {x_min} = {x_min_border_left}')
             if x_min_border_left >= -self.GRID_SNAP_DIST and x_min_border_left <= 0:
                 snaps[0] = x_min - width
-                print(f'SNAP L: {snaps[0]}')
             if x_min_border_right <= self.GRID_SNAP_DIST and x_min_border_right > 0:
                 snaps[0] = x_min
             if x_max_border_left >= -self.GRID_SNAP_DIST and x_max_border_left <= 0:
@@ -143,6 +136,10 @@ class Interaction:
 
     def set_listening_scale(self, flag):
         self.listening_scale = flag
+
+    def set_mdown_offset(self, x_mdown, y_mdown):
+        self.mdown_offset_x = x_mdown - self.translate_x
+        self.mdown_offset_y = y_mdown - self.translate_y
 
     def set_candidate_contours(self, contours):
         self.candidate_contours = contours
@@ -345,13 +342,13 @@ class Interaction:
         sr_contours = list(map(lambda c: cv2.transform(c, self.trans_mat),\
                                   self.cam_contours))
         combined_contour = self.combine_contours(sr_contours)
-        off_x, off_y, _, _ = cv2.boundingRect(combined_contour)
-        translate_off = make_translate_matrix(-off_x, -off_y)
+        sr_off_x, sr_off_y, _, _ = cv2.boundingRect(combined_contour)
+        translate_sr_off = make_translate_matrix(-sr_off_x, -sr_off_y)
         translate_full = make_translate_matrix(self.translate_x, self.translate_y)
-        srt_off_contours = list(map(translate_off, sr_contours))
-        srt_contours = list(map(translate_full, srt_off_contours))
-        self.curr_trans_cam = srt_contours
-        cv2.polylines(self.img, srt_contours, False, color, 2)
+        sr_off_contours = list(map(translate_sr_off, sr_contours))
+        srt_off_contours = list(map(translate_full, sr_off_contours))
+        self.curr_trans_cam = srt_off_contours
+        cv2.polylines(self.img, srt_off_contours, False, color, 2)
         if self.listening_translate or self.listening_rotate\
             or self.listening_click_to_move:
             self._render_cam_bbox()
@@ -440,7 +437,7 @@ def make_machine_ixn_click_handler(machine, ixn):
                 ixn.set_listening_scale(False)
                 ixn.set_listening_rotate(False)
                 ixn.set_listening_translate(False)
-                ixn.move_cam(x, y)
+                ixn.set_mdown_offset(x, y)
                 ixn.set_cam_color('green')
                 ixn.render()
 
@@ -488,7 +485,7 @@ def make_machine_ixn_click_handler(machine, ixn):
 
         if event == cv2.EVENT_MOUSEMOVE:
             if ixn.listening_click_to_move:
-                ixn.move_cam(x, y)
+                ixn.move_cam_with_mdown_offset(x, y)
                 ixn.render()
 
         if event == cv2.EVENT_LBUTTONUP:
