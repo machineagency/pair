@@ -40,11 +40,13 @@ class Interaction:
         # TODO: the initial click snaps the CAM to have the center
         # over the mouse. Fixing this seems to be really annoying.
         centroid = self.calc_bbox_center(self.cam_bbox)
-        trans_cam_bbox = self.calc_trans_bbox()
+        trans_cam_bbox = self.calc_trans_cam_bbox()
         _, _, width, height = cv2.boundingRect(trans_cam_bbox)
-        self.translate_x = x - (width / 2)
-        self.translate_y = y - (height / 2)
-        snap_x, snap_y = self.check_snap(self.translate_x, self.translate_y)
+        # self.translate_x = x - (width / 2)
+        # self.translate_y = y - (height / 2)
+        self.translate_x = x
+        self.translate_y = y
+        snap_x, snap_y = self.check_snap(x, y)
         if snap_x is not None:
             self.translate_x = snap_x
         if snap_y is not None:
@@ -61,7 +63,7 @@ class Interaction:
             x_max = x_vals[np.argmax(x_vals)]
             y_min = y_vals[np.argmin(y_vals)]
             y_max = y_vals[np.argmax(y_vals)]
-            trans_cam_bbox = self.calc_trans_bbox()
+            trans_cam_bbox = self.calc_trans_cam_bbox()
             _, _, width, height = cv2.boundingRect(trans_cam_bbox)
             x_min_border_left = x_val + width - x_min
             x_min_border_right = x_val - x_min
@@ -71,8 +73,10 @@ class Interaction:
             y_min_border_top = y_val - y_min
             y_max_border_bottom = y_val + height - y_max
             y_max_border_top = y_val - y_max
+            print(f'{x_val} + {width} - {x_min} = {x_min_border_left}')
             if x_min_border_left >= -self.GRID_SNAP_DIST and x_min_border_left <= 0:
                 snaps[0] = x_min - width
+                print(f'SNAP L: {snaps[0]}')
             if x_min_border_right <= self.GRID_SNAP_DIST and x_min_border_right > 0:
                 snaps[0] = x_min
             if x_max_border_left >= -self.GRID_SNAP_DIST and x_max_border_left <= 0:
@@ -183,8 +187,7 @@ class Interaction:
         return (int(round((p0_x + p1_x) / 2)), int(round((p0_y + p1_y) / 2)))
 
     def check_pt_inside_cam_bbox(self, pt):
-        bbox_reshaped = self.cam_bbox.reshape((4, 1, 2))
-        trans_bbox = cv2.transform(bbox_reshaped, self.trans_mat)
+        trans_bbox = self.calc_trans_cam_bbox().reshape((4, 1, 2))
         x_vals = trans_bbox[:, 0, 0]
         y_vals = trans_bbox[:, 0, 1]
         x_min = x_vals[np.argmin(x_vals)]
@@ -272,9 +275,13 @@ class Interaction:
         [vx, vy, x, y] = cv2.fitLine(contour, cv2.DIST_L2, 0, 0.01, 0.01)
         return ((x[0], y[0]), (vx[0], vy[0]))
 
-    def calc_trans_bbox(self):
+    def calc_trans_cam_bbox(self):
         combined_contour = self.combine_contours(self.cam_contours)
-        trans_cam = cv2.transform(combined_contour, self.trans_mat)
+        off_x, off_y, _, _ = cv2.boundingRect(combined_contour)
+        trans_cam = np.copy(combined_contour)
+        trans_cam[:, 0, 0] += self.translate_x + off_x
+        trans_cam[:, 0, 1] += self.translate_y + off_y
+        trans_cam = cv2.transform(trans_cam, self.trans_mat)
         return self.calc_straight_bbox_for_contour(trans_cam)
 
     def _render_candidate_contours(self):
@@ -293,7 +300,7 @@ class Interaction:
             cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
 
     def _render_cam_bbox(self):
-        trans_bbox = self.calc_trans_bbox()
+        trans_bbox = self.calc_trans_cam_bbox()
         cv2.drawContours(self.img, [trans_bbox], 0, (255, 255, 0), 1)
 
     def _render_bbox_lines(self, bbox_lines):
@@ -326,14 +333,25 @@ class Interaction:
             color = (0, 255, 0)
         else:
             color = (255, 255, 255)
-        centroid = self.calc_bbox_center(self.cam_bbox)
-        self.trans_mat = cv2.getRotationMatrix2D(centroid, self.theta, self.scale_factor)
-        self.trans_mat[0, 2] += self.translate_x
-        self.trans_mat[1, 2] += self.translate_y
-        trans_contours = list(map(lambda c: cv2.transform(c, self.trans_mat),\
+
+        def make_translate_matrix(x, y):
+            def fn(contour):
+                c = np.copy(contour)
+                c[:,0,0] += x
+                c[:,0,1] += y
+                return c
+            return fn
+        self.trans_mat = cv2.getRotationMatrix2D((0, 0), self.theta, self.scale_factor)
+        sr_contours = list(map(lambda c: cv2.transform(c, self.trans_mat),\
                                   self.cam_contours))
-        self.curr_trans_cam = trans_contours
-        cv2.polylines(self.img, trans_contours, False, color, 2)
+        combined_contour = self.combine_contours(sr_contours)
+        off_x, off_y, _, _ = cv2.boundingRect(combined_contour)
+        translate_off = make_translate_matrix(off_x, off_y)
+        translate_full = make_translate_matrix(self.translate_x, self.translate_y)
+        srt_off_contours = list(map(translate_off, sr_contours))
+        srt_contours = list(map(translate_full, srt_off_contours))
+        self.curr_trans_cam = srt_contours
+        cv2.polylines(self.img, srt_contours, False, color, 2)
         if self.listening_translate or self.listening_rotate\
             or self.listening_click_to_move:
             self._render_cam_bbox()
@@ -492,12 +510,12 @@ def run_canvas_loop():
     img = np.zeros(img_size_three_channel, np.float32)
     window_name = 'Projection'
     cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
-    cv2.moveWindow(window_name, MAC_SCREEN_SIZE_HW[1], 0)
-    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    # cv2.moveWindow(window_name, MAC_SCREEN_SIZE_HW[1], 0)
+    # cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     gui = GuiControl(PROJ_SCREEN_SIZE_HW)
     ixn = Interaction(img, PROJ_SCREEN_SIZE_HW, gui)
 
-    machine = Machine(dry=False)
+    machine = Machine(dry=True)
     camera = Camera()
     handle_click = make_machine_ixn_click_handler(machine, ixn)
     cv2.setMouseCallback(window_name, handle_click)
