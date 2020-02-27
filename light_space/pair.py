@@ -277,11 +277,11 @@ class Interaction:
 
     def calc_trans_cam_bbox(self):
         combined_contour = self.combine_contours(self.cam_contours)
-        off_x, off_y, _, _ = cv2.boundingRect(combined_contour)
         trans_cam = np.copy(combined_contour)
-        trans_cam[:, 0, 0] += self.translate_x + off_x
-        trans_cam[:, 0, 1] += self.translate_y + off_y
         trans_cam = cv2.transform(trans_cam, self.trans_mat)
+        off_x, off_y, _, _ = cv2.boundingRect(trans_cam)
+        trans_cam[:, 0, 0] += self.translate_x - off_x
+        trans_cam[:, 0, 1] += self.translate_y - off_y
         return self.calc_straight_bbox_for_contour(trans_cam)
 
     def _render_candidate_contours(self):
@@ -346,7 +346,7 @@ class Interaction:
                                   self.cam_contours))
         combined_contour = self.combine_contours(sr_contours)
         off_x, off_y, _, _ = cv2.boundingRect(combined_contour)
-        translate_off = make_translate_matrix(off_x, off_y)
+        translate_off = make_translate_matrix(-off_x, -off_y)
         translate_full = make_translate_matrix(self.translate_x, self.translate_y)
         srt_off_contours = list(map(translate_off, sr_contours))
         srt_contours = list(map(translate_full, srt_off_contours))
