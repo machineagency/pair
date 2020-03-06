@@ -44,7 +44,25 @@ class DepthCamera():
 
     def compute_cylinder_slices(self, sobel_gradients):
         sobel_x, sobel_y = sobel_gradients
-        # TODO
+        px_rows, px_cols = sobel_x.shape
+        def compute_slices(img):
+            for idx_row in range(px_rows):
+                rlst = []
+                for idx_col in range(px_cols):
+                    px_grad = img[idx_row, idx_col]
+                    rlst.append(px_grad)
+
+                rlst.sort()
+                min_idx = 0
+                max_idx = len(rlst) - 1
+                iqrl_idx = round(px_cols * 0.25)
+                iqru_idx = round(px_cols * 0.50)
+                medn_idx = round(px_cols * 0.75)
+                print(f'({rlst[min_idx]}, {rlst[iqrl_idx]}, {rlst[medn_idx]}, {rlst[iqru_idx]} {rlst[max_idx]})')
+                # TODO, perhaps set IQR as min/max thresholds?
+        slices_x = compute_slices(sobel_x)
+        print(slices_x)
+        return None
 
     def load_depth_image(self, filepath):
         return np.load(filepath)
@@ -68,8 +86,12 @@ class DepthCamera():
                 depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
                 sobel_x, sobel_y = self.compute_sobel_gradients(depth_image)
                 sobel_images = np.hstack((sobel_x, sobel_y))
+                slices_xy = self.compute_cylinder_slices((sobel_x, sobel_y))
                 cv2.namedWindow('depth', cv2.WINDOW_AUTOSIZE)
                 cv2.imshow('depth', sobel_images)
+
+                if self.OFFLINE:
+                    break
                 key = cv2.waitKey(1)
 
                 # Press esc or 'q' to close the image window
