@@ -2,6 +2,25 @@ import pyrealsense2 as rs
 import numpy as np
 import cv2
 
+class Stack():
+    # TODO: implement with fixed memory sized python array type
+    # once we know what type elements are going in
+    def __init__(self):
+        self.lst = []
+        self.size = 0
+
+    def push(self, el):
+        self.size += 1
+        self.lst.append(el)
+        return el
+
+    def pop(self):
+        self.size -= 1
+        return self.lst.pop()
+
+    def size(self):
+        return self.size
+
 class DepthCamera():
     def __init__(self):
         self.OFFLINE = True
