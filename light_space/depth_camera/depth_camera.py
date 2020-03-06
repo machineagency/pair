@@ -39,7 +39,7 @@ class DepthCamera():
             while True:
                 if self.OFFLINE:
                     pass
-                    depth_image = self.load_depth_image('sample_no_touch.npy')
+                    depth_image = self.load_depth_image('samples/touch.npy')
                 else:
                     frames = self.pipeline.wait_for_frames()
                     depth_frame = frames.get_depth_frame()
