@@ -23,7 +23,7 @@ class Stack():
 
 class DepthCamera():
     def __init__(self):
-        self.OFFLINE = True
+        self.OFFLINE = False
         if not self.OFFLINE:
             self.pipeline = rs.pipeline()
             self.config = rs.config()
@@ -36,6 +36,11 @@ class DepthCamera():
 
     def smooth_image(self, img):
         return cv2.GaussianBlur(img, (3, 3), 1, 1)
+
+    def compute_canny(self, img):
+        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img_canny = cv2.Canny(img_gray, 200, 300)
+        return img_canny
 
     def compute_sobel_gradients(self, depth_img):
         sobel_x = cv2.Sobel(depth_img, cv2.CV_64F, 1, 0, ksize=7)
@@ -64,34 +69,34 @@ class DepthCamera():
         print(slices_x)
         return None
 
-    def load_depth_image(self, filepath):
+    def load_image(self, filepath):
         return np.load(filepath)
 
-    def save_depth_image(self, img):
-        np.save(f'depth_img_{self.saved_image_count}', img)
+    def save_image(self, img, title=''):
+        np.save(f'{title}_img_{self.saved_image_count}', img)
         self.saved_image_count += 1
 
     def test(self):
         try:
             while True:
                 if self.OFFLINE:
-                    pass
-                    depth_image = self.load_depth_image('samples/touch.npy')
+                    color_image = self.load_image('samples/color_img.npy')
+                    depth_image = self.load_image('samples/depth_img.npy')
                 else:
                     frames = self.pipeline.wait_for_frames()
                     depth_frame = frames.get_depth_frame()
-                    if not depth_frame:
+                    color_frame = frames.get_color_frame()
+                    if not depth_frame or not color_frame:
                         continue
                     depth_image = np.asanyarray(depth_frame.get_data())
+                    color_image_raw = np.asanyarray(color_frame.get_data())
+                    color_image = self.compute_canny(color_image_raw)
                 depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
-                sobel_x, sobel_y = self.compute_sobel_gradients(depth_image)
-                sobel_images = np.hstack((sobel_x, sobel_y))
-                slices_xy = self.compute_cylinder_slices((sobel_x, sobel_y))
                 cv2.namedWindow('depth', cv2.WINDOW_AUTOSIZE)
-                cv2.imshow('depth', sobel_images)
+                cv2.namedWindow('edges', cv2.WINDOW_AUTOSIZE)
+                cv2.imshow('depth', depth_colormap)
+                cv2.imshow('edges', color_image)
 
-                if self.OFFLINE:
-                    break
                 key = cv2.waitKey(1)
 
                 # Press esc or 'q' to close the image window
@@ -99,7 +104,8 @@ class DepthCamera():
                     cv2.destroyAllWindows()
                     break
                 elif key == ord('s'):
-                    self.save_depth_image(depth_image)
+                    self.save_image(color_image, 'color')
+                    self.save_image(depth_image, 'depth')
         finally:
             if not self.OFFLINE:
                 self.pipeline.stop()
@@ -107,3 +113,4 @@ class DepthCamera():
 if __name__ == '__main__':
     dc = DepthCamera()
     dc.test()
+
