@@ -15,6 +15,21 @@ class DepthCamera():
             self.profile = self.pipeline.start(self.config)
         self.saved_image_count = 0
 
+    def get_baseline_edge_depth_images(self):
+        print('Initializing baseline edge and depth images.')
+        # TODO: for n seconds (how to get FPS?) or just n times
+        # record edge and depth images and add them together,
+        # normalize at the end and return
+        # Use mean and std dev
+
+    def compute_edges_against_baseline(self):
+        # TODO: subtract existing edges, np.where
+        pass
+
+    def compute_depth_against_baseline(self):
+        # TODO: subtract background depth, np.where
+        pass
+
     def smooth_image(self, img):
         return cv2.GaussianBlur(img, (3, 3), 1, 1)
 
