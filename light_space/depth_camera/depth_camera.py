@@ -35,7 +35,7 @@ class DepthCamera():
 
     def compute_canny(self, img):
         img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img_canny = cv2.Canny(img_gray, 200, 300)
+        img_canny = cv2.Canny(img_gray, 100, 300)
         return img_canny
 
     def load_image(self, filepath):
