@@ -44,14 +44,6 @@ class DepthCamera():
         self.stddev_depth = (sumsq_depth - (sum_depth ** 2) / n) / (n - 1)
         print('Set baseline edge and depth images.')
 
-    def compute_edges_against_baseline(self):
-        # TODO: subtract existing edges, np.where
-        pass
-
-    def compute_depth_against_baseline(self):
-        # TODO: subtract background depth, np.where
-        pass
-
     def smooth_image(self, img):
         return cv2.GaussianBlur(img, (3, 3), 1, 1)
 
@@ -86,24 +78,19 @@ class DepthCamera():
     def test(self):
         try:
             self.set_baseline_edge_depth_images()
-            depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(self.stddev_depth, alpha=0.03), cv2.COLORMAP_JET)
-            edge_colormap = cv2.applyColorMap(cv2.convertScaleAbs(self.stddev_edge, alpha=0.03), cv2.COLORMAP_JET)
-            cv2.namedWindow('depth', cv2.WINDOW_AUTOSIZE)
-            cv2.namedWindow('edges', cv2.WINDOW_AUTOSIZE)
-            cv2.moveWindow('depth', 640, 0)
-            cv2.imshow('depth', depth_colormap)
-            cv2.imshow('edges', edge_colormap)
-            print(self.stddev_edge)
             while True:
-                # edge_image, depth_image = self.get_edge_and_depth_images()
-                # if edge_image is None or depth_image is None:
-                #     continue
-                # depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
-                # cv2.namedWindow('depth', cv2.WINDOW_AUTOSIZE)
-                # cv2.namedWindow('edges', cv2.WINDOW_AUTOSIZE)
-                # cv2.moveWindow('depth', 640, 0)
-                # cv2.imshow('depth', depth_colormap)
-                # cv2.imshow('edges', edge_image)
+                edge_image_raw, depth_image_raw = self.get_edge_and_depth_images()
+                edge_image = edge_image_raw - self.mean_edge
+                depth_image = depth_image_raw - self.mean_depth
+                if edge_image is None or depth_image is None:
+                    continue
+                edge_colormap = cv2.applyColorMap(cv2.convertScaleAbs(edge_image, alpha=0.10), cv2.COLORMAP_JET)
+                depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
+                cv2.namedWindow('depth', cv2.WINDOW_AUTOSIZE)
+                cv2.namedWindow('edges', cv2.WINDOW_AUTOSIZE)
+                cv2.moveWindow('depth', 640, 0)
+                cv2.imshow('depth', depth_colormap)
+                cv2.imshow('edges', edge_colormap)
 
                 key = cv2.waitKey(1)
 
