@@ -1,10 +1,13 @@
 import pyrealsense2 as rs
 import numpy as np
 import cv2
+import time, math
 
 class DepthCamera():
     def __init__(self):
         self.OFFLINE = False
+        self.img_height = 480
+        self.img_width = 640
         if not self.OFFLINE:
             self.pipeline = rs.pipeline()
             self.config = rs.config()
@@ -15,12 +18,31 @@ class DepthCamera():
             self.profile = self.pipeline.start(self.config)
         self.saved_image_count = 0
 
-    def get_baseline_edge_depth_images(self):
+    def set_baseline_edge_depth_images(self):
+        # TODO: use shifted variance calculation
         print('Initializing baseline edge and depth images.')
-        # TODO: for n seconds (how to get FPS?) or just n times
-        # record edge and depth images and add them together,
-        # normalize at the end and return
-        # Use mean and std dev
+        sum_edge = np.zeros((self.img_height, self.img_width))
+        sum_depth = np.zeros((self.img_height, self.img_width))
+        sumsq_edge = np.zeros((self.img_height, self.img_width))
+        sumsq_depth = np.zeros((self.img_height, self.img_width))
+        GATHERING_FPS = 20
+        GATHERING_TIME = 5
+        n = GATHERING_FPS * GATHERING_TIME
+        for _ in range(n):
+            edge, depth = self.get_edge_and_depth_images()
+            edgesq = edge ** 2
+            depthsq = depth ** 2
+            sum_edge += edge
+            sum_depth += depth
+            sumsq_edge += edgesq
+            sumsq_depth += depthsq
+            time.sleep(1 / GATHERING_FPS)
+        self.mean_edge = sum_edge / n
+        self.mean_depth = sum_depth / n
+        # FIXME: this is actually variance
+        self.stddev_edge = (sumsq_edge - (sum_edge ** 2) / n) / (n - 1)
+        self.stddev_depth = (sumsq_depth - (sum_depth ** 2) / n) / (n - 1)
+        print('Set baseline edge and depth images.')
 
     def compute_edges_against_baseline(self):
         # TODO: subtract existing edges, np.where
@@ -63,16 +85,25 @@ class DepthCamera():
 
     def test(self):
         try:
+            self.set_baseline_edge_depth_images()
+            depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(self.stddev_depth, alpha=0.03), cv2.COLORMAP_JET)
+            edge_colormap = cv2.applyColorMap(cv2.convertScaleAbs(self.stddev_edge, alpha=0.03), cv2.COLORMAP_JET)
+            cv2.namedWindow('depth', cv2.WINDOW_AUTOSIZE)
+            cv2.namedWindow('edges', cv2.WINDOW_AUTOSIZE)
+            cv2.moveWindow('depth', 640, 0)
+            cv2.imshow('depth', depth_colormap)
+            cv2.imshow('edges', edge_colormap)
+            print(self.stddev_edge)
             while True:
-                edge_image, depth_image = self.get_edge_and_depth_images()
-                if edge_image is None or depth_image is None:
-                    continue
-                depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
-                cv2.namedWindow('depth', cv2.WINDOW_AUTOSIZE)
-                cv2.namedWindow('edges', cv2.WINDOW_AUTOSIZE)
-                cv2.moveWindow('depth', 640, 0)
-                cv2.imshow('depth', depth_colormap)
-                cv2.imshow('edges', edge_image)
+                # edge_image, depth_image = self.get_edge_and_depth_images()
+                # if edge_image is None or depth_image is None:
+                #     continue
+                # depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
+                # cv2.namedWindow('depth', cv2.WINDOW_AUTOSIZE)
+                # cv2.namedWindow('edges', cv2.WINDOW_AUTOSIZE)
+                # cv2.moveWindow('depth', 640, 0)
+                # cv2.imshow('depth', depth_colormap)
+                # cv2.imshow('edges', edge_image)
 
                 key = cv2.waitKey(1)
 
