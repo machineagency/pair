@@ -19,29 +19,30 @@ class DepthCamera():
         self.saved_image_count = 0
 
     def set_baseline_edge_depth_images(self):
-        # TODO: use shifted variance calculation
         print('Initializing baseline edge and depth images.')
         sum_edge = np.zeros((self.img_height, self.img_width))
         sum_depth = np.zeros((self.img_height, self.img_width))
         sumsq_edge = np.zeros((self.img_height, self.img_width))
         sumsq_depth = np.zeros((self.img_height, self.img_width))
         GATHERING_FPS = 20
-        GATHERING_TIME = 5
+        GATHERING_TIME = 2
         n = GATHERING_FPS * GATHERING_TIME
+        # https://en.wikipedia.org/wiki/Algorithms_for_calculating\
+        # _variance#Computing_shifted_data
+        k = 1.0
         for _ in range(n):
             edge, depth = self.get_edge_and_depth_images()
-            edgesq = edge ** 2
-            depthsq = depth ** 2
-            sum_edge += edge
-            sum_depth += depth
+            edgesq = (edge - k) ** 2
+            depthsq = (depth - k) ** 2
+            sum_edge += edge - k
+            sum_depth += depth - k
             sumsq_edge += edgesq
             sumsq_depth += depthsq
             time.sleep(1 / GATHERING_FPS)
         self.mean_edge = sum_edge / n
         self.mean_depth = sum_depth / n
-        # FIXME: this is actually variance
-        self.stddev_edge = (sumsq_edge - (sum_edge ** 2) / n) / (n - 1)
-        self.stddev_depth = (sumsq_depth - (sum_depth ** 2) / n) / (n - 1)
+        self.stddev_edge = np.sqrt((sumsq_edge - (sum_edge ** 2) / n) / (n - 1))
+        self.stddev_depth = np.sqrt((sumsq_depth - (sum_depth ** 2) / n) / (n - 1))
         print('Set baseline edge and depth images.')
 
     def smooth_image(self, img):
