@@ -46,14 +46,14 @@ class DepthCamera():
         print('Set baseline edge and depth images.')
 
     def flood_hand_depth(self, img):
-        # Lower is closer to the camera
+        # Assumes a backgrounded depth image: mean - sample
+        # Positive pixel values indicate objects closer to the camera
+        # Than the background
         img_low = np.zeros((self.img_height, self.img_width))
         img_high = 255 * np.ones((self.img_height, self.img_width))
-        z = 0
-        mean = self.mean_depth
-        # s = np.sqrt(self.stddev_depth)
         s = self.stddev_depth
-        return np.where(img < mean - z * 0.1 * s, img_low, img_high)
+        thresh_mm = 20
+        return np.where(img >= thresh, img_high, img_low)
 
     def smooth_image(self, img):
         return cv2.GaussianBlur(img, (3, 3), 1, 1)
@@ -90,9 +90,15 @@ class DepthCamera():
         try:
             self.set_baseline_edge_depth_images()
             while True:
+                # NOTE: edge and depth images are calculated against mean images
+                # in reverse ways
                 edge_image_raw, depth_image_raw = self.get_edge_and_depth_images()
+                # Raw edges will have a higher value than the mean because
+                # edges are higher values
                 edge_image = edge_image_raw - self.mean_edge
-                depth_image = depth_image_raw - self.mean_depth
+                # Raw depth will have lower values than mean depth because
+                # objects are closer to the camera
+                depth_image = self.mean_depth - depth_image_raw
                 if edge_image is None or depth_image is None:
                     continue
                 edge_colormap = cv2.applyColorMap(cv2.convertScaleAbs(edge_image, alpha=0.10), cv2.COLORMAP_JET)
@@ -105,7 +111,6 @@ class DepthCamera():
                 cv2.imshow('depth', depth_colormap)
                 cv2.imshow('edges', edge_colormap)
                 flood_image = self.flood_hand_depth(depth_image)
-                flood_colormap = cv2.applyColorMap(cv2.convertScaleAbs(flood_image, alpha = 0.03), cv2.COLORMAP_JET)
                 cv2.imshow('flood', flood_image)
 
                 key = cv2.waitKey(1)
