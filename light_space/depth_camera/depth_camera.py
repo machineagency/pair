@@ -45,6 +45,16 @@ class DepthCamera():
         self.stddev_depth = np.sqrt((sumsq_depth - (sum_depth ** 2) / n) / (n - 1))
         print('Set baseline edge and depth images.')
 
+    def flood_hand_depth(self, img):
+        # Lower is closer to the camera
+        img_low = np.zeros((self.img_height, self.img_width))
+        img_high = 255 * np.ones((self.img_height, self.img_width))
+        z = 0
+        mean = self.mean_depth
+        # s = np.sqrt(self.stddev_depth)
+        s = self.stddev_depth
+        return np.where(img < mean - z * 0.1 * s, img_low, img_high)
+
     def smooth_image(self, img):
         return cv2.GaussianBlur(img, (3, 3), 1, 1)
 
@@ -89,9 +99,14 @@ class DepthCamera():
                 depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
                 cv2.namedWindow('depth', cv2.WINDOW_AUTOSIZE)
                 cv2.namedWindow('edges', cv2.WINDOW_AUTOSIZE)
+                cv2.namedWindow('flood', cv2.WINDOW_AUTOSIZE)
                 cv2.moveWindow('depth', 640, 0)
+                cv2.moveWindow('flood', 0, 480)
                 cv2.imshow('depth', depth_colormap)
                 cv2.imshow('edges', edge_colormap)
+                flood_image = self.flood_hand_depth(depth_image)
+                flood_colormap = cv2.applyColorMap(cv2.convertScaleAbs(flood_image, alpha = 0.03), cv2.COLORMAP_JET)
+                cv2.imshow('flood', flood_image)
 
                 key = cv2.waitKey(1)
 
