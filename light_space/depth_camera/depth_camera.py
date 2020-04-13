@@ -6,6 +6,7 @@ import time, math
 class DepthCamera():
     def __init__(self):
         self.OFFLINE = False
+        self.MIN_SIZE_HAND = 16000
         self.img_height = 480
         self.img_width = 640
         if not self.OFFLINE:
@@ -62,27 +63,33 @@ class DepthCamera():
         of a minimum pixel size remaining.
         Runs flood fill algorithm to explore blobs.
         """
-        MIN_SIZE_HAND = 2000
         final_img = np.zeros(blob_img.shape)
         visited = np.zeros(blob_img.shape)
+        queue = []
         max_x_idx = blob_img.shape[0] - 1
         max_y_idx = blob_img.shape[1] - 1
-        def explore(x, y):
-            if x < 0 or x > max_x_idx or y < 0 or y > max_y_idx:
-                return 0
-            if visited[x, y] == 1:
-                return 0
-            visited[x, y] = 1
-            if blob_img[x, y] == 0:
-                return 0
-            else:
-                return 1 + explore(x - 1, y) + explore(x + 1, y)\
-                         + explore(x, y - 1) + explore(x, y + 1)
-        for y_idx in range(blob_img.shape[1]):
-            for x_idx in range(blob_img.shape[0]):
-                blob_size = explore(x_idx, y_idx)
-                if blob_size >= MIN_SIZE_HAND:
-                    print(f'Good blobby at {x_idx, y_idx}: {blob_size}')
+
+        for y_start in range(blob_img.shape[1]):
+            for x_start in range(blob_img.shape[0]):
+                if visited[x_start, y_start]:
+                    continue
+                queue.append((x_start, y_start))
+                blob_size = 0
+                while len(queue) > 0:
+                    x, y = queue.pop(0)
+                    if x < 0 or x > max_x_idx or y < 0 or y > max_x_idx\
+                        or visited[x, y] == 1:
+                        continue
+                    visited[x, y] = 1
+                    if blob_img[x, y] != 0:
+                        blob_size += 1
+                        queue.append((x - 1, y))
+                        queue.append((x + 1, y))
+                        queue.append((x, y - 1))
+                        queue.append((x, y + 1))
+                if blob_size >= self.MIN_SIZE_HAND:
+                    print(f'Good blobby at {x_start, y_start}: {blob_size}')
+
         return final_img
 
     def smooth_image(self, img):
