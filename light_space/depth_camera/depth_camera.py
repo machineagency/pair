@@ -12,10 +12,10 @@ class DepthCamera():
         if not self.OFFLINE:
             self.pipeline = rs.pipeline()
             self.config = rs.config()
-            self.config.enable_stream(rs.stream.depth, 640, 480,\
-                                        rs.format.z16, 30)
-            self.config.enable_stream(rs.stream.color, 640, 480,\
-                                        rs.format.bgr8, 30)
+            self.config.enable_stream(rs.stream.depth, self.img_width,\
+                                        self.img_height,rs.format.z16, 30)
+            self.config.enable_stream(rs.stream.color, self.img_width,\
+                                        self.img_height,rs.format.bgr8, 30)
             self.profile = self.pipeline.start(self.config)
         self.saved_image_count = 0
 
@@ -149,8 +149,8 @@ class DepthCamera():
                 cv2.namedWindow('depth', cv2.WINDOW_AUTOSIZE)
                 cv2.namedWindow('edges', cv2.WINDOW_AUTOSIZE)
                 cv2.namedWindow('hand_blob', cv2.WINDOW_AUTOSIZE)
-                cv2.moveWindow('depth', 640, 0)
-                cv2.moveWindow('hand_blob', 0, 480)
+                cv2.moveWindow('depth', self.img_width, 0)
+                cv2.moveWindow('hand_blob', 0, self.img_height)
                 cv2.imshow('depth', depth_colormap)
                 cv2.imshow('edges', edge_colormap)
                 raw_blob_image = self.get_hand_blob_img(depth_image)
