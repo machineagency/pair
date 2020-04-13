@@ -52,8 +52,10 @@ class DepthCamera():
         img_low = np.zeros((self.img_height, self.img_width))
         img_high = 255 * np.ones((self.img_height, self.img_width))
         s = self.stddev_depth
-        thresh_mm = 20
-        return np.where(img >= thresh, img_high, img_low)
+        thresh_mm = 12
+        raw_blobs = np.where(img >= thresh_mm, img_high, img_low)
+        return raw_blobs
+
 
     def smooth_image(self, img):
         return cv2.GaussianBlur(img, (3, 3), 1, 1)
