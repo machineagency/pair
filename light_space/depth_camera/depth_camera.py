@@ -63,12 +63,12 @@ class DepthCamera():
         of a minimum pixel size remaining.
         Runs flood fill algorithm to explore blobs.
         """
-        final_img = np.zeros(blob_img.shape)
         visited = np.zeros(blob_img.shape)
+        running_img = np.zeros(blob_img.shape)
         queue = []
+        clear_queue = []
         max_x_idx = blob_img.shape[0] - 1
         max_y_idx = blob_img.shape[1] - 1
-
         for y_start in range(blob_img.shape[1]):
             for x_start in range(blob_img.shape[0]):
                 if visited[x_start, y_start]:
@@ -83,14 +83,20 @@ class DepthCamera():
                     visited[x, y] = 1
                     if blob_img[x, y] != 0:
                         blob_size += 1
+                        running_img[x, y] = 255
+                        clear_queue.append((x, y))
                         queue.append((x - 1, y))
                         queue.append((x + 1, y))
                         queue.append((x, y - 1))
                         queue.append((x, y + 1))
                 if blob_size >= self.MIN_SIZE_HAND:
-                    print(f'Good blobby at {x_start, y_start}: {blob_size}')
-
-        return final_img
+                    print(f'{x_start, y_start}: {blob_size}')
+                    return running_img
+                else:
+                    while len(clear_queue) > 0:
+                        x, y = clear_queue.pop(0)
+                        running_img[x, y] = 0
+        return np.zeros(blob_img.shape)
 
     def smooth_image(self, img):
         return cv2.GaussianBlur(img, (3, 3), 1, 1)
@@ -148,11 +154,10 @@ class DepthCamera():
                 cv2.imshow('depth', depth_colormap)
                 cv2.imshow('edges', edge_colormap)
                 raw_blob_image = self.get_hand_blob_img(depth_image)
-                cv2.imshow('hand_blob', raw_blob_image)
-                self.cull_blobs(raw_blob_image)
+                culled_blob_image = self.cull_blobs(raw_blob_image)
+                cv2.imshow('hand_blob', culled_blob_image)
 
                 key = cv2.waitKey(1)
-                time.sleep(1)
 
                 # Press esc or 'q' to close the image window
                 if key & 0xFF == ord('q') or key == 27:
