@@ -45,7 +45,7 @@ class DepthCamera():
         self.stddev_depth = np.sqrt((sumsq_depth - (sum_depth ** 2) / n) / (n - 1))
         print('Set baseline edge and depth images.')
 
-    def flood_hand_depth(self, img):
+    def get_hand_blob_img(self, img):
         # Assumes a backgrounded depth image: mean - sample
         # Positive pixel values indicate objects closer to the camera
         # Than the background
@@ -56,6 +56,34 @@ class DepthCamera():
         raw_blobs = np.where(img >= thresh_mm, img_high, img_low)
         return raw_blobs
 
+    def cull_blobs(self, blob_img):
+        """
+        Takes an image with blobs and returns an image with only blobs
+        of a minimum pixel size remaining.
+        Runs flood fill algorithm to explore blobs.
+        """
+        MIN_SIZE_HAND = 2000
+        final_img = np.zeros(blob_img.shape)
+        visited = np.zeros(blob_img.shape)
+        max_x_idx = blob_img.shape[0] - 1
+        max_y_idx = blob_img.shape[1] - 1
+        def explore(x, y):
+            if x < 0 or x > max_x_idx or y < 0 or y > max_y_idx:
+                return 0
+            if visited[x, y] == 1:
+                return 0
+            visited[x, y] = 1
+            if blob_img[x, y] == 0:
+                return 0
+            else:
+                return 1 + explore(x - 1, y) + explore(x + 1, y)\
+                         + explore(x, y - 1) + explore(x, y + 1)
+        for y_idx in range(blob_img.shape[1]):
+            for x_idx in range(blob_img.shape[0]):
+                blob_size = explore(x_idx, y_idx)
+                if blob_size >= MIN_SIZE_HAND:
+                    print(f'Good blobby at {x_idx, y_idx}: {blob_size}')
+        return final_img
 
     def smooth_image(self, img):
         return cv2.GaussianBlur(img, (3, 3), 1, 1)
@@ -107,15 +135,17 @@ class DepthCamera():
                 depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
                 cv2.namedWindow('depth', cv2.WINDOW_AUTOSIZE)
                 cv2.namedWindow('edges', cv2.WINDOW_AUTOSIZE)
-                cv2.namedWindow('flood', cv2.WINDOW_AUTOSIZE)
+                cv2.namedWindow('hand_blob', cv2.WINDOW_AUTOSIZE)
                 cv2.moveWindow('depth', 640, 0)
-                cv2.moveWindow('flood', 0, 480)
+                cv2.moveWindow('hand_blob', 0, 480)
                 cv2.imshow('depth', depth_colormap)
                 cv2.imshow('edges', edge_colormap)
-                flood_image = self.flood_hand_depth(depth_image)
-                cv2.imshow('flood', flood_image)
+                raw_blob_image = self.get_hand_blob_img(depth_image)
+                cv2.imshow('hand_blob', raw_blob_image)
+                self.cull_blobs(raw_blob_image)
 
                 key = cv2.waitKey(1)
+                time.sleep(1)
 
                 # Press esc or 'q' to close the image window
                 if key & 0xFF == ord('q') or key == 27:
