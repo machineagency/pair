@@ -2,11 +2,13 @@ import pyrealsense2 as rs
 import numpy as np
 import cv2
 import time, math
+from skimage.measure import block_reduce
 
 class DepthCamera():
     def __init__(self):
         self.OFFLINE = False
-        self.MIN_SIZE_HAND = 16000
+        self.MIN_SIZE_HAND = 4000
+        self.DOWN_FACTOR = 4
         self.img_height = 480
         self.img_width = 640
         if not self.OFFLINE:
@@ -46,12 +48,16 @@ class DepthCamera():
         self.stddev_depth = np.sqrt((sumsq_depth - (sum_depth ** 2) / n) / (n - 1))
         print('Set baseline edge and depth images.')
 
+    def downsample(self, img):
+        #FIXME: unhardcode image reduction
+        return block_reduce(img, block_size=(2, 2), func=np.mean)
+
     def get_hand_blob_img(self, img):
         # Assumes a backgrounded depth image: mean - sample
         # Positive pixel values indicate objects closer to the camera
         # Than the background
-        img_low = np.zeros((self.img_height, self.img_width))
-        img_high = 255 * np.ones((self.img_height, self.img_width))
+        img_low = np.zeros(img.shape)
+        img_high = 255 * np.ones(img.shape)
         s = self.stddev_depth
         thresh_mm = 12
         raw_blobs = np.where(img >= thresh_mm, img_high, img_low)
@@ -138,10 +144,10 @@ class DepthCamera():
                 edge_image_raw, depth_image_raw = self.get_edge_and_depth_images()
                 # Raw edges will have a higher value than the mean because
                 # edges are higher values
-                edge_image = edge_image_raw - self.mean_edge
+                edge_image = self.downsample(edge_image_raw - self.mean_edge)
                 # Raw depth will have lower values than mean depth because
                 # objects are closer to the camera
-                depth_image = self.mean_depth - depth_image_raw
+                depth_image = self.downsample(self.mean_depth - depth_image_raw)
                 if edge_image is None or depth_image is None:
                     continue
                 edge_colormap = cv2.applyColorMap(cv2.convertScaleAbs(edge_image, alpha=0.10), cv2.COLORMAP_JET)
