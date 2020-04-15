@@ -11,6 +11,7 @@ class DepthCamera():
         self.DOWN_FACTOR = 4
         self.img_height = 480
         self.img_width = 640
+        self.recent_centroid = (0, 0)
         if not self.OFFLINE:
             self.pipeline = rs.pipeline()
             self.config = rs.config()
@@ -69,14 +70,18 @@ class DepthCamera():
         of a minimum pixel size remaining.
         Runs flood fill algorithm to explore blobs.
         """
+        # TODO: seed the starting location to be where the centroid
+        # of the last detected hand was.
         visited = np.zeros(blob_img.shape)
         running_img = np.zeros(blob_img.shape)
         queue = []
         clear_queue = []
         max_x_idx = blob_img.shape[0] - 1
         max_y_idx = blob_img.shape[1] - 1
-        for y_start in range(blob_img.shape[1]):
-            for x_start in range(blob_img.shape[0]):
+        x_range = [self.recent_centroid[0]] + list(range(blob_img.shape[0]))
+        y_range = [self.recent_centroid[1]] + list(range(blob_img.shape[1]))
+        for y_start in y_range:
+            for x_start in x_range:
                 if visited[x_start, y_start]:
                     continue
                 queue.append((x_start, y_start))
@@ -96,7 +101,11 @@ class DepthCamera():
                         queue.append((x, y - 1))
                         queue.append((x, y + 1))
                 if blob_size >= self.MIN_SIZE_HAND:
-                    print(f'{x_start, y_start}: {blob_size}')
+                    moments = cv2.moments(running_img)
+                    cx = int(moments['m10'] / moments['m00'])
+                    cy = int(moments['m01'] / moments['m00'])
+                    self.recent_centroid = (cx, cy)
+                    print(f'{blob_size} @ {(cx, cy)}')
                     return running_img
                 else:
                     while len(clear_queue) > 0:
