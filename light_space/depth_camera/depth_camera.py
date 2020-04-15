@@ -70,8 +70,6 @@ class DepthCamera():
         of a minimum pixel size remaining.
         Runs flood fill algorithm to explore blobs.
         """
-        # TODO: seed the starting location to be where the centroid
-        # of the last detected hand was.
         visited = np.zeros(blob_img.shape)
         running_img = np.zeros(blob_img.shape)
         queue = []
@@ -80,6 +78,9 @@ class DepthCamera():
         max_y_idx = blob_img.shape[1] - 1
         x_range = [self.recent_centroid[0]] + list(range(blob_img.shape[0]))
         y_range = [self.recent_centroid[1]] + list(range(blob_img.shape[1]))
+        if np.count_nonzero(blob_img) < self.MIN_SIZE_HAND * 2:
+            print('Reject from low pixel count.')
+            return np.zeros(blob_img.shape)
         for y_start in y_range:
             for x_start in x_range:
                 if visited[x_start, y_start]:
