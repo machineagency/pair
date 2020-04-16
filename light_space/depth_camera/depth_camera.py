@@ -8,6 +8,10 @@ class DepthCamera():
     def __init__(self):
         self.OFFLINE = False
         self.MIN_SIZE_HAND = 4000
+        # Prescan every depth image and reject if the amount of valid pixels
+        # Is lower than this amount. If this is set too high, we might
+        # Reject true positives.
+        self.EARLY_REJECT_BLOB = 8000
         self.DOWN_FACTOR = 4
         self.img_height = 480
         self.img_width = 640
@@ -50,7 +54,6 @@ class DepthCamera():
         print('Set baseline edge and depth images.')
 
     def downsample(self, img):
-        #FIXME: unhardcode image reduction
         return block_reduce(img, block_size=(2, 2), func=np.mean)
 
     def get_hand_blob_img(self, img):
@@ -61,6 +64,8 @@ class DepthCamera():
         img_high = 255 * np.ones(img.shape)
         s = self.stddev_depth
         thresh_mm = 12
+        # TODO: perhaps create blobs of several thresholds? or just
+        # do the checking later
         raw_blobs = np.where(img >= thresh_mm, img_high, img_low)
         return raw_blobs
 
@@ -78,7 +83,7 @@ class DepthCamera():
         max_y_idx = blob_img.shape[1] - 1
         x_range = [self.recent_centroid[0]] + list(range(blob_img.shape[0]))
         y_range = [self.recent_centroid[1]] + list(range(blob_img.shape[1]))
-        if np.count_nonzero(blob_img) < self.MIN_SIZE_HAND * 2:
+        if np.count_nonzero(blob_img) < self.EARLY_REJECT_BLOB:
             print('Reject from low pixel count.')
             return np.zeros(blob_img.shape)
         for y_start in y_range:
