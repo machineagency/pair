@@ -60,20 +60,22 @@ class DepthCamera():
     def downsample(self, img):
         return block_reduce(img, block_size=(2, 2), func=np.mean)
 
+    def fill_edge_img(self, edge_image):
+        # TODO:
+        pass
+
     def get_hand_blob_img(self, img):
         # Assumes a backgrounded depth image: mean - sample
         # Positive pixel values indicate objects closer to the camera
         # Than the background
         img_low = np.zeros(img.shape)
         img_high = 255 * np.ones(img.shape)
-        s = self.stddev_depth
-        thresh_mm = 12
-        # TODO: perhaps create blobs of several thresholds? or just
-        # do the checking later
-        raw_blobs = np.where(img >= thresh_mm, img_high, img_low)
+        s = self.downsample(self.stddev_depth)
+        # thresh_mm = 12
+        raw_blobs = np.where(img >= s, img_high, img_low)
         return raw_blobs
 
-    def cull_blobs(self, blob_img):
+    def cull_blobs(self, blob_img, edge_img):
         """
         Takes an image with blobs and returns an image with only blobs
         of a minimum pixel size remaining.
@@ -102,6 +104,8 @@ class DepthCamera():
                         or visited[x, y] == 1:
                         continue
                     visited[x, y] = 1
+                    if edge_img[x, y] >= self.MIN_EDGE_THRESH:
+                        continue
                     if blob_img[x, y] != 0:
                         blob_size += 1
                         running_img[x, y] = 255
@@ -180,7 +184,7 @@ class DepthCamera():
                 cv2.imshow('depth', depth_colormap)
                 cv2.imshow('edges', edge_colormap)
                 raw_blob_image = self.get_hand_blob_img(depth_image)
-                culled_blob_image = self.cull_blobs(raw_blob_image)
+                culled_blob_image = self.cull_blobs(raw_blob_image, edge_image)
                 cv2.imshow('hand_blob', culled_blob_image)
 
                 key = cv2.waitKey(1)
