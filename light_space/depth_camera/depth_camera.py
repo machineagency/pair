@@ -13,7 +13,7 @@ class DepthCamera():
         # Reject true positives.
         self.EARLY_REJECT_BLOB = 6000
         self.DOWN_FACTOR = 4
-        self.MIN_EDGE_THRESH = 100
+        self.MIN_EDGE_THRESH = 50
         self.img_height = 480
         self.img_width = 640
         self.recent_centroid = (0, 0)
@@ -60,9 +60,13 @@ class DepthCamera():
     def downsample(self, img):
         return block_reduce(img, block_size=(2, 2), func=np.mean)
 
-    def fill_edge_img(self, edge_image):
-        # TODO:
-        pass
+    def fix_edge_img(self, edge_img):
+        # FIXME: this currently works with a threshold check, not so much
+        # with a statistical check. we're also not filling the edge image
+        # which we still want to do eventually
+        z = 10
+        z_img = self.downsample(self.mean_edge + z * self.stddev_edge)
+        return np.where(edge_img >= self.MIN_EDGE_THRESH, 255, 0)
 
     def get_hand_blob_img(self, img):
         # Assumes a backgrounded depth image: mean - sample
@@ -132,7 +136,7 @@ class DepthCamera():
 
     def compute_canny(self, img):
         img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img_canny = cv2.Canny(img_gray, 100, 300)
+        img_canny = cv2.Canny(img_gray, 100, 200)
         return img_canny
 
     def load_image(self, filepath):
@@ -168,7 +172,8 @@ class DepthCamera():
                 edge_image_raw, depth_image_raw = self.get_edge_and_depth_images()
                 # Raw edges will have a higher value than the mean because
                 # edges are higher values
-                edge_image = self.downsample(edge_image_raw - self.mean_edge)
+                edge_image_gaps = self.downsample(edge_image_raw - self.mean_edge)
+                edge_image = self.fix_edge_img(edge_image_gaps)
                 # Raw depth will have lower values than mean depth because
                 # objects are closer to the camera
                 depth_image = self.downsample(self.mean_depth - depth_image_raw)
@@ -179,8 +184,8 @@ class DepthCamera():
                 cv2.namedWindow('depth', cv2.WINDOW_AUTOSIZE)
                 cv2.namedWindow('edges', cv2.WINDOW_AUTOSIZE)
                 cv2.namedWindow('hand_blob', cv2.WINDOW_AUTOSIZE)
-                cv2.moveWindow('depth', self.img_width, 0)
-                cv2.moveWindow('hand_blob', 0, self.img_height)
+                cv2.moveWindow('depth', self.img_width / 2, 0)
+                cv2.moveWindow('hand_blob', 0, self.img_height / 2)
                 cv2.imshow('depth', depth_colormap)
                 cv2.imshow('edges', edge_colormap)
                 raw_blob_image = self.get_hand_blob_img(depth_image)
