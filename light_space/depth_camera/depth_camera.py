@@ -94,7 +94,7 @@ class DepthCamera():
                 blob_size = 0
                 while len(queue) > 0:
                     x, y = queue.pop(0)
-                    if x < 0 or x > max_x_idx or y < 0 or y > max_x_idx\
+                    if x < 0 or x > max_x_idx or y < 0 or y > max_y_idx\
                         or visited[x, y] == 1:
                         continue
                     visited[x, y] = 1
