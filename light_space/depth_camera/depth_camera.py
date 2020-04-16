@@ -11,8 +11,9 @@ class DepthCamera():
         # Prescan every depth image and reject if the amount of valid pixels
         # Is lower than this amount. If this is set too high, we might
         # Reject true positives.
-        self.EARLY_REJECT_BLOB = 8000
+        self.EARLY_REJECT_BLOB = 6000
         self.DOWN_FACTOR = 4
+        self.MIN_EDGE_THRESH = 100
         self.img_height = 480
         self.img_width = 640
         self.recent_centroid = (0, 0)
@@ -24,6 +25,9 @@ class DepthCamera():
             self.config.enable_stream(rs.stream.color, self.img_width,\
                                         self.img_height,rs.format.bgr8, 30)
             self.profile = self.pipeline.start(self.config)
+            # Align depth frame to color frame
+            self.align_to = rs.stream.color
+            self.align = rs.align(self.align_to)
         self.saved_image_count = 0
 
     def set_baseline_edge_depth_images(self):
@@ -141,8 +145,9 @@ class DepthCamera():
             edge_image = self.compute_canny(color_image_raw)
             return (edge_image, depth_image)
         frames = self.pipeline.wait_for_frames()
-        depth_frame = frames.get_depth_frame()
-        color_frame = frames.get_color_frame()
+        aligned_frames = self.align.process(frames)
+        depth_frame = aligned_frames.get_depth_frame()
+        color_frame = aligned_frames.get_color_frame()
         if not depth_frame or not color_frame:
             return (None, None)
         depth_image = np.asanyarray(depth_frame.get_data())
