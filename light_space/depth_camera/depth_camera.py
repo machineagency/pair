@@ -7,14 +7,20 @@ from skimage.measure import block_reduce
 class DepthCamera():
     def __init__(self):
         self.OFFLINE = False
-        self.MIN_SIZE_HAND = 4000
-        self.HAND_DEPTH_THRESH = 12
+        self.MIN_SIZE_HAND = 3000
+
+        # Set these hyperparameters based on what looks like a good
+        # segmentation for a given session.
+        self.HAND_DEPTH_THRESH = 30
+        self.FINGER_DEPTH_THRESH = 7
+
         # Prescan every depth image and reject if the amount of valid pixels
         # Is lower than this amount. If this is set too high, we might
         # Reject true positives.
-        self.EARLY_REJECT_BLOB = 5000
+        self.EARLY_REJECT_BLOB = 2000
         self.DOWN_FACTOR = 4
         self.MIN_EDGE_THRESH = 50
+
         self.img_height = 480
         self.img_width = 640
         self.recent_centroid = (0, 0)
@@ -111,11 +117,10 @@ class DepthCamera():
                     if edge_img[x, y] >= self.MIN_EDGE_THRESH:
                         continue
                     if blob_img[x, y] != 0:
-                        #FIXME: do we even need a thresholded blob img?
                         blob_size += 1
                         if depth_img[x, y] >= self.HAND_DEPTH_THRESH:
                             running_img[x, y] = 255
-                        elif depth_img[x, y] > 10 * self.stddev_depth[x, y]:
+                        elif depth_img[x, y] > self.FINGER_DEPTH_THRESH:
                             running_img[x, y] = 192
                         else:
                             running_img[x, y] = 96
