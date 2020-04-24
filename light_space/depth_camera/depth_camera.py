@@ -8,10 +8,11 @@ class DepthCamera():
     def __init__(self):
         self.OFFLINE = False
         self.MIN_SIZE_HAND = 4000
+        self.HAND_DEPTH_THRESH = 12
         # Prescan every depth image and reject if the amount of valid pixels
         # Is lower than this amount. If this is set too high, we might
         # Reject true positives.
-        self.EARLY_REJECT_BLOB = 6000
+        self.EARLY_REJECT_BLOB = 5000
         self.DOWN_FACTOR = 4
         self.MIN_EDGE_THRESH = 50
         self.img_height = 480
@@ -51,10 +52,12 @@ class DepthCamera():
             sumsq_edge += edgesq
             sumsq_depth += depthsq
             time.sleep(1 / GATHERING_FPS)
-        self.mean_edge = sum_edge / n
-        self.mean_depth = sum_depth / n
-        self.stddev_edge = np.sqrt((sumsq_edge - (sum_edge ** 2) / n) / (n - 1))
-        self.stddev_depth = np.sqrt((sumsq_depth - (sum_depth ** 2) / n) / (n - 1))
+        self.mean_edge = self.downsample(sum_edge / n)
+        self.mean_depth = self.downsample(sum_depth / n)
+        self.stddev_edge = self.downsample(np.sqrt(\
+                                (sumsq_edge - (sum_edge ** 2) / n) / (n - 1)))
+        self.stddev_depth = self.downsample(np.sqrt(\
+                                (sumsq_depth - (sum_depth ** 2) / n) / (n - 1)))
         print('Set baseline edge and depth images.')
 
     def downsample(self, img):
@@ -64,8 +67,6 @@ class DepthCamera():
         # FIXME: this currently works with a threshold check, not so much
         # with a statistical check. we're also not filling the edge image
         # which we still want to do eventually
-        z = 10
-        z_img = self.downsample(self.mean_edge + z * self.stddev_edge)
         return np.where(edge_img >= self.MIN_EDGE_THRESH, 255, 0)
 
     def get_hand_blob_img(self, img):
@@ -74,12 +75,11 @@ class DepthCamera():
         # Than the background
         img_low = np.zeros(img.shape)
         img_high = 255 * np.ones(img.shape)
-        s = self.downsample(self.stddev_depth)
         # thresh_mm = 12
-        raw_blobs = np.where(img >= s, img_high, img_low)
+        raw_blobs = np.where(img >= self.stddev_depth, img_high, img_low)
         return raw_blobs
 
-    def cull_blobs(self, blob_img, edge_img):
+    def cull_blobs(self, blob_img, edge_img, depth_img):
         """
         Takes an image with blobs and returns an image with only blobs
         of a minimum pixel size remaining.
@@ -94,7 +94,7 @@ class DepthCamera():
         x_range = [self.recent_centroid[0]] + list(range(blob_img.shape[0]))
         y_range = [self.recent_centroid[1]] + list(range(blob_img.shape[1]))
         if np.count_nonzero(blob_img) < self.EARLY_REJECT_BLOB:
-            print('Reject from low pixel count.')
+            # print('Reject from low pixel count.')
             return np.zeros(blob_img.shape)
         for y_start in y_range:
             for x_start in x_range:
@@ -111,8 +111,14 @@ class DepthCamera():
                     if edge_img[x, y] >= self.MIN_EDGE_THRESH:
                         continue
                     if blob_img[x, y] != 0:
+                        #FIXME: do we even need a thresholded blob img?
                         blob_size += 1
-                        running_img[x, y] = 255
+                        if depth_img[x, y] >= self.HAND_DEPTH_THRESH:
+                            running_img[x, y] = 255
+                        elif depth_img[x, y] > 10 * self.stddev_depth[x, y]:
+                            running_img[x, y] = 192
+                        else:
+                            running_img[x, y] = 96
                         clear_queue.append((x, y))
                         queue.append((x - 1, y))
                         queue.append((x + 1, y))
@@ -123,7 +129,7 @@ class DepthCamera():
                     cx = int(moments['m10'] / moments['m00'])
                     cy = int(moments['m01'] / moments['m00'])
                     self.recent_centroid = (cx, cy)
-                    print(f'{blob_size} @ {(cx, cy)}')
+                    # print(f'{blob_size} @ {(cx, cy)}')
                     return running_img
                 else:
                     while len(clear_queue) > 0:
@@ -172,11 +178,11 @@ class DepthCamera():
                 edge_image_raw, depth_image_raw = self.get_edge_and_depth_images()
                 # Raw edges will have a higher value than the mean because
                 # edges are higher values
-                edge_image_gaps = self.downsample(edge_image_raw - self.mean_edge)
+                edge_image_gaps = self.downsample(edge_image_raw) - self.mean_edge
                 edge_image = self.fix_edge_img(edge_image_gaps)
                 # Raw depth will have lower values than mean depth because
                 # objects are closer to the camera
-                depth_image = self.downsample(self.mean_depth - depth_image_raw)
+                depth_image = self.mean_depth - self.downsample(depth_image_raw)
                 if edge_image is None or depth_image is None:
                     continue
                 edge_colormap = cv2.applyColorMap(cv2.convertScaleAbs(edge_image, alpha=0.10), cv2.COLORMAP_JET)
@@ -184,13 +190,16 @@ class DepthCamera():
                 cv2.namedWindow('depth', cv2.WINDOW_AUTOSIZE)
                 cv2.namedWindow('edges', cv2.WINDOW_AUTOSIZE)
                 cv2.namedWindow('hand_blob', cv2.WINDOW_AUTOSIZE)
-                cv2.moveWindow('depth', self.img_width / 2, 0)
-                cv2.moveWindow('hand_blob', 0, self.img_height / 2)
+                cv2.moveWindow('depth', edge_image.shape[0], 0)
+                cv2.moveWindow('hand_blob', 0, edge_image.shape[1])
                 cv2.imshow('depth', depth_colormap)
                 cv2.imshow('edges', edge_colormap)
                 raw_blob_image = self.get_hand_blob_img(depth_image)
-                culled_blob_image = self.cull_blobs(raw_blob_image, edge_image)
-                cv2.imshow('hand_blob', culled_blob_image)
+                culled_blob_image = self.cull_blobs(raw_blob_image, edge_image,\
+                                                    depth_image)
+                culled_map = cv2.applyColorMap(cv2.convertScaleAbs(culled_blob_image,\
+                                alpha=1.0), cv2.COLORMAP_RAINBOW)
+                cv2.imshow('hand_blob', culled_map)
 
                 key = cv2.waitKey(1)
 
