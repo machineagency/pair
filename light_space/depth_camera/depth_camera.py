@@ -131,8 +131,8 @@ class DepthCamera():
                         queue.append((x, y + 1))
                 if blob_size >= self.MIN_SIZE_HAND:
                     moments = cv2.moments(running_img)
-                    cx = int(moments['m10'] / moments['m00'])
-                    cy = int(moments['m01'] / moments['m00'])
+                    cy = int(moments['m10'] / moments['m00'])
+                    cx = int(moments['m01'] / moments['m00'])
                     self.recent_centroid = (cx, cy)
                     # print(f'{blob_size} @ {(cx, cy)}')
                     return running_img
