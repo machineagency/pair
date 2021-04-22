@@ -27,7 +27,7 @@ def draw_hough_lines(edge_img, out_img):
         cv2.line(out_img,(x1, y1),(x2, y2), (0, 255, 0), 2)
 
 def calc_contours(edge_img):
-    contours, hierarchy = cv2.findContours(edge_img, cv2.RETR_TREE,\
+    _, contours, hierarchy = cv2.findContours(edge_img, cv2.RETR_TREE,\
                                            cv2.CHAIN_APPROX_SIMPLE)
     return contours
 

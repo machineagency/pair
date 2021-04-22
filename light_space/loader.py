@@ -46,7 +46,7 @@ class Loader:
         img = cv2.imread(img_filepath)
         _, edge_img = cv2.threshold(img, 100, 255, cv2.THRESH_BINARY)
         edge_img = cv2.cvtColor(edge_img, cv2.COLOR_BGR2GRAY)
-        contours, hierarchy = cv2.findContours(edge_img, cv2.RETR_TREE,\
+        _, contours, hierarchy = cv2.findContours(edge_img, cv2.RETR_TREE,\
                                                cv2.CHAIN_APPROX_SIMPLE)
         return contours
 
