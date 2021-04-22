@@ -12,14 +12,14 @@ class DepthCamera():
         # Set these hyperparameters based on what looks like a good
         # segmentation for a given session.
         self.HAND_DEPTH_THRESH = 30
-        self.FINGER_DEPTH_THRESH = 7
+        self.FINGER_DEPTH_THRESH = 10
+        self.MIN_EDGE_THRESH = 10
 
         # Prescan every depth image and reject if the amount of valid pixels
         # Is lower than this amount. If this is set too high, we might
         # Reject true positives.
         self.EARLY_REJECT_BLOB = 2000
         self.DOWN_FACTOR = 4
-        self.MIN_EDGE_THRESH = 50
 
         self.img_height = 480
         self.img_width = 640
@@ -123,6 +123,9 @@ class DepthCamera():
                         elif depth_img[x, y] > self.FINGER_DEPTH_THRESH:
                             running_img[x, y] = 192
                         else:
+                            # TODO: put these guys somewhere to get touch
+                            # event. For now maybe just take the max size
+                            # blob and get its centroid.
                             running_img[x, y] = 96
                         clear_queue.append((x, y))
                         queue.append((x - 1, y))
