@@ -11,9 +11,8 @@ class DepthCamera():
 
         # Set these hyperparameters based on what looks like a good
         # segmentation for a given session.
-        self.HAND_DEPTH_THRESH = 30
-        self.FINGER_DEPTH_THRESH = 17
-        self.TIP_DEPTH_THRESH = 0
+        self.HAND_FINGER_DEPTH_THRESH = 50
+        self.FINGER_TIP_DEPTH_THRESH = 15
 
         self.MIN_EDGE_THRESH = 20
 
@@ -95,6 +94,10 @@ class DepthCamera():
         of a minimum pixel size remaining.
         Runs flood fill algorithm to explore blobs.
         """
+        if np.count_nonzero(blob_img) < self.EARLY_REJECT_BLOB:
+            # print('Reject from low pixel count.')
+            return np.zeros(blob_img.shape)
+
         visited = np.zeros(blob_img.shape)
         running_img = np.zeros(blob_img.shape)
         queue = []
@@ -103,9 +106,6 @@ class DepthCamera():
         max_y_idx = blob_img.shape[1] - 1
         x_range = [self.recent_centroid[0]] + list(range(blob_img.shape[0]))
         y_range = [self.recent_centroid[1]] + list(range(blob_img.shape[1]))
-        if np.count_nonzero(blob_img) < self.EARLY_REJECT_BLOB:
-            # print('Reject from low pixel count.')
-            return np.zeros(blob_img.shape)
         for y_start in y_range:
             for x_start in x_range:
                 if visited[x_start, y_start]:
@@ -122,9 +122,9 @@ class DepthCamera():
                         continue
                     if blob_img[x, y] != 0:
                         blob_size += 1
-                        if depth_img[x, y] >= self.HAND_DEPTH_THRESH:
+                        if depth_img[x, y] >= self.HAND_FINGER_DEPTH_THRESH:
                             running_img[x, y] = 255
-                        elif depth_img[x, y] > self.FINGER_DEPTH_THRESH:
+                        elif depth_img[x, y] > self.FINGER_TIP_DEPTH_THRESH:
                             running_img[x, y] = 192
                         # elif depth_img[x, y] > self.TIP_DEPTH_THRESH:
                         #     running_img[x, y] = 126
@@ -155,7 +155,7 @@ class DepthCamera():
         return cv2.GaussianBlur(img, (3, 3), 1, 1)
 
     def compute_canny(self, img):
-        min_gradient_thresh = 75
+        min_gradient_thresh = 50
         max_gradient_thresh = 150
         img_canny = cv2.Canny(img, min_gradient_thresh, max_gradient_thresh)
         return img_canny
