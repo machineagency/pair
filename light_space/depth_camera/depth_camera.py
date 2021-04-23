@@ -155,8 +155,9 @@ class DepthCamera():
         return cv2.GaussianBlur(img, (3, 3), 1, 1)
 
     def compute_canny(self, img):
-        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img_canny = cv2.Canny(img_gray, 100, 200)
+        min_gradient_thresh = 75
+        max_gradient_thresh = 150
+        img_canny = cv2.Canny(img, min_gradient_thresh, max_gradient_thresh)
         return img_canny
 
     def load_image(self, filepath):
