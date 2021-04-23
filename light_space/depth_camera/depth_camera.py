@@ -70,10 +70,12 @@ class DepthCamera():
         return block_reduce(img, block_size=(2, 2), func=np.mean)
 
     def fix_edge_img(self, edge_img):
-        # FIXME: this currently works with a threshold check, not so much
-        # with a statistical check. we're also not filling the edge image
-        # which we still want to do eventually
-        return np.where(edge_img >= self.MIN_EDGE_THRESH, 255, 0)
+        edge_diff = edge_img - self.mean_edge
+        eps = 1
+        z = 3
+        return np.where(np.logical_and(\
+            edge_diff >= self.MIN_EDGE_THRESH,\
+            edge_diff >= z * self.stddev_edge + eps), 255, 0)
 
     def get_hand_blob_img(self, img):
         # Assumes a backgrounded depth image: mean - sample
@@ -186,7 +188,7 @@ class DepthCamera():
                 edge_image_raw, depth_image_raw = self.get_edge_and_depth_images()
                 # Raw edges will have a higher value than the mean because
                 # edges are higher values
-                edge_image_gaps = self.downsample(edge_image_raw) - self.mean_edge
+                edge_image_gaps = self.downsample(edge_image_raw)
                 edge_image = self.fix_edge_img(edge_image_gaps)
                 # Raw depth will have lower values than mean depth because
                 # objects are closer to the camera
