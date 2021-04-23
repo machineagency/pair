@@ -12,8 +12,10 @@ class DepthCamera():
         # Set these hyperparameters based on what looks like a good
         # segmentation for a given session.
         self.HAND_DEPTH_THRESH = 30
-        self.FINGER_DEPTH_THRESH = 10
-        self.MIN_EDGE_THRESH = 10
+        self.FINGER_DEPTH_THRESH = 17
+        self.TIP_DEPTH_THRESH = 0
+
+        self.MIN_EDGE_THRESH = 20
 
         # Prescan every depth image and reject if the amount of valid pixels
         # Is lower than this amount. If this is set too high, we might
@@ -124,6 +126,8 @@ class DepthCamera():
                             running_img[x, y] = 255
                         elif depth_img[x, y] > self.FINGER_DEPTH_THRESH:
                             running_img[x, y] = 192
+                        # elif depth_img[x, y] > self.TIP_DEPTH_THRESH:
+                        #     running_img[x, y] = 126
                         else:
                             # TODO: put these guys somewhere to get touch
                             # event. For now maybe just take the max size
