@@ -14,7 +14,12 @@ class DepthCamera():
         self.HAND_FINGER_DEPTH_THRESH = 50
         self.FINGER_TIP_DEPTH_THRESH = 15
 
-        self.MIN_EDGE_THRESH = 20
+        self.MIN_EDGE_THRESH = 10
+
+        # Channel values for blob image
+        self.HAND_VALUE = 255
+        self.FINGER_VALUE = 192
+        self.TIP_VALUE = 96
 
         # Prescan every depth image and reject if the amount of valid pixels
         # Is lower than this amount. If this is set too high, we might
@@ -73,7 +78,7 @@ class DepthCamera():
     def fix_edge_img(self, edge_img):
         edge_diff = edge_img - self.mean_edge
         eps = 1
-        z = 3
+        z = 2
         return np.where(np.logical_and(\
             edge_diff >= self.MIN_EDGE_THRESH,\
             edge_diff >= z * self.stddev_edge + eps), 255, 0)
@@ -86,6 +91,9 @@ class DepthCamera():
         img_high = 255 * np.ones(img.shape)
         # thresh_mm = 12
         raw_blobs = np.where(img >= self.stddev_depth, img_high, img_low)
+        # raw_blobs = np.where(np.logical_and(\
+        #             img >= self.stddev_depth,\
+        #             img < self.HAND_FINGER_DEPTH_THRESH), img_high, img_low)
         return raw_blobs
 
     def cull_blobs(self, blob_img, edge_img, depth_img):
@@ -123,16 +131,14 @@ class DepthCamera():
                     if blob_img[x, y] != 0:
                         blob_size += 1
                         if depth_img[x, y] >= self.HAND_FINGER_DEPTH_THRESH:
-                            running_img[x, y] = 255
+                            running_img[x, y] = self.HAND_VALUE
                         elif depth_img[x, y] > self.FINGER_TIP_DEPTH_THRESH:
-                            running_img[x, y] = 192
-                        # elif depth_img[x, y] > self.TIP_DEPTH_THRESH:
-                        #     running_img[x, y] = 126
-                        else:
+                            running_img[x, y] = self.FINGER_VALUE
+                        elif depth_img[x, y] > 1.5 * self.stddev_depth[x, y]:
                             # TODO: put these guys somewhere to get touch
                             # event. For now maybe just take the max size
                             # blob and get its centroid.
-                            running_img[x, y] = 96
+                            running_img[x, y] = self.TIP_VALUE
                         clear_queue.append((x, y))
                         queue.append((x - 1, y))
                         queue.append((x + 1, y))
@@ -191,6 +197,7 @@ class DepthCamera():
                 # NOTE: edge and depth images are calculated against mean images
                 # in reverse ways
                 edge_image_raw, depth_image_raw = self.get_edge_and_depth_images()
+                # TODO: sliding window
                 # Raw edges will have a higher value than the mean because
                 # edges are higher values
                 edge_image_gaps = self.downsample(edge_image_raw)
