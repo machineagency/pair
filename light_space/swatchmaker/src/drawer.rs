@@ -1,4 +1,5 @@
 use std::fmt;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct Path {
@@ -77,14 +78,57 @@ impl fmt::Display for Point {
     }
 }
 
+pub struct SvgGraph {
+    name: String,
+    width: f32,
+    height: f32,
+    paths: Vec<Path>,
+    options: HashMap<String, String>
+}
+
+impl SvgGraph {
+    pub fn new(name: &str, width: f32, height: f32) -> Self {
+        SvgGraph {
+            name: String::from(name),
+            width: width,
+            height: height,
+            paths: Vec::new(),
+            options: HashMap::new()
+        }
+    }
+    pub fn add_path(&mut self, path: &Path) {
+        self.paths.push(path.clone());
+    }
+    pub fn compile(&mut self) -> String {
+        let mut s = String::new();
+        s.push_str(&self.generate_header());
+        s.push_str(&self.generate_title());
+        for path in self.paths.iter_mut() {
+            s.push_str(&path.make_svg_path());
+        }
+        s.push_str(&self.generate_footer());
+        s
+    }
+    fn generate_header(&mut self) -> String {
+        format!("<svg id=\"Layer_1\" data-name=\"Layer 1\" xmlns=\"http://www.w3.org/2000/svg\" width=\"{0}\" height=\"{1}\" viewBox=\"0 0 {0} {1}\">", &self.width, &self.height)
+    }
+    fn generate_title(&mut self) -> String {
+        format!("<title>{}</title>", &self.name)
+    }
+    fn generate_footer(&mut self) -> String {
+        String::from("</svg>")
+    }
+}
+
 pub fn test_points() {
     let mut path = Path::new();
     path.add_point(30.0, 20.0);
     path.add_point(40.0, -10.0);
     path.translate(0.0, 10.0);
     println!("The path is: {}", path);
-    println!("Now let's compile to an SVG tag");
-    let tag = path.make_svg_path();
-    println!("{}", tag);
+    let mut svg_graph = SvgGraph::new("test_plot", 50.0, 49.0);
+    svg_graph.add_path(&path);
+    let output = svg_graph.compile();
+    println!("{}", output);
 }
 
