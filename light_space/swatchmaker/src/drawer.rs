@@ -1,4 +1,6 @@
-#[derive(Debug)]
+use std::fmt;
+
+#[derive(Debug, Clone)]
 pub struct Path {
     points: Vec<Point>
 }
@@ -19,7 +21,20 @@ impl Path {
     }
 }
 
-#[derive(Debug)]
+impl fmt::Display for Path {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut s = String::new();
+        s.push('<');
+        for point in self.points.iter() {
+            s.push_str(&point.to_string());
+            s.push_str(",");
+        }
+        s.push('>');
+        write!(f, "{}", s)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Point {
     x: f32,
     y: f32
@@ -38,10 +53,17 @@ impl Point {
     }
 }
 
+impl fmt::Display for Point {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
+}
+
 pub fn test_points() {
     let mut path = Path::new();
     path.add_point(30.0, 20.0);
     path.add_point(40.0, -10.0);
     path.translate(0.0, 10.0);
+    println!("The path is: {}", path);
 }
 
