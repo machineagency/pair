@@ -1,5 +1,8 @@
 use std::process::Command;
 use std::process::Output;
+use svg::node::element::path::{Command, Data};
+use svg::node::element::tag::Path;
+use svg::parser::Event;
 
 pub struct Axidraw {
     name: String
@@ -9,8 +12,11 @@ impl Axidraw {
     pub fn new() -> Self {
         Axidraw { name: String::from("axidraw") }
     }
-    pub fn plot_box(&self) -> Output {
-        self.plot_svg_file("../../box.svg")
+    pub fn plot_box(&self, translate: &Vec2) -> Output {
+        self.plot_svg_file("../../box_volatile.svg")
+    }
+    pub fn plot_wave(&self, translate: &Vec2) -> Output {
+        self.plot_svg_file("../../wave_volatile.svg")
     }
     fn plot_svg_file(&self, filename: &'static str) -> Output {
         Command::new("axicli")
@@ -20,8 +26,20 @@ impl Axidraw {
     }
 }
 
+struct Vec2 {
+    x: f64,
+    y: f64
+}
+
+struct SvgTransformer {
+}
+
+impl SvgTransformer {
+    fn create_translated_file(filename: &'static str, translate: &Vec2) {
+    }
+}
+
 pub fn test() {
     let axidraw = Axidraw::new();
-    let output = axidraw.plot_box();
-    // println!("{}", output);
+    axidraw.plot_box();
 }
