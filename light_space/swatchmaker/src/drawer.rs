@@ -11,6 +11,9 @@ impl Path {
             points: Vec::new()
         }
     }
+    pub fn is_empty(&mut self) -> bool {
+        self.points.len() == 0
+    }
     pub fn add_point(&mut self, x: f32, y: f32) {
         self.points.push(Point::new(x, y));
     }
@@ -18,6 +21,21 @@ impl Path {
         for point in self.points.iter_mut() {
             point.translate(tx, ty);
         }
+    }
+    pub fn make_svg_path(&mut self) -> String {
+        let mut path_string = String::new();
+        if self.is_empty() {
+            return path_string;
+        }
+        let mut d = String::new();
+        d.push_str(&format!("M{} {} ", &self.points[0].x, &self.points[0].y));
+        for point in self.points[1..].iter() {
+            d.push_str(&format!("L{} {} ", &point.x, &point.y));
+        }
+        path_string.push_str("<path d=\"");
+        path_string.push_str(&d);
+        path_string.push_str("\"/>");
+        path_string
     }
 }
 
@@ -65,5 +83,8 @@ pub fn test_points() {
     path.add_point(40.0, -10.0);
     path.translate(0.0, 10.0);
     println!("The path is: {}", path);
+    println!("Now let's compile to an SVG tag");
+    let tag = path.make_svg_path();
+    println!("{}", tag);
 }
 
