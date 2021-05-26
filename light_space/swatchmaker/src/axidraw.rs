@@ -1,4 +1,5 @@
 use std::process::Command;
+use std::process::Output;
 
 pub struct Axidraw {
     name: String
@@ -6,13 +7,21 @@ pub struct Axidraw {
 
 impl Axidraw {
     pub fn new() -> Self {
-        Axidraw { name: "axidraw" }
+        Axidraw { name: String::from("axidraw") }
     }
-    pub fn plot_svg_graph(svg: &SvgGraph) {
+    pub fn plot_box(&self) -> Output {
+        self.plot_svg_file("../../box.svg")
     }
-    pub fn plot_svg_file(filename: &String) {
+    fn plot_svg_file(&self, filename: &'static str) -> Output {
+        Command::new("axicli")
+                .arg(filename)
+                .output()
+                .expect("couldn't plot svg file")
     }
 }
 
 pub fn test() {
+    let axidraw = Axidraw::new();
+    let output = axidraw.plot_box();
+    // println!("{}", output);
 }

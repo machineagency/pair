@@ -1,6 +1,7 @@
 mod drawer;
+mod axidraw;
 
 fn main() {
-    println!("Hello, world!");
-    drawer::test_points();
+    // drawer::test_points();
+    axidraw::test();
 }
