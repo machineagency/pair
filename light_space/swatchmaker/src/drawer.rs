@@ -110,7 +110,10 @@ impl SvgGraph {
         s
     }
     fn generate_header(&mut self) -> String {
-        format!("<svg id=\"Layer_1\" data-name=\"Layer 1\" xmlns=\"http://www.w3.org/2000/svg\" width=\"{0}\" height=\"{1}\" viewBox=\"0 0 {0} {1}\">", &self.width, &self.height)
+        format!("<svg id=\"Layer_1\" data-name=\"Layer 1\" \
+                xmlns=\"http://www.w3.org/2000/svg\" \
+                width=\"{0}\" height=\"{1}\" viewBox=\"0 0 {0} {1}\">",
+                &self.width, &self.height)
     }
     fn generate_title(&mut self) -> String {
         format!("<title>{}</title>", &self.name)
