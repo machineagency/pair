@@ -1,7 +1,7 @@
 mod drawer;
 mod axidraw;
+mod svg_transformer;
 
 fn main() {
-    // drawer::test_points();
-    axidraw::test();
+    svg_transformer::test()
 }
