@@ -365,7 +365,7 @@ class Interaction:
         self._render_guides()
         self._render_sel_contour()
         self._render_toolpath()
-        self.gui.render_gui(self.img)
+        self.gui.render_gui(self)
         if extras_fn:
             extras_fn()
         cv2.imshow('Projection', self.img)
@@ -415,13 +415,13 @@ class GuiControl:
         projection.line_from_to(pt2, pt3, 'red', img)
         projection.line_from_to(pt3, pt0, 'red', img)
 
-    def render_gui(self, img):
+    def render_gui(self, ixn):
         # TODO: don't recreate buttons, just separate rendering vs data
         self.bottom_buttons = []
-        self.add_bottom_button('translate', img)
-        self.add_bottom_button('rotate', img)
-        self.calibration_envelope(self.envelope_hw, img)
-        self.toolpath_collection.add_bitmap_to_projection(img)
+        self.add_bottom_button('translate', ixn.img)
+        self.add_bottom_button('rotate', ixn.img)
+        self.calibration_envelope(self.envelope_hw, ixn.img)
+        ixn.img = self.toolpath_collection.add_bitmap_to_projection(ixn.img)
 
 def make_machine_ixn_click_handler(machine, ixn):
     def handle_click(event, x, y, flags, param):
