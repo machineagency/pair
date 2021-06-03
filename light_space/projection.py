@@ -56,14 +56,14 @@ def guide_through_pts(p0, p1, proj_screen_hw, img):
         p_max = (proj_screen_hw[1], proj_screen_hw[0])
     return cv2.line(img, p_min, p_max, (255, 255, 0), 1, cv2.LINE_AA)
 
-def rectangle_at(pt, width, height, img):
+def rectangle_at(pt, width, height, img, filled=False):
     """
     Creates a rectangle whose top left corner is at PT, with WIDTH (delta X)
     and HEIGHT (delta Y).
     """
     end_pt = (pt[0] + width, pt[1] + height)
     color = (0, 0, 255)
-    thickness = cv2.FILLED
+    thickness = cv2.FILLED if filled else 2
     return cv2.rectangle(img, pt, end_pt, color, thickness)
 
 def rectangle_from_to(from_pt, to_pt, color_name, img):

@@ -388,7 +388,7 @@ class GuiControl:
                    (text_size[0] + self.button_params['gutter'])
         pt = (self.button_params['start_pt'][0] + x_offset,\
               self.button_params['start_pt'][1])
-        rect_obj = projection.rectangle_at(pt, text_size[0], text_size[1], img)
+        rect_obj = projection.rectangle_at(pt, text_size[0], text_size[1], img, True)
         text_obj = projection.text_at(text, pt, 'black', img)
         self.bottom_buttons.append((rect_obj, text_obj))
 
