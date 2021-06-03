@@ -278,7 +278,7 @@ class Interaction:
         trans_cam = cv2.transform(trans_cam, self.trans_mat)
         off_x, off_y, _, _ = cv2.boundingRect(trans_cam)
         trans_cam[:,0,0] = trans_cam[:,0,0] + self.translate_x - off_x
-        trans_cam[:,0,1] = trans_cam[:,0,0] + self.translate_y - off_y
+        trans_cam[:,0,1] = trans_cam[:,0,1] + self.translate_y - off_y
         return self.calc_straight_bbox_for_contour(trans_cam)
 
     def _render_candidate_contours(self):
