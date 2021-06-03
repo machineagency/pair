@@ -12,6 +12,7 @@ class Interaction:
     def __init__(self, img, screen_size, gui):
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
         self.proj_screen_hw = (720, 1280)
+        self.toolpath_collection = ToolpathCollection()
         self.GRID_SNAP_DIST = 30
         self.img = img
         self.gui = gui
@@ -197,6 +198,15 @@ class Interaction:
         return x_pt >= x_min and x_pt <= x_max\
                 and y_pt >= y_min and y_pt <= y_max
 
+    def check_pt_inside_toolpath_collection_bbox(self, pt):
+        """
+        Assuming the toolpath collection area is right-aligned.
+        """
+        x_pt = pt[0]
+        y_pt = pt[1]
+        return x_pt >= self.proj_screen_hw[1] \
+                - self.toolpath_collection.width;
+
     def calc_centroid(self, contours):
         """
         True centroid, probably not a case where we need this.
@@ -375,7 +385,6 @@ class GuiControl:
         self.bottom_buttons = []
         self.CM_TO_PX = 37.7952755906
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
-        self.toolpath_collection = ToolpathCollection()
 
         self.button_params = {\
             'start_pt' : (screen_size[1] // 10, screen_size[0] - screen_size[0] // 8),\
@@ -421,7 +430,7 @@ class GuiControl:
         self.add_bottom_button('translate', ixn.img)
         self.add_bottom_button('rotate', ixn.img)
         self.calibration_envelope(self.envelope_hw, ixn.img)
-        ixn.img = self.toolpath_collection.add_bitmap_to_projection(ixn.img)
+        ixn.img = ixn.toolpath_collection.add_bitmap_to_projection(ixn.img)
 
 def make_machine_ixn_click_handler(machine, ixn):
     def handle_click(event, x, y, flags, param):
@@ -435,7 +444,10 @@ def make_machine_ixn_click_handler(machine, ixn):
         CM_TO_PX = 37.7952755906
 
         if event == cv2.EVENT_LBUTTONDOWN:
-            if ixn.check_pt_inside_toolpath_bbox((x, y)):
+            if ixn.check_pt_inside_toolpath_collection_bbox((x, y)):
+                ixn.toolpath_collection.process_click_at_pt((x, y))
+
+            elif ixn.check_pt_inside_toolpath_bbox((x, y)):
                 ixn.set_listening_click_to_move(True)
                 ixn.set_listening_scale(False)
                 ixn.set_listening_rotate(False)
@@ -444,7 +456,7 @@ def make_machine_ixn_click_handler(machine, ixn):
                 ixn.set_toolpath_color('green')
                 ixn.render()
 
-            if ixn.listening_translate:
+            elif ixn.listening_translate:
                 if ixn.chosen_contour is not None:
                     ixn.snap_translate()
                     ixn.set_toolpath_color('red')
