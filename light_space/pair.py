@@ -14,7 +14,7 @@ class Interaction:
         self.GRID_SNAP_DIST = 30
         self.img = img
         self.gui = gui
-        self.set_cam_color('red')
+        self.set_toolpath_color('red')
         self.set_listening_click_to_move(False)
         self.set_listening_translate(False)
         self.set_listening_rotate(False)
@@ -25,10 +25,10 @@ class Interaction:
         self.curr_sel_contour = None
 
         self.loader = Loader()
-        self.init_cam_bbox()
         # self.toolpath_contours = self.loader.load_svg('test_images/secret/nadya-sig.svg')
         self.toolpath_contours = self.loader.extract_contours_from_img_file(\
                                 'images/secret/real-nadya-sig.jpg')
+        self.init_toolpath_bbox()
         self.trans_mat = np.array([[1, 0, 0], [0, 1, 0]])
         self.theta = 0
         self.scale_factor = 1
@@ -38,7 +38,7 @@ class Interaction:
         self.mdown_offset_y = 0
         self.render()
 
-    def move_cam_with_mdown_offset(self, x, y):
+    def move_toolpath_with_mdown_offset(self, x, y):
         self.translate_x = x - self.mdown_offset_x
         self.translate_y = y - self.mdown_offset_y
         snap_x, snap_y = self.check_snap(x, y)
@@ -58,8 +58,8 @@ class Interaction:
             x_max = x_vals[np.argmax(x_vals)]
             y_min = y_vals[np.argmin(y_vals)]
             y_max = y_vals[np.argmax(y_vals)]
-            trans_cam_bbox = self.calc_trans_cam_bbox()
-            _, _, width, height = cv2.boundingRect(trans_cam_bbox)
+            trans_toolpath_bbox = self.calc_trans_toolpath_bbox()
+            _, _, width, height = cv2.boundingRect(trans_toolpath_bbox)
             x_min_border_left = x_val + width - x_min
             x_min_border_right = x_val - x_min
             x_max_border_left = x_val + width - x_max
@@ -91,16 +91,16 @@ class Interaction:
         contour = self.chosen_contour
         contour_bbox = self.calc_min_bbox_for_contour(contour)
         center_contour = self.calc_bbox_center(contour_bbox)
-        center_cam = self.calc_bbox_center(self.cam_bbox)
-        diff_x = center_contour[0] - center_cam[0]
-        diff_y = center_contour[1] - center_cam[1]
+        center_toolpath = self.calc_bbox_center(self.toolpath_bbox)
+        diff_x = center_contour[0] - center_toolpath[0]
+        diff_y = center_contour[1] - center_toolpath[1]
         edge_contour = self.find_shortest_bbox_line(contour_bbox)
-        edge_cam = self.find_shortest_bbox_line(self.cam_bbox)
+        edge_toolpath = self.find_shortest_bbox_line(self.toolpath_bbox)
         edge_len_contour = np.linalg.norm(edge_contour[0]\
                             - edge_contour[1])
-        edge_len_cam = np.linalg.norm(edge_cam[0] - edge_cam[1])\
+        edge_len_toolpath = np.linalg.norm(edge_toolpath[0] - edge_toolpath[1])\
                         * self.scale_factor
-        offset_hyp = 0.5 * (edge_len_contour + edge_len_cam)
+        offset_hyp = 0.5 * (edge_len_contour + edge_len_toolpath)
         # TODO: based on where click is, do + vs. - ofset_hyp
         # if we want to snap to the shorter edge, find an orthogonal vector
         offset_x = math.sin(self.theta) * -offset_hyp
@@ -122,7 +122,7 @@ class Interaction:
 
     # Getters and setters
 
-    def set_cam_color(self, color_name):
+    def set_toolpath_color(self, color_name):
         self.color_name = color_name
 
     def set_listening_click_to_move(self, flag):
@@ -183,8 +183,8 @@ class Interaction:
         p1_y = c_rs[2, 1]
         return (int(round((p0_x + p1_x) / 2)), int(round((p0_y + p1_y) / 2)))
 
-    def check_pt_inside_cam_bbox(self, pt):
-        trans_bbox = self.calc_trans_cam_bbox().reshape((4, 1, 2))
+    def check_pt_inside_toolpath_bbox(self, pt):
+        trans_bbox = self.calc_trans_toolpath_bbox().reshape((4, 1, 2))
         x_vals = trans_bbox[:, 0, 0]
         y_vals = trans_bbox[:, 0, 1]
         x_min = x_vals[np.argmin(x_vals)]
@@ -264,22 +264,22 @@ class Interaction:
         matrix = np.array([[x, y], [x + w, y], [x + w, y + h], [x, y + h]])
         return matrix.reshape((4, 2))
 
-    def init_cam_bbox(self):
-        combined_contour = self.combine_contours(self.cam_contours)
-        self.cam_bbox = self.calc_straight_bbox_for_contour(combined_contour)
+    def init_toolpath_bbox(self):
+        combined_contour = self.combine_contours(self.toolpath_contours)
+        self.toolpath_bbox = self.calc_straight_bbox_for_contour(combined_contour)
 
     def calc_line_for_contour(self, contour):
         [vx, vy, x, y] = cv2.fitLine(contour, cv2.DIST_L2, 0, 0.01, 0.01)
         return ((x[0], y[0]), (vx[0], vy[0]))
 
-    def calc_trans_cam_bbox(self):
-        combined_contour = self.combine_contours(self.cam_contours)
-        trans_cam = np.copy(combined_contour)
-        trans_cam = cv2.transform(trans_cam, self.trans_mat)
-        off_x, off_y, _, _ = cv2.boundingRect(trans_cam)
-        trans_cam[:,0,0] = trans_cam[:,0,0] + self.translate_x - off_x
-        trans_cam[:,0,1] = trans_cam[:,0,1] + self.translate_y - off_y
-        return self.calc_straight_bbox_for_contour(trans_cam)
+    def calc_trans_toolpath_bbox(self):
+        combined_contour = self.combine_contours(self.toolpath_contours)
+        trans_toolpath = np.copy(combined_contour)
+        trans_toolpath = cv2.transform(trans_toolpath, self.trans_mat)
+        off_x, off_y, _, _ = cv2.boundingRect(trans_toolpath)
+        trans_toolpath[:,0,0] = trans_toolpath[:,0,0] + self.translate_x - off_x
+        trans_toolpath[:,0,1] = trans_toolpath[:,0,1] + self.translate_y - off_y
+        return self.calc_straight_bbox_for_contour(trans_toolpath)
 
     def _render_candidate_contours(self):
         cv2.drawContours(self.img, self.candidate_contours, -1, (255, 0, 0), 1)
@@ -296,8 +296,8 @@ class Interaction:
             box_pts = self.calc_min_bbox_for_contour(self.curr_sel_contour)
             cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
 
-    def _render_cam_bbox(self):
-        trans_bbox = self.calc_trans_cam_bbox()
+    def _render_toolpath_bbox(self):
+        trans_bbox = self.calc_trans_toolpath_bbox()
         cv2.drawContours(self.img, [trans_bbox], 0, (255, 255, 0), 1)
 
     def _render_bbox_lines(self, bbox_lines):
@@ -319,7 +319,7 @@ class Interaction:
                 projection.guide_through_pts(edge[0], edge[1],\
                         self.proj_screen_hw, self.img)
 
-    def _render_cam(self):
+    def _render_toolpath(self):
         if self.color_name == 'white':
             color = (255, 255, 255)
         elif self.color_name == 'black':
@@ -340,18 +340,18 @@ class Interaction:
             return fn
         self.trans_mat = cv2.getRotationMatrix2D((0, 0), self.theta, self.scale_factor)
         sr_contours = list(map(lambda c: cv2.transform(c, self.trans_mat),\
-                                  self.cam_contours))
+                                  self.toolpath_contours))
         combined_contour = self.combine_contours(sr_contours)
         sr_off_x, sr_off_y, _, _ = cv2.boundingRect(combined_contour)
         translate_sr_off = make_translate_matrix(-sr_off_x, -sr_off_y)
         translate_full = make_translate_matrix(self.translate_x, self.translate_y)
         sr_off_contours = list(map(translate_sr_off, sr_contours))
         srt_off_contours = list(map(translate_full, sr_off_contours))
-        self.curr_trans_cam = srt_off_contours
+        self.curr_trans_toolpath = srt_off_contours
         cv2.polylines(self.img, srt_off_contours, False, color, 2)
         if self.listening_translate or self.listening_rotate\
             or self.listening_click_to_move:
-            self._render_cam_bbox()
+            self._render_toolpath_bbox()
 
     def render(self, extras_fn=None):
         """
@@ -363,7 +363,7 @@ class Interaction:
         self._render_chosen_contour()
         self._render_guides()
         self._render_sel_contour()
-        self._render_cam()
+        self._render_toolpath()
         self.gui.render_gui(self.img)
         if extras_fn:
             extras_fn()
@@ -374,6 +374,7 @@ class GuiControl:
         self.bottom_buttons = []
         self.CM_TO_PX = 37.7952755906
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
+        self.toolpath_collection = ToolpathCollection()
 
         self.button_params = {\
             'start_pt' : (screen_size[1] // 10, screen_size[0] - screen_size[0] // 8),\
@@ -432,19 +433,19 @@ def make_machine_ixn_click_handler(machine, ixn):
         CM_TO_PX = 37.7952755906
 
         if event == cv2.EVENT_LBUTTONDOWN:
-            if ixn.check_pt_inside_cam_bbox((x, y)):
+            if ixn.check_pt_inside_toolpath_bbox((x, y)):
                 ixn.set_listening_click_to_move(True)
                 ixn.set_listening_scale(False)
                 ixn.set_listening_rotate(False)
                 ixn.set_listening_translate(False)
                 ixn.set_mdown_offset(x, y)
-                ixn.set_cam_color('green')
+                ixn.set_toolpath_color('green')
                 ixn.render()
 
             if ixn.listening_translate:
                 if ixn.chosen_contour is not None:
                     ixn.snap_translate()
-                    ixn.set_cam_color('red')
+                    ixn.set_toolpath_color('red')
                     ixn.set_listening_translate(False)
                     ixn.render()
 
@@ -455,7 +456,7 @@ def make_machine_ixn_click_handler(machine, ixn):
                     line = ixn.find_longest_bbox_line(box)
                     angle = ixn.calc_line_angle(line)
                     ixn.rotate(angle)
-                    ixn.set_cam_color('red')
+                    ixn.set_toolpath_color('red')
                     ixn.set_listening_rotate(False)
                     ixn.render()
 
@@ -463,12 +464,12 @@ def make_machine_ixn_click_handler(machine, ixn):
                 contour = ixn.chosen_contour
                 bbox_contour = ixn.calc_min_bbox_for_contour(contour)
                 edge_contour = ixn.find_longest_bbox_line(bbox_contour)
-                edge_cam = ixn.find_longest_bbox_line(ixn.cam_bbox)
+                edge_toolpath = ixn.find_longest_bbox_line(ixn.toolpath_bbox)
                 edge_len_contour = np.linalg.norm(edge_contour[0] - edge_contour[1])
-                edge_len_cam = np.linalg.norm(edge_cam[0] - edge_cam[1])
-                edge_ratio = edge_len_contour / edge_len_cam
+                edge_len_toolpath = np.linalg.norm(edge_toolpath[0] - edge_toolpath[1])
+                edge_ratio = edge_len_contour / edge_len_toolpath
                 ixn.scale(edge_ratio)
-                ixn.set_cam_color('red')
+                ixn.set_toolpath_color('red')
                 ixn.set_listening_scale(False)
                 ixn.render()
 
@@ -485,13 +486,13 @@ def make_machine_ixn_click_handler(machine, ixn):
 
         if event == cv2.EVENT_MOUSEMOVE:
             if ixn.listening_click_to_move:
-                ixn.move_cam_with_mdown_offset(x, y)
+                ixn.move_toolpath_with_mdown_offset(x, y)
                 ixn.render()
 
         if event == cv2.EVENT_LBUTTONUP:
             if ixn.listening_click_to_move:
                 ixn.set_listening_click_to_move(False)
-                ixn.set_cam_color('red')
+                ixn.set_toolpath_color('red')
                 ixn.render()
 
             ixn.set_curr_sel_contour(ixn.select_contour_at_point((x, y)))
@@ -566,9 +567,9 @@ def run_canvas_loop():
                     ixn.set_listening_translate(False)
                     ixn.set_listening_click_to_move(False)
                     ixn.set_listening_rotate(False)
-                    ixn.set_cam_color('green')
+                    ixn.set_toolpath_color('green')
                 else:
-                    ixn.set_cam_color('red')
+                    ixn.set_toolpath_color('red')
                 ixn.render()
 
             if pressed_key == ord('t'):
@@ -580,7 +581,7 @@ def run_canvas_loop():
                     ixn.set_listening_click_to_move(False)
                     ixn.set_listening_scale(False)
                     ixn.set_listening_rotate(False)
-                    ixn.set_cam_color('green')
+                    ixn.set_toolpath_color('green')
                 ixn.render()
 
             if pressed_key == ord('r'):
@@ -589,9 +590,9 @@ def run_canvas_loop():
                     ixn.set_listening_click_to_move(False)
                     ixn.set_listening_scale(False)
                     ixn.set_listening_translate(False)
-                    ixn.set_cam_color('green')
+                    ixn.set_toolpath_color('green')
                 else:
-                    ixn.set_cam_color('red')
+                    ixn.set_toolpath_color('red')
                 ixn.render()
 
             if pressed_key == ord('e'):
@@ -611,7 +612,7 @@ def run_canvas_loop():
                 # Exit any edit mode first
                 ixn.set_listening_translate(False)
                 ixn.set_listening_scale(False)
-                ixn.set_cam_color('red')
+                ixn.set_toolpath_color('red')
                 ixn.render()
 
                 # Calculate and draw lines
@@ -625,7 +626,7 @@ def run_canvas_loop():
                 machine.pen_up()
 
             if pressed_key == ord('d'):
-                ixn.loader.export_contours_as_svg(ixn.curr_trans_cam, 'drawing')
+                ixn.loader.export_contours_as_svg(ixn.curr_trans_toolpath, 'drawing')
                 machine.plot_svg('output_vectors/drawing.svg')
 
             if pressed_key == ord('c'):
@@ -661,7 +662,7 @@ def run_canvas_loop():
                 """
                 Write transformed CAM contour to SVG.
                 """
-                ixn.loader.export_contours_as_svg(ixn.curr_trans_cam, 'test')
+                ixn.loader.export_contours_as_svg(ixn.curr_trans_toolpath, 'test')
 
             if pressed_key == 13:
                 """
