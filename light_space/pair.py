@@ -277,8 +277,8 @@ class Interaction:
         trans_cam = np.copy(combined_contour)
         trans_cam = cv2.transform(trans_cam, self.trans_mat)
         off_x, off_y, _, _ = cv2.boundingRect(trans_cam)
-        trans_cam[:, 0, 0] += self.translate_x - off_x
-        trans_cam[:, 0, 1] += self.translate_y - off_y
+        trans_cam[:,0,0] = trans_cam[:,0,0] + self.translate_x - off_x
+        trans_cam[:,0,1] = trans_cam[:,0,0] + self.translate_y - off_y
         return self.calc_straight_bbox_for_contour(trans_cam)
 
     def _render_candidate_contours(self):
@@ -334,8 +334,8 @@ class Interaction:
         def make_translate_matrix(x, y):
             def fn(contour):
                 c = np.copy(contour)
-                c[:,0,0] += x
-                c[:,0,1] += y
+                c[:,0,0] = c[:,0,0] + x
+                c[:,0,1] = c[:,0,1] + y
                 return c
             return fn
         self.trans_mat = cv2.getRotationMatrix2D((0, 0), self.theta, self.scale_factor)
