@@ -5,6 +5,7 @@ import numpy as np
 from machine import Machine
 from camera import Camera
 from loader import Loader
+from toolpath_collection import ToolpathCollection
 import projection
 
 class Interaction:
@@ -420,6 +421,7 @@ class GuiControl:
         self.add_bottom_button('translate', img)
         self.add_bottom_button('rotate', img)
         self.calibration_envelope(self.envelope_hw, img)
+        self.toolpath_collection.add_bitmap_to_projection(img)
 
 def make_machine_ixn_click_handler(machine, ixn):
     def handle_click(event, x, y, flags, param):
