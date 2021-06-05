@@ -27,10 +27,14 @@ class Interaction:
         self.curr_sel_contour = None
 
         self.loader = Loader()
+        # NOTE: a dictionary mapping toolpath name to toolpath, where a
+        # toolpath is a tuple of subpaths, where a subpath is a
+        # Numpy array representing a set of points on the subpath
+        self.toolpaths = {}
         # self.toolpath_contours = self.loader.load_svg('test_images/secret/nadya-sig.svg')
-        self.toolpath_contours = self.loader.extract_contours_from_img_file(\
+        self.toolpaths['sig'] = self.loader.extract_contours_from_img_file(\
                                 'images/secret/real-nadya-sig.jpg')
-        self.init_toolpath_bbox()
+        self.init_bbox_for_toolpath('sig')
         self.trans_mat = np.array([[1, 0, 0], [0, 1, 0]])
         self.theta = 0
         self.scale_factor = 1
@@ -186,17 +190,21 @@ class Interaction:
         return (int(round((p0_x + p1_x) / 2)), int(round((p0_y + p1_y) / 2)))
 
     def check_pt_inside_toolpath_bbox(self, pt):
-        trans_bbox = self.calc_trans_toolpath_bbox().reshape((4, 1, 2))
-        x_vals = trans_bbox[:, 0, 0]
-        y_vals = trans_bbox[:, 0, 1]
-        x_min = x_vals[np.argmin(x_vals)]
-        x_max = x_vals[np.argmax(x_vals)]
-        y_min = y_vals[np.argmin(y_vals)]
-        y_max = y_vals[np.argmax(y_vals)]
-        x_pt = pt[0]
-        y_pt = pt[1]
-        return x_pt >= x_min and x_pt <= x_max\
-                and y_pt >= y_min and y_pt <= y_max
+        for tp_name, toolpath in self.toolpaths.items():
+            trans_bbox = self.calc_bbox_for_trans_toolpath(tp_name)\
+                             .reshape((4, 1, 2))
+            x_vals = trans_bbox[:, 0, 0]
+            y_vals = trans_bbox[:, 0, 1]
+            x_min = x_vals[np.argmin(x_vals)]
+            x_max = x_vals[np.argmax(x_vals)]
+            y_min = y_vals[np.argmin(y_vals)]
+            y_max = y_vals[np.argmax(y_vals)]
+            x_pt = pt[0]
+            y_pt = pt[1]
+            in_bbox = x_pt >= x_min and x_pt <= x_max\
+                      and y_pt >= y_min and y_pt <= y_max
+            if in_bbox:
+                return tp_name
 
     def check_pt_inside_toolpath_collection_bbox(self, pt):
         """
@@ -275,16 +283,18 @@ class Interaction:
         matrix = np.array([[x, y], [x + w, y], [x + w, y + h], [x, y + h]])
         return matrix.reshape((4, 2))
 
-    def init_toolpath_bbox(self):
-        combined_contour = self.combine_contours(self.toolpath_contours)
+    def init_bbox_for_toolpath(self, tp_name):
+        toolpath = self.toolpaths[tp_name]
+        combined_contour = self.combine_contours(toolpath)
         self.toolpath_bbox = self.calc_straight_bbox_for_contour(combined_contour)
 
     def calc_line_for_contour(self, contour):
         [vx, vy, x, y] = cv2.fitLine(contour, cv2.DIST_L2, 0, 0.01, 0.01)
         return ((x[0], y[0]), (vx[0], vy[0]))
 
-    def calc_trans_toolpath_bbox(self):
-        combined_contour = self.combine_contours(self.toolpath_contours)
+    def calc_bbox_for_trans_toolpath(self, tp_name):
+        toolpath = self.toolpaths[tp_name]
+        combined_contour = self.combine_contours(toolpath)
         trans_toolpath = np.copy(combined_contour)
         trans_toolpath = cv2.transform(trans_toolpath, self.trans_mat)
         off_x, off_y, _, _ = cv2.boundingRect(trans_toolpath)
@@ -307,8 +317,8 @@ class Interaction:
             box_pts = self.calc_min_bbox_for_contour(self.curr_sel_contour)
             cv2.drawContours(self.img, [box_pts], 0, (255, 255, 0), 1)
 
-    def _render_toolpath_bbox(self):
-        trans_bbox = self.calc_trans_toolpath_bbox()
+    def _render_bbox_for_toolpath(self, tp_name):
+        trans_bbox = self.calc_bbox_for_trans_toolpath(tp_name)
         cv2.drawContours(self.img, [trans_bbox], 0, (255, 255, 0), 1)
 
     def _render_bbox_lines(self, bbox_lines):
@@ -330,7 +340,7 @@ class Interaction:
                 projection.guide_through_pts(edge[0], edge[1],\
                         self.proj_screen_hw, self.img)
 
-    def _render_toolpath(self):
+    def _render_toolpath(self, tp_name):
         if self.color_name == 'white':
             color = (255, 255, 255)
         elif self.color_name == 'black':
@@ -350,8 +360,9 @@ class Interaction:
                 return c
             return fn
         self.trans_mat = cv2.getRotationMatrix2D((0, 0), self.theta, self.scale_factor)
+        toolpath = self.toolpaths[tp_name]
         sr_contours = list(map(lambda c: cv2.transform(c, self.trans_mat),\
-                                  self.toolpath_contours))
+                                  toolpath))
         combined_contour = self.combine_contours(sr_contours)
         sr_off_x, sr_off_y, _, _ = cv2.boundingRect(combined_contour)
         translate_sr_off = make_translate_matrix(-sr_off_x, -sr_off_y)
@@ -362,7 +373,7 @@ class Interaction:
         cv2.polylines(self.img, srt_off_contours, False, color, 2)
         if self.listening_translate or self.listening_rotate\
             or self.listening_click_to_move:
-            self._render_toolpath_bbox()
+            self._render_bbox_for_toolpath(tp_name)
 
     def render(self, extras_fn=None):
         """
@@ -374,7 +385,9 @@ class Interaction:
         self._render_chosen_contour()
         self._render_guides()
         self._render_sel_contour()
-        self._render_toolpath()
+        # FIXME: currently uses one transform matrix to apply to all TPs
+        for tp_name in self.toolpaths.keys():
+            self._render_toolpath(tp_name)
         self.gui.render_gui(self)
         if extras_fn:
             extras_fn()
@@ -444,10 +457,12 @@ def make_machine_ixn_click_handler(machine, ixn):
         CM_TO_PX = 37.7952755906
 
         if event == cv2.EVENT_LBUTTONDOWN:
+            tp_name_bbox_intercept = ixn.check_pt_inside_toolpath_bbox((x,y))
+
             if ixn.check_pt_inside_toolpath_collection_bbox((x, y)):
                 ixn.toolpath_collection.process_click_at_pt((x, y), ixn)
 
-            elif ixn.check_pt_inside_toolpath_bbox((x, y)):
+            elif tp_name_bbox_intercept:
                 ixn.set_listening_click_to_move(True)
                 ixn.set_listening_scale(False)
                 ixn.set_listening_rotate(False)
