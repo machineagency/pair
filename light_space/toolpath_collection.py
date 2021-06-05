@@ -6,32 +6,48 @@ import projection
 class ToolpathCollection:
     def __init__(self):
         self.BITMAP_HW_PX = (720, 200)
+        self.GUTTER_PX = 25
         self._loader = Loader()
         self.directory_vectors = 'images/vectors/'
         self.directory_rasters = 'images/rasters/'
         self.bitmap = np.zeros(self.BITMAP_HW_PX + (3,))
+        self.toolpaths = []
+        self.__load_toolpahts_from_directory()
 
     @property
     def width(self):
         return self.BITMAP_HW_PX[1]
 
-    def process_click_at_pt(self, pt):
-        # TODO: load the toolpath that was clicked on
-        print('NYI')
+    def process_click_at_pt(self, pt, ixn):
+        """
+        Assumes that there is one box per "row" so that we just need to check
+        the y coordinate of the click.
+        """
+        y_click = pt[1]
+        box_idx = y_click // (self.BITMAP_HW_PX[1] + self.GUTTER_PX)
+        print(box_idx)
+
+    def __load_toolpath_to_canvas(self, filename, canvas_img):
+        # TODO
+        pass
+
+    def __load_toolpahts_from_directory(self):
+        for filename in os.listdir(self.directory_vectors):
+            self.toolpaths.append(self._loader\
+                    .load_svg(self.directory_vectors + filename))
 
     def render_vectors(self):
-        gutter_px = 25
         box_width = self.BITMAP_HW_PX[1]
         box_height = round(box_width * 0.75)
         overlay = np.zeros(self.bitmap.shape)
-        for i, filename in enumerate(os.listdir(self.directory_vectors)):
-            y_offset = i * (box_height + gutter_px)
+        for i, toolpath in enumerate(self.toolpaths):
+            y_offset = i * (box_height + self.GUTTER_PX)
             overlay = overlay + projection.rectangle_at( \
                     (0, y_offset), \
                     box_width, box_height, self.bitmap)
-            paths = self._loader.load_svg(self.directory_vectors + filename)
             trans_mat = np.array([[1, 0, 0], [0, 1, y_offset]])
-            trans_paths = [cv2.transform(p, trans_mat) for p in paths]
+            trans_paths = [cv2.transform(subpath, trans_mat)\
+                    for subpath in toolpath]
             cv2.polylines(overlay, trans_paths, False, (0, 0, 255), 1)
         self.bitmap = self.bitmap + overlay
 

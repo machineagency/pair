@@ -445,7 +445,7 @@ def make_machine_ixn_click_handler(machine, ixn):
 
         if event == cv2.EVENT_LBUTTONDOWN:
             if ixn.check_pt_inside_toolpath_collection_bbox((x, y)):
-                ixn.toolpath_collection.process_click_at_pt((x, y))
+                ixn.toolpath_collection.process_click_at_pt((x, y), ixn)
 
             elif ixn.check_pt_inside_toolpath_bbox((x, y)):
                 ixn.set_listening_click_to_move(True)
