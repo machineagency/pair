@@ -44,7 +44,7 @@ class ToolpathCollection:
             y_offset = i * (box_height + self.GUTTER_PX)
             overlay = overlay + projection.rectangle_at( \
                     (0, y_offset), \
-                    box_width, box_height, self.bitmap)
+                    box_width, box_height, self.bitmap, 'red')
             trans_mat = np.array([[1, 0, 0], [0, 1, y_offset]])
             trans_paths = [cv2.transform(subpath, trans_mat)\
                     for subpath in toolpath]

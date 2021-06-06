@@ -420,13 +420,14 @@ class GuiControl:
             'gutter' : 100\
         }
 
-    def add_bottom_button(self, text, img):
+    def add_bottom_button(self, text, color_name, img):
         text_size = projection.find_text_size(text)
         x_offset = len(self.bottom_buttons) *\
                    (text_size[0] + self.button_params['gutter'])
         pt = (self.button_params['start_pt'][0] + x_offset,\
               self.button_params['start_pt'][1])
-        rect_obj = projection.rectangle_at(pt, text_size[0], text_size[1], img, True)
+        rect_obj = projection.rectangle_at(pt, text_size[0], text_size[1], \
+                    img, color_name, True)
         text_obj = projection.text_at(text, pt, 'black', img)
         self.bottom_buttons.append((rect_obj, text_obj))
 
@@ -456,8 +457,12 @@ class GuiControl:
     def render_gui(self, ixn):
         # TODO: don't recreate buttons, just separate rendering vs data
         self.bottom_buttons = []
-        self.add_bottom_button('translate', ixn.img)
-        self.add_bottom_button('rotate', ixn.img)
+        t_color = 'green' if ixn.listening_translate else 'red'
+        r_color = 'green' if ixn.listening_rotate else 'red'
+        s_color = 'green' if ixn.listening_scale else 'red'
+        self.add_bottom_button('translate', t_color, ixn.img)
+        self.add_bottom_button('rotate', r_color, ixn.img)
+        self.add_bottom_button('scale', s_color, ixn.img)
         self.calibration_envelope(self.envelope_hw, ixn.img)
         ixn.img = ixn.toolpath_collection.add_bitmap_to_projection(ixn.img)
 
@@ -514,18 +519,18 @@ def make_machine_ixn_click_handler(machine, ixn):
                     ixn.set_listening_rotate(False)
                     ixn.render()
 
-            elif ixn.listening_scale:
-                contour = ixn.chosen_contour
-                bbox_contour = ixn.calc_min_bbox_for_contour(contour)
-                edge_contour = ixn.find_longest_bbox_line(bbox_contour)
-                edge_toolpath = ixn.find_longest_bbox_line(ixn.toolpath_bbox)
-                edge_len_contour = np.linalg.norm(edge_contour[0] - edge_contour[1])
-                edge_len_toolpath = np.linalg.norm(edge_toolpath[0] - edge_toolpath[1])
-                edge_ratio = edge_len_contour / edge_len_toolpath
-                ixn.scale(edge_ratio)
-                ixn.set_toolpath_color('red')
-                ixn.set_listening_scale(False)
-                ixn.render()
+            # elif ixn.listening_scale:
+            #     contour = ixn.chosen_contour
+            #     bbox_contour = ixn.calc_min_bbox_for_contour(contour)
+            #     edge_contour = ixn.find_longest_bbox_line(bbox_contour)
+            #     edge_toolpath = ixn.find_longest_bbox_line(ixn.toolpath_bbox)
+            #     edge_len_contour = np.linalg.norm(edge_contour[0] - edge_contour[1])
+            #     edge_len_toolpath = np.linalg.norm(edge_toolpath[0] - edge_toolpath[1])
+            #     edge_ratio = edge_len_contour / edge_len_toolpath
+            #     ixn.scale(edge_ratio)
+            #     ixn.set_toolpath_color('red')
+            #     ixn.set_listening_scale(False)
+            #     ixn.render()
 
             elif False:
                 # TODO: this used to be for click to move mode, but would be
@@ -598,9 +603,10 @@ def run_canvas_loop():
                         curr_tpt['scale'] += 0.01
                     if ixn.listening_rotate:
                         curr_tpt['theta'] = (curr_tpt['theta'] + 45) % 360
-                        ixn.rotate(curr_tpt['theta'])
+                        ixn.rotate_toolpath(ixn.selected_tp_name, curr_tpt['theta'])
                     if ixn.listening_translate:
-                        ixn.translate(0, curr_tpt['translate_y'] + 10)
+                        ixn.translate_toolpath(ixn.selected_tp_name, 0, \
+                                curr_tpt['translate_y'] + 10)
                     ixn.render()
 
             if pressed_key == ord('-'):
@@ -613,9 +619,10 @@ def run_canvas_loop():
                         curr_tpt['scale'] -= 0.01
                     if ixn.listening_rotate:
                         curr_tpt['theta'] = (curr_tpt['theta'] - 45) % 360
-                        ixn.rotate(ixn.theta)
+                        ixn.rotate_toolpath(ixn.selected_tp_name, curr_tpt['theta'])
                     if ixn.listening_translate:
-                        ixn.translate(0, curr_tpt['translate_y'] - 10)
+                        ixn.translate(ixn.selected_tp_name, 0, \
+                                curr_tpt['translate_y'] - 10)
                     ixn.render()
 
             if pressed_key == ord('s'):
@@ -627,8 +634,6 @@ def run_canvas_loop():
                     ixn.set_listening_translate(False)
                     ixn.set_listening_click_to_move(False)
                     ixn.set_listening_rotate(False)
-                else:
-                    ixn.set_toolpath_color('red')
                 ixn.render()
 
             if pressed_key == ord('t'):
@@ -648,8 +653,6 @@ def run_canvas_loop():
                     ixn.set_listening_click_to_move(False)
                     ixn.set_listening_scale(False)
                     ixn.set_listening_translate(False)
-                else:
-                    ixn.set_toolpath_color('red')
                 ixn.render()
 
             if pressed_key == ord('e'):
