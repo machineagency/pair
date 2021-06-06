@@ -8,7 +8,8 @@ class Loader:
     def __init__(self):
         pass
 
-    def load_svg(self, filepath):
+    @staticmethod
+    def load_svg(filepath):
         paths, attrs = pt.svg2paths(filepath)
         contours = []
         T_SAMP = 10
@@ -16,7 +17,7 @@ class Loader:
             subpath_matrices = []
             try:
                 translate_attr = attrs[idx]['transform']
-                translate_num = self._parse_translate_attr(translate_attr)
+                translate_num = Loader._parse_translate_attr(translate_attr)
                 path_trans = path.translated(translate_num)
             except KeyError:
                 path_trans = path
@@ -39,10 +40,11 @@ class Loader:
                     sp_mtx[1, 0, 1] = round(subpath.end.imag)
 
                 subpath_matrices.append(sp_mtx)
-            contours.append(self._combine_subpath_matrices(subpath_matrices))
+            contours.append(Loader._combine_subpath_matrices(subpath_matrices))
         return contours
 
-    def extract_contours_from_img_file(self, img_filepath):
+    @staticmethod
+    def extract_contours_from_img_file(img_filepath):
         img = cv2.imread(img_filepath)
         _, edge_img = cv2.threshold(img, 100, 255, cv2.THRESH_BINARY)
         edge_img = cv2.cvtColor(edge_img, cv2.COLOR_BGR2GRAY)
@@ -50,7 +52,8 @@ class Loader:
                                                cv2.CHAIN_APPROX_SIMPLE)
         return contours
 
-    def export_contours_as_svg(self, contours, title):
+    @staticmethod
+    def export_contours_as_svg(contours, title):
         culled_contours = self._cull_small_contours(contours)
         CM_TO_PX = 37.7952755906
         fp = open(f'output_vectors/{title}.svg', mode='w+')
@@ -76,7 +79,8 @@ class Loader:
         fp.write('</svg>\n')
         fp.close()
 
-    def _combine_subpath_matrices(self, matrices):
+    @staticmethod
+    def _combine_subpath_matrices(matrices):
         def combine(c0, c1):
             return np.append(c0, c1, axis=0)
         return reduce(combine, matrices).astype(np.int32)
@@ -87,8 +91,8 @@ class Loader:
                             > MIN_CONTOUR_LEN
         culled_contours = list(filter(min_length_lambda, contours))
         return culled_contours
-
-    def _parse_translate_attr(self, translate_attr):
+    @staticmethod
+    def _parse_translate_attr(translate_attr):
         '''
         E.g. input 'translate(0.13 0.13)'
         Output (0.13 + 0.13j)
@@ -98,7 +102,6 @@ class Loader:
         return complex(float(str_lst[0]), float(str_lst[1]))
 
 if __name__ == '__main__':
-    loader = Loader()
-    contours = loader.load_svg('test_images/secret/nadya-sig.svg')
+    contours = Loader.load_svg('test_images/secret/nadya-sig.svg')
     print(contours[0].shape)
 

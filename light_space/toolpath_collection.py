@@ -34,7 +34,7 @@ class ToolpathCollection:
     def __load_toolpaths_from_directory(self):
         for idx, filename in enumerate(os.listdir(self.directory_vectors)):
             new_tp = {}
-            new_tp['path'] = self._loader.load_svg(self.directory_vectors \
+            new_tp['path'] = Loader.load_svg(self.directory_vectors \
                                 + filename)
             new_tp['idx'] = idx
             new_tp['name'] = filename.split('.')[0]

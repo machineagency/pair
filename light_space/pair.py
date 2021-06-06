@@ -25,14 +25,13 @@ class Interaction:
         self.chosen_contour_bbox = []
         self.curr_sel_contour = None
 
-        self.loader = Loader()
         # NOTE: a dictionary mapping toolpath name to toolpath, where a
         # toolpath is a tuple of subpaths, where a subpath is a
         # Numpy array representing a set of points on the subpath
         # FIXME: the below data structures should really be their own ADT
         self.toolpaths = {}
-        self.toolpaths['bad'] = self.loader.load_svg('images/secret/nadya-sig.svg')
-        self.toolpaths['sig'] = self.loader.extract_contours_from_img_file(\
+        self.toolpaths['bad'] = Loader.load_svg('images/secret/nadya-sig.svg')
+        self.toolpaths['sig'] = Loader.extract_contours_from_img_file(\
                                 'images/secret/real-nadya-sig.jpg')
         self.init_bbox_for_toolpath('sig')
         self.trans_mat = np.array([[1, 0, 0], [0, 1, 0]])
@@ -687,7 +686,7 @@ def run_canvas_loop():
 
             if pressed_key == ord('d'):
                 toolpath = ixn.toolpaths[ixn.selected_tp_name]
-                ixn.loader.export_contours_as_svg(toolpath, 'drawing')
+                Loader.export_contours_as_svg(toolpath, 'drawing')
                 machine.plot_svg('output_vectors/drawing.svg')
 
             if pressed_key == ord('c'):
@@ -724,7 +723,7 @@ def run_canvas_loop():
                 Write transformed CAM contour to SVG.
                 """
                 toolpath = ixn.toolpaths[ixn.selected_tp_name]
-                ixn.loader.export_contours_as_svg(toolpath, 'test')
+                Loader.export_contours_as_svg(toolpath, 'test')
 
             if pressed_key == 13:
                 """
