@@ -16,7 +16,6 @@ class Interaction:
         self.GRID_SNAP_DIST = 30
         self.img = img
         self.gui = gui
-        self.set_toolpath_color('red')
         self.set_listening_click_to_move(False)
         self.set_listening_translate(False)
         self.set_listening_rotate(False)
@@ -30,6 +29,7 @@ class Interaction:
         # NOTE: a dictionary mapping toolpath name to toolpath, where a
         # toolpath is a tuple of subpaths, where a subpath is a
         # Numpy array representing a set of points on the subpath
+        # FIXME: the below data structures should really be their own ADT
         self.toolpaths = {}
         self.toolpaths['bad'] = self.loader.load_svg('images/secret/nadya-sig.svg')
         self.toolpaths['sig'] = self.loader.extract_contours_from_img_file(\
@@ -37,13 +37,15 @@ class Interaction:
         self.init_bbox_for_toolpath('sig')
         self.trans_mat = np.array([[1, 0, 0], [0, 1, 0]])
         self.tp_transforms = {\
-            'bad': { 'theta': 0, 'scale': 1, 'translate_x': 0, \
+            'bad': { 'color': 'red', 'theta': 0, 'scale': 1, 'translate_x': 0, \
                     'translate_y': 0, 'mat': np.array([[1, 0, 0], [0, 1, 0]]) },
-            'sig': { 'theta': 0, 'scale': 1, 'translate_x': 0, \
+            'sig': { 'color': 'red', 'theta': 0, 'scale': 1, 'translate_x': 0, \
                     'translate_y': 0, 'mat': np.array([[1, 0, 0], [0, 1, 0]]) }
         }
         self.mdown_offset_x = 0
         self.mdown_offset_y = 0
+        self.selected_tp_name = None
+        self.set_color_for_toolpath('red', 'ALL')
         self.render()
 
     def move_toolpath_with_mdown_offset(self, tp_name, x, y):
@@ -134,8 +136,12 @@ class Interaction:
 
     # Getters and setters
 
-    def set_toolpath_color(self, color_name):
-        self.color_name = color_name
+    def set_color_for_toolpath(self, color_name, tp_name):
+        if tp_name == 'ALL':
+            for curr_tp_name in self.tp_transforms.keys():
+                self.tp_transforms[curr_tp_name]['color'] = color_name
+        else:
+            self.tp_transforms[tp_name]['color'] = color_name
 
     def set_listening_click_to_move(self, flag):
         self.listening_click_to_move = flag
@@ -149,13 +155,10 @@ class Interaction:
     def set_listening_scale(self, flag):
         self.listening_scale = flag
 
-    def set_mdown_offset(self, x_mdown, y_mdown):
-        # FIXME: cannot get tx and ty without IDing toolpath, can we account
-        # for this elsewhere?
-        # self.mdown_offset_x = x_mdown - self.translate_x
-        # self.mdown_offset_y = y_mdown - self.translate_y
-        self.mdown_offset_x = x_mdown
-        self.mdown_offset_y = y_mdown
+    def set_mdown_offset_for_toolpath(self, x_mdown, y_mdown, tp_name):
+        tpt = self.tp_transforms[tp_name]
+        self.mdown_offset_x = x_mdown - tpt['translate_x']
+        self.mdown_offset_y = y_mdown - tpt['translate_y']
 
     def set_candidate_contours(self, contours):
         self.candidate_contours = contours
@@ -354,13 +357,14 @@ class Interaction:
                         self.proj_screen_hw, self.img)
 
     def _render_toolpath(self, tp_name):
-        if self.color_name == 'white':
+        color_name = self.tp_transforms[tp_name]['color']
+        if color_name == 'white':
             color = (255, 255, 255)
-        elif self.color_name == 'black':
+        elif color_name == 'black':
             color = (0, 0, 0)
-        elif self.color_name == 'red':
+        elif color_name == 'red':
             color = (0, 0, 255)
-        elif self.color_name == 'green':
+        elif color_name == 'green':
             color = (0, 255, 0)
         else:
             color = (255, 255, 255)
@@ -384,12 +388,8 @@ class Interaction:
         translate_full = make_translate_matrix(tpt['translate_x'], tpt['translate_y'])
         sr_off_contours = list(map(translate_sr_off, sr_contours))
         srt_off_contours = list(map(translate_full, sr_off_contours))
-        self.curr_trans_toolpath = srt_off_contours
-        # FIXME: not sure if we should set this here
-        self.curr_tp_name = tp_name
         cv2.polylines(self.img, srt_off_contours, False, color, 2)
-        if self.listening_translate or self.listening_rotate\
-            or self.listening_click_to_move:
+        if tp_name == self.selected_tp_name:
             self._render_bbox_for_toolpath(tp_name)
 
     def render(self, extras_fn=None):
@@ -472,25 +472,34 @@ def make_machine_ixn_click_handler(machine, ixn):
         # TODO: way of sharing image dimensions
         CM_TO_PX = 37.7952755906
 
-        if event == cv2.EVENT_LBUTTONDOWN:
-            tp_name_bbox_intercept = ixn.check_pt_inside_toolpath_bbox((x,y))
+        hit_tp_name = ixn.check_pt_inside_toolpath_bbox((x,y))
 
+        if event == cv2.EVENT_LBUTTONDOWN:
             if ixn.check_pt_inside_toolpath_collection_bbox((x, y)):
                 ixn.toolpath_collection.process_click_at_pt((x, y), ixn)
 
-            elif tp_name_bbox_intercept:
+            elif hit_tp_name:
+                # Select whatever we landed on
+                ixn.selected_tp_name = hit_tp_name
+                ixn.set_color_for_toolpath('green', hit_tp_name)
+
+                # Red out any tps that are not selected
+                for tp_name in ixn.toolpaths.keys():
+                    if tp_name != ixn.selected_tp_name:
+                        ixn.set_color_for_toolpath('red', tp_name)
+
                 ixn.set_listening_click_to_move(True)
                 ixn.set_listening_scale(False)
                 ixn.set_listening_rotate(False)
                 ixn.set_listening_translate(False)
-                ixn.set_mdown_offset(x, y)
-                ixn.set_toolpath_color('green')
+                ixn.set_mdown_offset_for_toolpath(x, y, hit_tp_name)
+                ixn.set_color_for_toolpath('green', hit_tp_name)
                 ixn.render()
 
             elif ixn.listening_translate:
                 if ixn.chosen_contour is not None:
                     ixn.snap_translate()
-                    ixn.set_toolpath_color('red')
+                    ixn.set_color_for_toolpath('red', 'ALL')
                     ixn.set_listening_translate(False)
                     ixn.render()
 
@@ -530,15 +539,17 @@ def make_machine_ixn_click_handler(machine, ixn):
                 print(instr)
 
         if event == cv2.EVENT_MOUSEMOVE:
-            if ixn.listening_click_to_move:
-                ixn.move_toolpath_with_mdown_offset(ixn.curr_tp_name, x, y)
+            if ixn.listening_click_to_move and ixn.selected_tp_name:
+                ixn.move_toolpath_with_mdown_offset(ixn.selected_tp_name, x, y)
                 ixn.render()
 
         if event == cv2.EVENT_LBUTTONUP:
+            # If we released the click outside a bbox, null out the selected tp
+            if not hit_tp_name:
+                ixn.selected_tp_name = None
+
             if ixn.listening_click_to_move:
                 ixn.set_listening_click_to_move(False)
-                ixn.set_toolpath_color('red')
-                ixn.render()
 
             ixn.set_curr_sel_contour(ixn.select_contour_at_point((x, y)))
             ixn.render()
@@ -568,7 +579,8 @@ def run_canvas_loop():
         while True:
             CM_TO_PX = 37.7952755906
             pressed_key = cv2.waitKey(1)
-            curr_tpt = ixn.tp_transforms[ixn.curr_tp_name] or {}
+            curr_tpt = ixn.tp_transforms[ixn.selected_tp_name] \
+                       if ixn.selected_tp_name else None
 
             if pressed_key == 27:
                 """
@@ -581,28 +593,30 @@ def run_canvas_loop():
                 If scale adjustment mode on, increase scale.
                 If rotation adjustment mode on, rotate CCW.
                 """
-                if ixn.listening_scale:
-                    curr_tpt['scale'] += 0.01
-                if ixn.listening_rotate:
-                    curr_tpt['theta'] = (curr_tpt['theta'] + 45) % 360
-                    ixn.rotate(curr_tpt['theta'])
-                if ixn.listening_translate:
-                    ixn.translate(0, curr_tpt['translate_y'] + 10)
-                ixn.render()
+                if curr_tpt:
+                    if ixn.listening_scale:
+                        curr_tpt['scale'] += 0.01
+                    if ixn.listening_rotate:
+                        curr_tpt['theta'] = (curr_tpt['theta'] + 45) % 360
+                        ixn.rotate(curr_tpt['theta'])
+                    if ixn.listening_translate:
+                        ixn.translate(0, curr_tpt['translate_y'] + 10)
+                    ixn.render()
 
             if pressed_key == ord('-'):
                 """
                 If scale adjustment mode on, reduce scale.
                 If rotation adjustment mode on, rotate CW.
                 """
-                if ixn.listening_scale:
-                    curr_tpt['scale'] -= 0.01
-                if ixn.listening_rotate:
-                    curr_tpt['theta'] = (curr_tpt['theta'] - 45) % 360
-                    ixn.rotate(ixn.theta)
-                if ixn.listening_translate:
-                    ixn.translate(0, curr_tpt['translate_y'] - 10)
-                ixn.render()
+                if curr_tpt:
+                    if ixn.listening_scale:
+                        curr_tpt['scale'] -= 0.01
+                    if ixn.listening_rotate:
+                        curr_tpt['theta'] = (curr_tpt['theta'] - 45) % 360
+                        ixn.rotate(ixn.theta)
+                    if ixn.listening_translate:
+                        ixn.translate(0, curr_tpt['translate_y'] - 10)
+                    ixn.render()
 
             if pressed_key == ord('s'):
                 """
@@ -613,7 +627,6 @@ def run_canvas_loop():
                     ixn.set_listening_translate(False)
                     ixn.set_listening_click_to_move(False)
                     ixn.set_listening_rotate(False)
-                    ixn.set_toolpath_color('green')
                 else:
                     ixn.set_toolpath_color('red')
                 ixn.render()
@@ -627,7 +640,6 @@ def run_canvas_loop():
                     ixn.set_listening_click_to_move(False)
                     ixn.set_listening_scale(False)
                     ixn.set_listening_rotate(False)
-                    ixn.set_toolpath_color('green')
                 ixn.render()
 
             if pressed_key == ord('r'):
@@ -636,7 +648,6 @@ def run_canvas_loop():
                     ixn.set_listening_click_to_move(False)
                     ixn.set_listening_scale(False)
                     ixn.set_listening_translate(False)
-                    ixn.set_toolpath_color('green')
                 else:
                     ixn.set_toolpath_color('red')
                 ixn.render()
@@ -672,7 +683,8 @@ def run_canvas_loop():
                 machine.pen_up()
 
             if pressed_key == ord('d'):
-                ixn.loader.export_contours_as_svg(ixn.curr_trans_toolpath, 'drawing')
+                toolpath = ixn.toolpaths[ixn.selected_tp_name]
+                ixn.loader.export_contours_as_svg(toolpath, 'drawing')
                 machine.plot_svg('output_vectors/drawing.svg')
 
             if pressed_key == ord('c'):
@@ -708,7 +720,8 @@ def run_canvas_loop():
                 """
                 Write transformed CAM contour to SVG.
                 """
-                ixn.loader.export_contours_as_svg(ixn.curr_trans_toolpath, 'test')
+                toolpath = ixn.toolpaths[ixn.selected_tp_name]
+                ixn.loader.export_contours_as_svg(toolpath, 'test')
 
             if pressed_key == 13:
                 """
