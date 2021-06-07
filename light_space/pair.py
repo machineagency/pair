@@ -29,33 +29,37 @@ class Interaction:
         # toolpath is a tuple of subpaths, where a subpath is a
         # Numpy array representing a set of points on the subpath
         # FIXME: the below data structures should really be their own ADT
-        self.toolpaths = {}
-        self.toolpaths['bad'] = Loader.load_svg('images/secret/nadya-sig.svg')
-        self.toolpaths['sig'] = Loader.extract_contours_from_img_file(\
-                                'images/secret/real-nadya-sig.jpg')
-        self.init_bbox_for_toolpath('sig')
-        self.trans_mat = np.array([[1, 0, 0], [0, 1, 0]])
-        self.tp_transforms = {\
-            'bad': { 'color': 'red', 'theta': 0, 'scale': 1, 'translate_x': 0, \
-                    'translate_y': 0, 'mat': np.array([[1, 0, 0], [0, 1, 0]]) },
-            'sig': { 'color': 'red', 'theta': 0, 'scale': 1, 'translate_x': 0, \
-                    'translate_y': 0, 'mat': np.array([[1, 0, 0], [0, 1, 0]]) }
-        }
+        # self.toolpaths = {}
+        # self.toolpaths['bad'] = Loader.load_svg('images/secret/nadya-sig.svg')
+        # self.toolpaths['sig'] = Loader.extract_contours_from_img_file(\
+        #                         'images/secret/real-nadya-sig.jpg')
+        # self.init_bbox_for_toolpath('sig')
+        # self.trans_mat = np.array([[1, 0, 0], [0, 1, 0]])
+        # self.tp_transforms = {\
+        #     'bad': { 'color': 'red', 'theta': 0, 'scale': 1, 'translate_x': 0, \
+        #             'translate_y': 0, 'mat': np.array([[1, 0, 0], [0, 1, 0]]) },
+        #     'sig': { 'color': 'red', 'theta': 0, 'scale': 1, 'translate_x': 0, \
+        #             'translate_y': 0, 'mat': np.array([[1, 0, 0], [0, 1, 0]]) }
+        # }
         self.mdown_offset_x = 0
         self.mdown_offset_y = 0
         self.selected_tp_name = None
         self.set_color_for_toolpath('red', 'ALL')
         self.render()
 
+    @property
+    def toolpaths(self):
+        return self.toolpath_collection
+
     def move_toolpath_with_mdown_offset(self, tp_name, x, y):
-        tp_transform = self.tp_transforms[tp_name]
-        tp_transform['translate_x'] = x - self.mdown_offset_x
-        tp_transform['translate_y'] = y - self.mdown_offset_y
+        tp = self.toolpaths[tp_name]
+        tp.translate_x = x - self.mdown_offset_x
+        tp.translate_y = y - self.mdown_offset_y
         snap_x, snap_y = self.check_snap_for_toolpath(tp_name, x, y)
         if snap_x is not None:
-            tp_transform['translate_x'] = snap_x
+            tp.translate_x = snap_x
         if snap_y is not None:
-            tp_transform['translate_y'] = snap_y
+            tp.translate_y = snap_y
         self.render()
 
     def check_snap_for_toolpath(self, tp_name, x_val, y_val):
@@ -118,29 +122,29 @@ class Interaction:
         self.translate(diff_x + offset_x, diff_y + offset_y)
 
     def translate_toolpath(self, tp_name, x, y):
-        tp_transform = self.tp_transforms[tp_name]
-        tp_transform['translate_x'] = x
-        tp_transform['translate_y'] = y
+        tp = self.toolpaths[tp_name]
+        tp.translate_x = x
+        tp.translate_y = y
         self.render()
 
     def rotate_toolpath(self, tp_name, theta):
-        tp_transform = self.tp_transforms[tp_name]
-        tp_transform['theta'] = theta
+        tp = self.toolpaths[tp_name]
+        tp.theta = theta
         self.render()
 
     def scale_toolpath(self, tp_name, scale):
-        tp_transform = self.tp_transforms[tp_name]
-        tp_transform['scale'] = scale
+        tp = self.toolpaths[tp_name]
+        tp.scale = scale
         self.render()
 
     # Getters and setters
 
     def set_color_for_toolpath(self, color_name, tp_name):
         if tp_name == 'ALL':
-            for curr_tp_name in self.tp_transforms.keys():
-                self.tp_transforms[curr_tp_name]['color'] = color_name
+            for tp in self.toolpaths:
+                tp.color = color_name
         else:
-            self.tp_transforms[tp_name]['color'] = color_name
+            self.toolpaths[tp_name].color = color_name
 
     def set_listening_click_to_move(self, flag):
         self.listening_click_to_move = flag
@@ -155,9 +159,9 @@ class Interaction:
         self.listening_scale = flag
 
     def set_mdown_offset_for_toolpath(self, x_mdown, y_mdown, tp_name):
-        tpt = self.tp_transforms[tp_name]
-        self.mdown_offset_x = x_mdown - tpt['translate_x']
-        self.mdown_offset_y = y_mdown - tpt['translate_y']
+        tp = self.toolpaths[tp_name]
+        self.mdown_offset_x = x_mdown - tp.translate_x
+        self.mdown_offset_y = y_mdown - tp.translate_y
 
     def set_candidate_contours(self, contours):
         self.candidate_contours = contours
@@ -202,8 +206,8 @@ class Interaction:
         return (int(round((p0_x + p1_x) / 2)), int(round((p0_y + p1_y) / 2)))
 
     def check_pt_inside_toolpath_bbox(self, pt):
-        for tp_name, toolpath in self.toolpaths.items():
-            trans_bbox = self.calc_bbox_for_trans_toolpath(tp_name)\
+        for tp in self.toolpaths:
+            trans_bbox = self.calc_bbox_for_trans_toolpath(tp.name)\
                              .reshape((4, 1, 2))
             x_vals = trans_bbox[:, 0, 0]
             y_vals = trans_bbox[:, 0, 1]
@@ -216,7 +220,7 @@ class Interaction:
             in_bbox = x_pt >= x_min and x_pt <= x_max\
                       and y_pt >= y_min and y_pt <= y_max
             if in_bbox:
-                return tp_name
+                return tp.name
 
     def check_pt_inside_toolpath_collection_bbox(self, pt):
         """
@@ -306,15 +310,14 @@ class Interaction:
 
     def calc_bbox_for_trans_toolpath(self, tp_name):
         toolpath = self.toolpaths[tp_name]
-        tp_transform = self.tp_transforms[tp_name]
-        combined_contour = self.combine_contours(toolpath)
+        combined_contour = self.combine_contours(toolpath.path)
         trans_toolpath = np.copy(combined_contour)
-        trans_toolpath = cv2.transform(trans_toolpath, tp_transform['mat'])
+        trans_toolpath = cv2.transform(trans_toolpath, toolpath.mat)
         off_x, off_y, _, _ = cv2.boundingRect(trans_toolpath)
         trans_toolpath[:,0,0] = trans_toolpath[:,0,0] \
-                                + tp_transform['translate_x'] - off_x
+                                + toolpath.translate_x - off_x
         trans_toolpath[:,0,1] = trans_toolpath[:,0,1] \
-                                + tp_transform['translate_y'] - off_y
+                                + toolpath.translate_y - off_y
         return self.calc_straight_bbox_for_contour(trans_toolpath)
 
     def _render_candidate_contours(self):
@@ -356,7 +359,7 @@ class Interaction:
                         self.proj_screen_hw, self.img)
 
     def _render_toolpath(self, tp_name):
-        color_name = self.tp_transforms[tp_name]['color']
+        color_name = self.toolpaths[tp_name].color
         if color_name == 'white':
             color = (255, 255, 255)
         elif color_name == 'black':
@@ -375,16 +378,15 @@ class Interaction:
                 c[:,0,1] = c[:,0,1] + y
                 return c
             return fn
-        tpt = self.tp_transforms[tp_name]
-        tpt['mat'] = cv2.getRotationMatrix2D((0, 0), \
-                            tpt['theta'], tpt['scale'])
-        toolpath = self.toolpaths[tp_name]
-        sr_contours = list(map(lambda c: cv2.transform(c, tpt['mat']),\
-                                  toolpath))
+        tp = self.toolpaths[tp_name]
+        tp.mat = cv2.getRotationMatrix2D((0, 0), \
+                            tp.theta, tp.scale)
+        sr_contours = list(map(lambda c: cv2.transform(c, tp.mat),\
+                                  tp.path))
         combined_contour = self.combine_contours(sr_contours)
         sr_off_x, sr_off_y, _, _ = cv2.boundingRect(combined_contour)
         translate_sr_off = make_translate_matrix(-sr_off_x, -sr_off_y)
-        translate_full = make_translate_matrix(tpt['translate_x'], tpt['translate_y'])
+        translate_full = make_translate_matrix(tp.translate_x, tp.translate_y)
         sr_off_contours = list(map(translate_sr_off, sr_contours))
         srt_off_contours = list(map(translate_full, sr_off_contours))
         cv2.polylines(self.img, srt_off_contours, False, color, 2)
@@ -401,8 +403,8 @@ class Interaction:
         self._render_chosen_contour()
         self._render_guides()
         self._render_sel_contour()
-        for tp_name in self.toolpaths.keys():
-            self._render_toolpath(tp_name)
+        for tp in self.toolpaths:
+            self._render_toolpath(tp.name)
         self.gui.render_gui(self)
         if extras_fn:
             extras_fn()
@@ -488,9 +490,9 @@ def make_machine_ixn_click_handler(machine, ixn):
                 ixn.set_color_for_toolpath('green', hit_tp_name)
 
                 # Red out any tps that are not selected
-                for tp_name in ixn.toolpaths.keys():
-                    if tp_name != ixn.selected_tp_name:
-                        ixn.set_color_for_toolpath('red', tp_name)
+                for tp in ixn.toolpaths:
+                    if tp.name != ixn.selected_tp_name:
+                        ixn.set_color_for_toolpath('red', tp.name)
 
                 ixn.set_listening_click_to_move(True)
                 ixn.set_listening_scale(False)
@@ -583,7 +585,7 @@ def run_canvas_loop():
         while True:
             CM_TO_PX = 37.7952755906
             pressed_key = cv2.waitKey(1)
-            curr_tpt = ixn.tp_transforms[ixn.selected_tp_name] \
+            curr_tp = ixn.toolpaths[ixn.selected_tp_name] \
                        if ixn.selected_tp_name else None
 
             if pressed_key == 27:
@@ -597,15 +599,15 @@ def run_canvas_loop():
                 If scale adjustment mode on, increase scale.
                 If rotation adjustment mode on, rotate CCW.
                 """
-                if curr_tpt:
+                if curr_tp:
                     if ixn.listening_scale:
-                        curr_tpt['scale'] += 0.01
+                        curr_tp.scale += 0.01
                     if ixn.listening_rotate:
-                        curr_tpt['theta'] = (curr_tpt['theta'] + 45) % 360
-                        ixn.rotate_toolpath(ixn.selected_tp_name, curr_tpt['theta'])
+                        curr_tp.theta = (curr_tp.theta + 45) % 360
+                        ixn.rotate_toolpath(ixn.selected_tp_name, curr_tp.theta)
                     if ixn.listening_translate:
                         ixn.translate_toolpath(ixn.selected_tp_name, 0, \
-                                curr_tpt['translate_y'] + 10)
+                                curr_tp.translate_y + 10)
                     ixn.render()
 
             if pressed_key == ord('-'):
@@ -613,15 +615,15 @@ def run_canvas_loop():
                 If scale adjustment mode on, reduce scale.
                 If rotation adjustment mode on, rotate CW.
                 """
-                if curr_tpt:
+                if curr_tp:
                     if ixn.listening_scale:
-                        curr_tpt['scale'] -= 0.01
+                        curr_tp.scale -= 0.01
                     if ixn.listening_rotate:
-                        curr_tpt['theta'] = (curr_tpt['theta'] - 45) % 360
-                        ixn.rotate_toolpath(ixn.selected_tp_name, curr_tpt['theta'])
+                        curr_tp.theta = (curr_tp.theta - 45) % 360
+                        ixn.rotate_toolpath(ixn.selected_tp_name, curr_tp.theta)
                     if ixn.listening_translate:
                         ixn.translate(ixn.selected_tp_name, 0, \
-                                curr_tpt['translate_y'] - 10)
+                                curr_tp.translate_y - 10)
                     ixn.render()
 
             if pressed_key == ord('s'):
