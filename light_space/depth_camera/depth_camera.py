@@ -7,10 +7,11 @@ from skimage.measure import block_reduce
 class DepthCamera():
     def __init__(self):
         self.OFFLINE = False
-        self.MIN_SIZE_HAND = 3000
+        self.MIN_SIZE_HAND = 500
 
         # Set these hyperparameters based on what looks like a good
         # segmentation for a given session.
+        self.MAX_HAND_HEIGHT = 100
         self.HAND_FINGER_DEPTH_THRESH = 50
         self.FINGER_TIP_DEPTH_THRESH = 15
 
@@ -24,7 +25,7 @@ class DepthCamera():
         # Prescan every depth image and reject if the amount of valid pixels
         # Is lower than this amount. If this is set too high, we might
         # Reject true positives.
-        self.EARLY_REJECT_BLOB = 2000
+        self.EARLY_REJECT_BLOB = 100
         self.DOWN_FACTOR = 4
 
         self.img_height = 480
@@ -90,10 +91,10 @@ class DepthCamera():
         img_low = np.zeros(img.shape)
         img_high = 255 * np.ones(img.shape)
         # thresh_mm = 12
-        raw_blobs = np.where(img >= self.stddev_depth, img_high, img_low)
-        # raw_blobs = np.where(np.logical_and(\
-        #             img >= self.stddev_depth,\
-        #             img < self.HAND_FINGER_DEPTH_THRESH), img_high, img_low)
+        # raw_blobs = np.where(img >= self.stddev_depth, img_high, img_low)
+        raw_blobs = np.where(np.logical_and(\
+                    img >= self.stddev_depth,\
+                    img < self.MAX_HAND_HEIGHT), img_high, img_low)
         return raw_blobs
 
     def cull_blobs(self, blob_img, edge_img, depth_img):
@@ -102,6 +103,28 @@ class DepthCamera():
         of a minimum pixel size remaining.
         Runs flood fill algorithm to explore blobs.
         """
+        def pixel_or_neighbor_is_edge(edge_img, x, y):
+            try:
+                pixel_is_edge = edge_img[x, y] >= self.MIN_EDGE_THRESH
+                return pixel_is_edge
+                # NOTE: commenting out neighbor checking for now, seems
+                # to do more harm than good
+                # neighbor_values = [\
+                #     edge_img[x - 1, y] >= self.MIN_EDGE_THRESH, \
+                #     edge_img[x + 1, y] >= self.MIN_EDGE_THRESH, \
+                #     edge_img[x, y - 1] >= self.MIN_EDGE_THRESH, \
+                #     edge_img[x, y + 1] >= self.MIN_EDGE_THRESH, \
+                #     edge_img[x + 1, y + 1] >= self.MIN_EDGE_THRESH, \
+                #     edge_img[x + 1, y - 1] >= self.MIN_EDGE_THRESH, \
+                #     edge_img[x - 1, y + 1] >= self.MIN_EDGE_THRESH, \
+                #     edge_img[x - 1, y - 1] >= self.MIN_EDGE_THRESH
+                # ]
+                # num_over = len(list(filter(lambda b: b, neighbor_values)))
+                # max_over = 3
+                # return num_over > max_over
+            except IndexError:
+                return True
+
         if np.count_nonzero(blob_img) < self.EARLY_REJECT_BLOB:
             # print('Reject from low pixel count.')
             return np.zeros(blob_img.shape)
@@ -126,7 +149,7 @@ class DepthCamera():
                         or visited[x, y] == 1:
                         continue
                     visited[x, y] = 1
-                    if edge_img[x, y] >= self.MIN_EDGE_THRESH:
+                    if pixel_or_neighbor_is_edge(edge_img, x, y):
                         continue
                     if blob_img[x, y] != 0:
                         blob_size += 1
@@ -162,8 +185,9 @@ class DepthCamera():
 
     def compute_canny(self, img):
         min_gradient_thresh = 50
-        max_gradient_thresh = 150
-        img_canny = cv2.Canny(img, min_gradient_thresh, max_gradient_thresh)
+        max_gradient_thresh = 75
+        img_canny = cv2.Canny(img, min_gradient_thresh, max_gradient_thresh,\
+                2, apertureSize=3, L2gradient=True)
         return img_canny
 
     def load_image(self, filepath):
@@ -211,6 +235,7 @@ class DepthCamera():
                 depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
                 cv2.namedWindow('depth', cv2.WINDOW_AUTOSIZE)
                 cv2.namedWindow('edges', cv2.WINDOW_AUTOSIZE)
+                cv2.namedWindow('raw_blob', cv2.WINDOW_AUTOSIZE)
                 cv2.namedWindow('hand_blob', cv2.WINDOW_AUTOSIZE)
                 cv2.moveWindow('depth', edge_image.shape[0], 0)
                 cv2.moveWindow('hand_blob', 0, edge_image.shape[1])
@@ -222,6 +247,7 @@ class DepthCamera():
                 culled_map = cv2.applyColorMap(cv2.convertScaleAbs(culled_blob_image,\
                                 alpha=1.0), cv2.COLORMAP_RAINBOW)
                 cv2.imshow('hand_blob', culled_map)
+                cv2.imshow('raw_blob', raw_blob_image)
 
                 key = cv2.waitKey(1)
 
