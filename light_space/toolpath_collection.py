@@ -34,33 +34,48 @@ class ToolpathCollection:
         self.directory_rasters = 'images/rasters/'
         self.bitmap = np.zeros(self.BITMAP_HW_PX + (3,))
         self.toolpaths = []
+        self.active_toolpaths = []
         self.__load_toolpaths_from_directory()
 
     def __getitem__(self, key):
-        for tp in self.toolpaths:
+        for tp in self.active_toolpaths:
             if tp.name == key:
                 return tp
         raise KeyError(f'No toolpath with name {key}')
 
     def __iter__(self):
-        return (tp for tp in self.toolpaths)
+        return (tp for tp in self.active_toolpaths)
 
     @property
     def width(self):
         return self.BITMAP_HW_PX[1]
+
+    @property
+    def box_width(self):
+        return self.width
+
+    @property
+    def box_height(self):
+        return round(self.box_width * 0.75)
 
     def process_click_at_pt(self, pt, ixn):
         """
         Assumes that there is one box per "row" so that we just need to check
         the y coordinate of the click.
         """
-        y_click = pt[1]
-        box_idx = y_click // (self.BITMAP_HW_PX[1] + self.GUTTER_PX)
-        print(self.toolpaths[box_idx])
-
-    def __load_toolpath_to_canvas(self, filename, canvas_img):
-        # TODO
-        pass
+        try:
+            y_click = pt[1]
+            box_idx = y_click // (self.box_height + self.GUTTER_PX)
+            tp_to_add = self.toolpaths[box_idx]
+            # Check to make sure we don't have a toolpath of the same name
+            # already active. In the future, perhaps if this is the case,
+            # then we just select that toolpath on the canvas.
+            for tp in self.active_toolpaths:
+                if tp.name == tp_to_add.name:
+                    return
+            self.active_toolpaths.append(tp_to_add)
+        except IndexError:
+            pass
 
     def __load_toolpaths_from_directory(self):
         for idx, filename in enumerate(os.listdir(self.directory_vectors)):
@@ -70,15 +85,13 @@ class ToolpathCollection:
             self.toolpaths.append(new_tp)
 
     def render_vectors(self):
-        box_width = self.BITMAP_HW_PX[1]
-        box_height = round(box_width * 0.75)
         overlay = np.zeros(self.bitmap.shape)
         for tp in self.toolpaths:
-            y_offset = tp.box_idx * (box_height + self.GUTTER_PX)
+            y_offset = tp.box_idx * (self.box_height + self.GUTTER_PX)
             overlay = overlay + projection.rectangle_at( \
                     (0, y_offset), \
-                    box_width, box_height, self.bitmap, 'red')
-            projection.text_at(tp.name, (0, y_offset + box_height \
+                    self.box_width, self.box_height, self.bitmap, 'red')
+            projection.text_at(tp.name, (0, y_offset + self.box_height \
                     - self.GUTTER_PX), 'red', overlay)
             trans_mat = np.array([[1, 0, 0], [0, 1, y_offset]])
             trans_paths = [cv2.transform(subpath, trans_mat)\
