@@ -11,7 +11,7 @@ import projection
 class Interaction:
     def __init__(self, img, screen_size, gui):
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
-        self.proj_screen_hw = (720, 1280)
+        self.proj_screen_hw = (800, 1280)
         self.toolpath_collection = ToolpathCollection()
         self.GRID_SNAP_DIST = 30
         self.img = img
@@ -564,7 +564,7 @@ def make_machine_ixn_click_handler(machine, ixn):
 
 def run_canvas_loop():
     MAC_SCREEN_SIZE_HW = (900, 1440)
-    PROJ_SCREEN_SIZE_HW = (720, 1280)
+    PROJ_SCREEN_SIZE_HW = (800, 1280)
     SCREEN_W_EPS = 5
     img_size_three_channel = PROJ_SCREEN_SIZE_HW + (3,)
     img = np.zeros(img_size_three_channel, np.float32)

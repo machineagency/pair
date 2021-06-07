@@ -14,7 +14,7 @@ class Toolpath:
         self.translate_y = 0
         self.box_idx = None
         self.mat = np.array([[1, 0, 0], [0, 1, 0]])
-        self._load_path_from_file(filename)
+        # self._load_path_from_file(filename)
 
     def __repr__(self):
         return f'<TP {self.name} - r:{self.theta}, s:{self.scale}, tx:{self.translate_x}, ty:{self.translate_y}>'
@@ -28,10 +28,9 @@ class Toolpath:
 
 class ToolpathCollection:
     def __init__(self):
-        self.BITMAP_HW_PX = (720, 200)
+        self.BITMAP_HW_PX = (800, 50)
         self.GUTTER_PX = 25
-        self.directory_vectors = 'images/vectors/'
-        self.directory_rasters = 'images/rasters/'
+        self.directory_vectors = 'images/'
         self.bitmap = np.zeros(self.BITMAP_HW_PX + (3,))
         self.toolpaths = []
         self.active_toolpaths = []
@@ -44,7 +43,7 @@ class ToolpathCollection:
         raise KeyError(f'No toolpath with name {key}')
 
     def __iter__(self):
-        return (tp for tp in self.active_toolpaths)
+        return iter(self.active_toolpaths)
 
     @property
     def width(self):
@@ -78,11 +77,17 @@ class ToolpathCollection:
             pass
 
     def __load_toolpaths_from_directory(self):
+        filenames = os.listdir(self.directory_vectors)
         for idx, filename in enumerate(os.listdir(self.directory_vectors)):
-            short_name = filename.split('.')[0]
-            new_tp = Toolpath(short_name, self.directory_vectors + filename)
-            new_tp.box_idx = idx
-            self.toolpaths.append(new_tp)
+            # Skip hidden files and skip directories
+            if filename[0] == '.' or filename.find('.') == -1:
+                continue
+            print(filename)
+            short_name, codec = filename.split('.')
+            if codec == 'svg' or codec == 'png' or codec == 'png':
+                new_tp = Toolpath(short_name, self.directory_vectors + filename)
+                new_tp.box_idx = idx
+                self.toolpaths.append(new_tp)
 
     def render_vectors(self):
         overlay = np.zeros(self.bitmap.shape)
