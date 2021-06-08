@@ -51,6 +51,12 @@ class Loader:
         _, contours, hierarchy = cv2.findContours(edge_img, cv2.RETR_TREE,\
                                                cv2.CHAIN_APPROX_SIMPLE)
         return contours
+        # img = cv2.imread(img_filepath)
+        # _ = np.zeros(img.shape)
+        # thresh_low = 50
+        # thresh_high = 100
+        # edge_img = cv2.Canny(img, thresh_low, thresh_high)
+        # return [edge_img]
 
     @staticmethod
     def export_contours_as_svg(contours, title):
@@ -102,6 +108,12 @@ class Loader:
         return complex(float(str_lst[0]), float(str_lst[1]))
 
 if __name__ == '__main__':
-    contours = Loader.load_svg('test_images/secret/nadya-sig.svg')
-    print(contours[0].shape)
+    contours = Loader.extract_contours_from_img_file('images/real-nadya-sig.jpg')
+    # edge_img = contours[0]
+    # print(edge_img.shape)
+    # edge_img = cv2.dilate(edge_img, np.ones((3, 3)))
+    # edge_img = cv2.erode(edge_img, np.ones((5, 5)))
+    # cv2.namedWindow('extracted edge', 500)
+    # cv2.imshow('extracted edge', edge_img)
+    # cv2.waitKey()
 
