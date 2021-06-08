@@ -36,8 +36,8 @@ class Toolpath:
 
 class ToolpathCollection:
     def __init__(self):
-        self.BITMAP_HW_PX = (800, 100)
-        self.GUTTER_PX = 25
+        self.BITMAP_HW_PX = (800, 215)
+        self.GUTTER_PX = 15
         self.directory_vectors = 'images/'
         self.bitmap = np.zeros(self.BITMAP_HW_PX + (3,))
         self.toolpaths = []
@@ -54,12 +54,8 @@ class ToolpathCollection:
         return iter(self.active_toolpaths)
 
     @property
-    def width(self):
-        return self.BITMAP_HW_PX[1]
-
-    @property
     def box_width(self):
-        return self.width
+        return 100
 
     @property
     def box_height(self):
@@ -99,18 +95,19 @@ class ToolpathCollection:
     def render_vectors(self):
         overlay = np.zeros(self.bitmap.shape)
         for tp in self.toolpaths:
-            y_offset = tp.box_idx * (self.box_height + self.GUTTER_PX)
+            x_offset = (tp.box_idx % 2) * (self.box_width + self.GUTTER_PX)
+            y_offset = (tp.box_idx // 2) * (self.box_height + self.GUTTER_PX)
             overlay = overlay + projection.rectangle_at( \
-                    (0, y_offset), \
+                    (x_offset, y_offset), \
                     self.box_width, self.box_height, self.bitmap, 'red')
-            projection.text_at(tp.name, (0, y_offset + self.box_height \
-                    - self.GUTTER_PX), 'red', overlay)
+            projection.text_at(tp.name, (x_offset, y_offset + self.box_height),
+                    'red', 0.5, overlay)
             _, _, path_bbox_w, path_bbox_h = cv2.boundingRect(tp \
                                                 .as_combined_subpaths())
             downscale_x = self.box_width / path_bbox_w
             downscale_y = self.box_height / path_bbox_h
             ds_min = min(downscale_x, downscale_y)
-            trans_mat = np.array([[ds_min, 0, 0], \
+            trans_mat = np.array([[ds_min, 0, x_offset], \
                                   [0, ds_min, y_offset]])
             trans_paths = [cv2.transform(subpath, trans_mat)\
                     for subpath in tp.path]
