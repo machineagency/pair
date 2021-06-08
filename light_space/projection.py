@@ -89,7 +89,7 @@ def rectangle_from_to(from_pt, to_pt, color_name, img):
     thickness = 3
     return cv2.rectangle(img, from_pt, to_pt, color, thickness)
 
-def text_at(text, pt, color_name='white', img=None) -> None:
+def text_at(text, pt, color_name='white', scale=1.5, img=None) -> None:
     """
     Creates text where PT is top left corner (not bottom left).
     """
@@ -106,8 +106,8 @@ def text_at(text, pt, color_name='white', img=None) -> None:
         color = (255, 255, 255)
 
     font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 1.5
-    thickness = 3
+    font_scale = scale
+    thickness = round(scale * 2)
     bbox, _ = cv2.getTextSize(text, font, font_scale, thickness)
     y_offset = bbox[1]
     translated_pt = (pt[0], pt[1] + y_offset)

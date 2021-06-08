@@ -429,7 +429,7 @@ class GuiControl:
               self.button_params['start_pt'][1])
         rect_obj = projection.rectangle_at(pt, text_size[0], text_size[1], \
                     img, color_name, True)
-        text_obj = projection.text_at(text, pt, 'black', img)
+        text_obj = projection.text_at(text, pt, 'black', 1.5, img)
         self.bottom_buttons.append((rect_obj, text_obj))
 
     def calibration_square(self, start_pt, length, img):
