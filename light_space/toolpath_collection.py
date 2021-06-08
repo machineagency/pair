@@ -17,7 +17,9 @@ class Toolpath:
         # self._load_path_from_file(filename)
 
     def __repr__(self):
-        return f'<TP {self.name} - r:{self.theta}, s:{self.scale}, tx:{self.translate_x}, ty:{self.translate_y}>'
+        return (f'<TP {self.name} - r:{self.theta}, s:{self.scale}, '
+                f'tx:{self.translate_x}, ty:{self.translate_y}, '
+                f'idx:{self.box_idx}>')
 
     def _load_path_from_file(self, filepath):
         codec = filepath.split('.')[1]
@@ -35,6 +37,7 @@ class ToolpathCollection:
         self.toolpaths = []
         self.active_toolpaths = []
         self.__load_toolpaths_from_directory()
+        print(self.toolpaths)
 
     def __getitem__(self, key):
         for tp in self.active_toolpaths:
@@ -77,14 +80,14 @@ class ToolpathCollection:
             pass
 
     def __load_toolpaths_from_directory(self):
+        def fn_not_hidden_or_idr(filename):
+            return filename[0] != '.' and filename.find('.') != -1
         filenames = os.listdir(self.directory_vectors)
-        for idx, filename in enumerate(os.listdir(self.directory_vectors)):
-            # Skip hidden files and skip directories
-            if filename[0] == '.' or filename.find('.') == -1:
-                continue
+        filenames = list(filter(fn_not_hidden_or_idr, filenames))
+        for idx, filename in enumerate(filenames):
             print(filename)
-            short_name, codec = filename.split('.')
-            if codec == 'svg' or codec == 'png' or codec == 'png':
+            short_name, codec = filename.lower().split('.')
+            if codec == 'svg' or codec == 'png' or codec == 'jpg':
                 new_tp = Toolpath(short_name, self.directory_vectors + filename)
                 new_tp.box_idx = idx
                 self.toolpaths.append(new_tp)
