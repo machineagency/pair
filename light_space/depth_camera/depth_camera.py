@@ -65,9 +65,9 @@ class DepthCamera():
             sumsq_edge += edgesq
             sumsq_depth += depthsq
             time.sleep(1 / GATHERING_FPS)
-        self.mean_edge = self.downsample(sum_edge / n)
+        self.mean_edge = (sum_edge / n)
         self.mean_depth = self.downsample(sum_depth / n)
-        self.stddev_edge = self.downsample(np.sqrt(\
+        self.stddev_edge = (np.sqrt(\
                                 (sumsq_edge - (sum_edge ** 2) / n) / (n - 1)))
         self.stddev_depth = self.downsample(np.sqrt(\
                                 (sumsq_depth - (sum_depth ** 2) / n) / (n - 1)))
@@ -77,12 +77,34 @@ class DepthCamera():
         return block_reduce(img, block_size=(2, 2), func=np.mean)
 
     def fix_edge_img(self, edge_img):
-        edge_diff = edge_img - self.mean_edge
+        edge_img = edge_img# - self.mean_edge
         eps = 1
         z = 2
-        return np.where(np.logical_and(\
-            edge_diff >= self.MIN_EDGE_THRESH,\
-            edge_diff >= z * self.stddev_edge + eps), 255, 0)
+        edge_img = np.where(np.logical_and(\
+            edge_img >= self.MIN_EDGE_THRESH,\
+            edge_img >= z * self.stddev_edge + eps), 255, 0)
+        new_edge_img = edge_img.copy()
+        # for y in range(edge_img.shape[1]):
+        #     for x in range(edge_img.shape[0]):
+        #         new_edge_img[x, y] = edge_img[x, y]
+        #         try:
+        #             if edge_img[x, y] == 0:
+        #                 neighbor_values = [
+        #                     edge_img[x - 1, y] > 0, \
+        #                     edge_img[x + 1, y] > 0, \
+        #                     edge_img[x, y - 1] > 0, \
+        #                     edge_img[x, y + 1] > 0, \
+        #                     edge_img[x + 1, y + 1] > 0, \
+        #                     edge_img[x + 1, y - 1] > 0, \
+        #                     edge_img[x - 1, y + 1] > 0, \
+        #                     edge_img[x - 1, y - 1] > 0
+        #                 ]
+        #                 num_over = len(list(filter(lambda b: b, neighbor_values)))
+        #                 if num_over >= 2:
+        #                     new_edge_img[x, y] = 255
+        #         except IndexError:
+        #             continue
+        return new_edge_img
 
     def get_hand_blob_img(self, img):
         # Assumes a backgrounded depth image: mean - sample
@@ -103,25 +125,26 @@ class DepthCamera():
         of a minimum pixel size remaining.
         Runs flood fill algorithm to explore blobs.
         """
-        def pixel_or_neighbor_is_edge(edge_img, x, y):
+        def pixel_is_gap(edge_img, x, y):
             try:
-                pixel_is_edge = edge_img[x, y] >= self.MIN_EDGE_THRESH
-                return pixel_is_edge
+                # pixel_is_edge = edge_img[x, y] > 0
+                # return pixel_is_edge
                 # NOTE: commenting out neighbor checking for now, seems
                 # to do more harm than good
-                # neighbor_values = [\
-                #     edge_img[x - 1, y] >= self.MIN_EDGE_THRESH, \
-                #     edge_img[x + 1, y] >= self.MIN_EDGE_THRESH, \
-                #     edge_img[x, y - 1] >= self.MIN_EDGE_THRESH, \
-                #     edge_img[x, y + 1] >= self.MIN_EDGE_THRESH, \
-                #     edge_img[x + 1, y + 1] >= self.MIN_EDGE_THRESH, \
-                #     edge_img[x + 1, y - 1] >= self.MIN_EDGE_THRESH, \
-                #     edge_img[x - 1, y + 1] >= self.MIN_EDGE_THRESH, \
-                #     edge_img[x - 1, y - 1] >= self.MIN_EDGE_THRESH
-                # ]
-                # num_over = len(list(filter(lambda b: b, neighbor_values)))
-                # max_over = 3
-                # return num_over > max_over
+                box_values = [
+                    edge_img[x, y] > 0, \
+                    edge_img[x - 1, y] > 0, \
+                    edge_img[x + 1, y] > 0, \
+                    edge_img[x, y - 1] > 0, \
+                    edge_img[x, y + 1] > 0, \
+                    edge_img[x + 1, y + 1] > 0, \
+                    edge_img[x + 1, y - 1] > 0, \
+                    edge_img[x - 1, y + 1] > 0, \
+                    edge_img[x - 1, y - 1] > 0
+                ]
+                num_over = len(list(filter(lambda b: b, box_values)))
+                min_over = 1
+                return num_over >= min_over
             except IndexError:
                 return True
 
@@ -149,7 +172,7 @@ class DepthCamera():
                         or visited[x, y] == 1:
                         continue
                     visited[x, y] = 1
-                    if pixel_or_neighbor_is_edge(edge_img, x, y):
+                    if edge_img[x, y] > 0:
                         continue
                     if blob_img[x, y] != 0:
                         blob_size += 1
@@ -163,10 +186,11 @@ class DepthCamera():
                             # blob and get its centroid.
                             running_img[x, y] = self.TIP_VALUE
                         clear_queue.append((x, y))
-                        queue.append((x - 1, y))
-                        queue.append((x + 1, y))
-                        queue.append((x, y - 1))
-                        queue.append((x, y + 1))
+                        if not pixel_is_gap(edge_img, x, y):
+                            queue.append((x - 1, y))
+                            queue.append((x + 1, y))
+                            queue.append((x, y - 1))
+                            queue.append((x, y + 1))
                 if blob_size >= self.MIN_SIZE_HAND:
                     moments = cv2.moments(running_img)
                     cy = int(moments['m10'] / moments['m00'])
@@ -184,8 +208,8 @@ class DepthCamera():
         return cv2.GaussianBlur(img, (3, 3), 1, 1)
 
     def compute_canny(self, img):
-        min_gradient_thresh = 50
-        max_gradient_thresh = 75
+        min_gradient_thresh = 75
+        max_gradient_thresh = 125
         img_canny = cv2.Canny(img, min_gradient_thresh, max_gradient_thresh,\
                 2, apertureSize=3, L2gradient=True)
         return img_canny
@@ -224,8 +248,8 @@ class DepthCamera():
                 # TODO: sliding window
                 # Raw edges will have a higher value than the mean because
                 # edges are higher values
-                edge_image_gaps = self.downsample(edge_image_raw)
-                edge_image = self.fix_edge_img(edge_image_gaps)
+                edge_image = self.fix_edge_img(edge_image_raw)
+                edge_image = self.downsample(edge_image)
                 # Raw depth will have lower values than mean depth because
                 # objects are closer to the camera
                 depth_image = self.mean_depth - self.downsample(depth_image_raw)
@@ -239,6 +263,7 @@ class DepthCamera():
                 cv2.namedWindow('hand_blob', cv2.WINDOW_AUTOSIZE)
                 cv2.moveWindow('depth', edge_image.shape[0], 0)
                 cv2.moveWindow('hand_blob', 0, edge_image.shape[1])
+                cv2.moveWindow('raw_blob', edge_image.shape[0], edge_image.shape[1])
                 cv2.imshow('depth', depth_colormap)
                 cv2.imshow('edges', edge_colormap)
                 raw_blob_image = self.get_hand_blob_img(depth_image)
