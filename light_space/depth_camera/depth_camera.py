@@ -205,17 +205,35 @@ class DepthCamera():
         return np.zeros(blob_img.shape)
 
     def find_tips_in_culled_blob_image(self, blob_img):
-        def check_tup(h, w):
-            max_hw_dim = 10
+        def check_mu(mu):
             min_area = 9
-            # return h <= max_hw_dim and w <= max_hw_dim and h * w >= min_area
-            return h * w >= min_area
+            max_area = 144
+            max_eccen = 0.9
+            try:
+                mp20 = mu['mu20'] / mu['m00']
+                mp02 = mu['mu02'] / mu['m00']
+                mp11 = mu['mu11'] / mu['m00']
+
+                la = 0.5 * ((mp20 + mp02) + (4 * mp11 ** 2 \
+                                + (mp20 - mp02) ** 2) ** (0.5))
+                lb = 0.5 * ((mp20 + mp02) - (4 * mp11 ** 2 \
+                                + (mp20 - mp02) ** 2) ** (0.5))
+                area = 4 * abs(la * lb)
+                eccen = (1 - (lb / la)) ** 0.5
+                return area >= min_area and area <= max_area \
+                        and eccen <= max_eccen
+            except ZeroDivisionError:
+                return False
+
+        def calc_center(mu):
+            return (mu['m10'] / (mu['m00'] + 1e-5), \
+                    mu['m01'] / (mu['m00'] + 1e-5))
 
         tips_img = np.where(blob_img == self.TIP_VALUE, 255, 0).astype(np.uint8)
         _, contours, _ = cv2.findContours(tips_img, cv2.RETR_TREE, \
                                 cv2.CHAIN_APPROX_SIMPLE)
-        xyhw_tups = [cv2.boundingRect(c) for c in contours]
-        centers = [(tup[0], tup[1]) for tup in xyhw_tups if check_tup(tup[2], tup[3])]
+        mus = [cv2.moments(c) for c in contours]
+        centers = [calc_center(mu) for mu in mus if check_mu(mu)]
         return centers
 
     def smooth_image(self, img):
