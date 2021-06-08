@@ -204,6 +204,20 @@ class DepthCamera():
                         running_img[x, y] = 0
         return np.zeros(blob_img.shape)
 
+    def find_tips_in_culled_blob_image(self, blob_img):
+        def check_tup(h, w):
+            max_hw_dim = 10
+            min_area = 9
+            # return h <= max_hw_dim and w <= max_hw_dim and h * w >= min_area
+            return h * w >= min_area
+
+        tips_img = np.where(blob_img == self.TIP_VALUE, 255, 0).astype(np.uint8)
+        _, contours, _ = cv2.findContours(tips_img, cv2.RETR_TREE, \
+                                cv2.CHAIN_APPROX_SIMPLE)
+        xyhw_tups = [cv2.boundingRect(c) for c in contours]
+        centers = [(tup[0], tup[1]) for tup in xyhw_tups if check_tup(tup[2], tup[3])]
+        return centers
+
     def smooth_image(self, img):
         return cv2.GaussianBlur(img, (3, 3), 1, 1)
 
@@ -269,6 +283,8 @@ class DepthCamera():
                 raw_blob_image = self.get_hand_blob_img(depth_image)
                 culled_blob_image = self.cull_blobs(raw_blob_image, edge_image,\
                                                     depth_image)
+                tips = self.find_tips_in_culled_blob_image(culled_blob_image)
+                print(tips)
                 culled_map = cv2.applyColorMap(cv2.convertScaleAbs(culled_blob_image,\
                                 alpha=1.0), cv2.COLORMAP_RAINBOW)
                 cv2.imshow('hand_blob', culled_map)
