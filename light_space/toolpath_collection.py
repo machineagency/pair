@@ -1,5 +1,6 @@
 import numpy as np
 import cv2, os
+from functools import reduce
 from loader import Loader
 import projection
 
@@ -14,7 +15,7 @@ class Toolpath:
         self.translate_y = 0
         self.box_idx = None
         self.mat = np.array([[1, 0, 0], [0, 1, 0]])
-        # self._load_path_from_file(filename)
+        self._load_path_from_file(filename)
 
     def __repr__(self):
         return (f'<TP {self.name} - r:{self.theta}, s:{self.scale}, '
@@ -28,16 +29,20 @@ class Toolpath:
         else:
             self.path = Loader.extract_contours_from_img_file(filepath)
 
+    def as_combined_subpaths(self):
+        def combine(c0, c1):
+            return np.append(c0, c1, axis=0)
+        return reduce(combine, self.path.copy()).astype(np.int32)
+
 class ToolpathCollection:
     def __init__(self):
-        self.BITMAP_HW_PX = (800, 50)
+        self.BITMAP_HW_PX = (800, 100)
         self.GUTTER_PX = 25
         self.directory_vectors = 'images/'
         self.bitmap = np.zeros(self.BITMAP_HW_PX + (3,))
         self.toolpaths = []
         self.active_toolpaths = []
         self.__load_toolpaths_from_directory()
-        print(self.toolpaths)
 
     def __getitem__(self, key):
         for tp in self.active_toolpaths:
@@ -85,7 +90,6 @@ class ToolpathCollection:
         filenames = os.listdir(self.directory_vectors)
         filenames = list(filter(fn_not_hidden_or_idr, filenames))
         for idx, filename in enumerate(filenames):
-            print(filename)
             short_name, codec = filename.lower().split('.')
             if codec == 'svg' or codec == 'png' or codec == 'jpg':
                 new_tp = Toolpath(short_name, self.directory_vectors + filename)
@@ -101,7 +105,13 @@ class ToolpathCollection:
                     self.box_width, self.box_height, self.bitmap, 'red')
             projection.text_at(tp.name, (0, y_offset + self.box_height \
                     - self.GUTTER_PX), 'red', overlay)
-            trans_mat = np.array([[1, 0, 0], [0, 1, y_offset]])
+            _, _, path_bbox_w, path_bbox_h = cv2.boundingRect(tp \
+                                                .as_combined_subpaths())
+            downscale_x = self.box_width / path_bbox_w
+            downscale_y = self.box_height / path_bbox_h
+            ds_min = min(downscale_x, downscale_y)
+            trans_mat = np.array([[ds_min, 0, 0], \
+                                  [0, ds_min, y_offset]])
             trans_paths = [cv2.transform(subpath, trans_mat)\
                     for subpath in tp.path]
             cv2.polylines(overlay, trans_paths, False, (0, 0, 255), 1)
