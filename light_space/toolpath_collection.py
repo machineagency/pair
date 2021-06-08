@@ -35,8 +35,18 @@ class Toolpath:
         return reduce(combine, self.path.copy()).astype(np.int32)
 
 class ToolpathCollection:
-    def __init__(self):
+    def __init__(self, main_canvas_hw_px):
+        """
+        A collection of toolpaths for both rendering thumbnails and for
+        storing toolpaths that are rendered to the canvas, alongside metadata
+        for each toolpath such as transforms.
+
+        This TPC also takes up the rightmost area of the main bitmap for
+        rendering thumbnails.
+        """
         self.BITMAP_HW_PX = (800, 215)
+        self.MAIN_CANVAS_HW_PX = main_canvas_hw_px
+        self.margin_left = main_canvas_hw_px[1] - self.BITMAP_HW_PX[1]
         self.GUTTER_PX = 15
         self.directory_vectors = 'images/'
         self.bitmap = np.zeros(self.BITMAP_HW_PX + (3,))
@@ -61,14 +71,20 @@ class ToolpathCollection:
     def box_height(self):
         return round(self.box_width * 0.75)
 
+    @property
+    def width(self):
+        return self.BITMAP_HW_PX[1]
+
     def process_click_at_pt(self, pt, ixn):
         """
-        Assumes that there is one box per "row" so that we just need to check
-        the y coordinate of the click.
+        Assumes that there are two boxes per row.
         """
         try:
+            x_click = pt[0]
             y_click = pt[1]
-            box_idx = y_click // (self.box_height + self.GUTTER_PX)
+            box_row = y_click // (self.box_height + self.GUTTER_PX)
+            box_col = (x_click - self.margin_left) // (self.box_width + self.GUTTER_PX)
+            box_idx = box_row * 2 + box_col
             tp_to_add = self.toolpaths[box_idx]
             # Check to make sure we don't have a toolpath of the same name
             # already active. In the future, perhaps if this is the case,

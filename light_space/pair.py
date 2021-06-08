@@ -12,7 +12,7 @@ class Interaction:
     def __init__(self, img, screen_size, gui):
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
         self.proj_screen_hw = (800, 1280)
-        self.toolpath_collection = ToolpathCollection()
+        self.toolpath_collection = ToolpathCollection(self.proj_screen_hw)
         self.GRID_SNAP_DIST = 30
         self.img = img
         self.gui = gui
