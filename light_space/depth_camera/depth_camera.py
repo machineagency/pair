@@ -206,7 +206,7 @@ class DepthCamera():
 
     def find_tips_in_culled_blob_image(self, blob_img):
         def check_mu(mu):
-            min_area = 9
+            min_area = 4
             max_area = 144
             max_eccen = 0.9
             try:
@@ -218,8 +218,8 @@ class DepthCamera():
                                 + (mp20 - mp02) ** 2) ** (0.5))
                 lb = 0.5 * ((mp20 + mp02) - (4 * mp11 ** 2 \
                                 + (mp20 - mp02) ** 2) ** (0.5))
-                area = 4 * abs(la * lb)
-                eccen = (1 - (lb / la)) ** 0.5
+                area = 4 * (abs(la * lb)) ** 0.5
+                eccen = (1 - lb / la) ** 0.5
                 return area >= min_area and area <= max_area \
                         and eccen <= max_eccen
             except ZeroDivisionError:
