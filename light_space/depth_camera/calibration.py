@@ -1,4 +1,4 @@
-import cv2
+import pyrealsense2 as rs
 from cv2 import aruco
 import sys
 
