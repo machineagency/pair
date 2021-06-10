@@ -36,7 +36,7 @@ class DepthCamera():
             self.config = rs.config()
             self.config.enable_stream(rs.stream.depth, self.img_width,\
                                         self.img_height,rs.format.z16, 30)
-            self.config.enable_stream(rs.stream.color, self.img_width,\
+            self.config.enable_stream(rs.stream.infrared, self.img_width,\
                                         self.img_height,rs.format.bgr8, 30)
             self.profile = self.pipeline.start(self.config)
             # Align depth frame to color frame
@@ -262,7 +262,7 @@ class DepthCamera():
         frames = self.pipeline.wait_for_frames()
         aligned_frames = self.align.process(frames)
         depth_frame = aligned_frames.get_depth_frame()
-        color_frame = aligned_frames.get_color_frame()
+        color_frame = aligned_frames.get_infrared_frame()
         if not depth_frame or not color_frame:
             return (None, None)
         depth_image = np.asanyarray(depth_frame.get_data())
