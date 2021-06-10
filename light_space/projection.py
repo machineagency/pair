@@ -10,7 +10,7 @@ def dot_at(pt, img=None):
     if img is None:
         img_size_three_channel = GRID_IMG_SIZE + (3,)
         img = np.zeros(img_size_three_channel, np.float32)
-    radius = 1
+    radius = 10
     dot_color = (0, 0, 255)
     return cv2.circle(img, pt, radius, dot_color, -1)
 

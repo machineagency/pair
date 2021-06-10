@@ -53,6 +53,7 @@ class ToolpathCollection:
         self.toolpaths = []
         self.active_toolpaths = []
         self.__load_toolpaths_from_directory()
+        self.render_vectors()
 
     def __getitem__(self, key):
         for tp in self.active_toolpaths:
@@ -131,7 +132,6 @@ class ToolpathCollection:
         self.bitmap = self.bitmap + overlay
 
     def add_bitmap_to_projection(self, proj):
-        self.render_vectors()
         pad_rows = proj.shape[0] - self.bitmap.shape[0]
         pad_cols = proj.shape[1] - self.bitmap.shape[1]
         padded_bitmap = np.pad(self.bitmap, \

@@ -9,13 +9,12 @@ from toolpath_collection import ToolpathCollection
 import projection
 
 class Interaction:
-    def __init__(self, img, screen_size, gui):
+    def __init__(self, img, screen_size):
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
         self.proj_screen_hw = (800, 1280)
         self.toolpath_collection = ToolpathCollection(self.proj_screen_hw)
         self.GRID_SNAP_DIST = 30
         self.img = img
-        self.gui = gui
         self.set_listening_click_to_move(False)
         self.set_listening_translate(False)
         self.set_listening_rotate(False)
@@ -24,6 +23,12 @@ class Interaction:
         self.chosen_contour = None
         self.chosen_contour_bbox = []
         self.curr_sel_contour = None
+        self.curr_mouse_pos = (0, 0)
+        self.curr_mouse_down = False
+
+        # Init GUI
+        self.gui = GuiControl(self.proj_screen_hw, img.shape)
+        self.gui.render_gui(self)
 
         # NOTE: a dictionary mapping toolpath name to toolpath, where a
         # toolpath is a tuple of subpaths, where a subpath is a
@@ -399,22 +404,26 @@ class Interaction:
         to the effect of being an informal z-buffer.
         """
         self.img = np.zeros(self.img.shape, np.float32)
-        self._render_candidate_contours()
-        self._render_chosen_contour()
-        self._render_guides()
-        self._render_sel_contour()
+        # self._render_candidate_contours()
+        # self._render_chosen_contour()
+        # self._render_guides()
+        # self._render_sel_contour()
         for tp in self.toolpaths:
             self._render_toolpath(tp.name)
         self.gui.render_gui(self)
         if extras_fn:
             extras_fn()
+        if self.curr_mouse_down:
+            projection.dot_at(self.curr_mouse_pos, self.img)
         cv2.imshow('Projection', self.img)
 
 class GuiControl:
-    def __init__(self, screen_size):
+    def __init__(self, screen_size, img_size):
         self.bottom_buttons = []
         self.CM_TO_PX = 37.7952755906
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
+        self.overlay = np.zeros(img_size)
+        self.overlay_dirty = False
 
         self.button_params = {\
             'start_pt' : (screen_size[1] // 10, screen_size[0] - screen_size[0] // 8),\
@@ -456,7 +465,9 @@ class GuiControl:
         projection.line_from_to(pt3, pt0, 'red', img)
 
     def render_gui(self, ixn):
-        # TODO: don't recreate buttons, just separate rendering vs data
+        """
+        Renders the gui to IXN's bitmap.
+        """
         self.bottom_buttons = []
         t_color = 'green' if ixn.listening_translate else 'red'
         r_color = 'green' if ixn.listening_rotate else 'red'
@@ -478,9 +489,11 @@ def make_machine_ixn_click_handler(machine, ixn):
         # TODO: way of sharing image dimensions
         CM_TO_PX = 37.7952755906
 
-        hit_tp_name = ixn.check_pt_inside_toolpath_bbox((x,y))
+        ixn.curr_mouse_pos = (x, y)
+        hit_tp_name = ixn.check_pt_inside_toolpath_bbox((x, y))
 
         if event == cv2.EVENT_LBUTTONDOWN:
+            ixn.curr_mouse_down = True
             if ixn.check_pt_inside_toolpath_collection_bbox((x, y)):
                 ixn.toolpath_collection.process_click_at_pt((x, y), ixn)
 
@@ -500,14 +513,12 @@ def make_machine_ixn_click_handler(machine, ixn):
                 ixn.set_listening_translate(False)
                 ixn.set_mdown_offset_for_toolpath(x, y, hit_tp_name)
                 ixn.set_color_for_toolpath('green', hit_tp_name)
-                ixn.render()
 
             elif ixn.listening_translate:
                 if ixn.chosen_contour is not None:
                     ixn.snap_translate()
                     ixn.set_color_for_toolpath('red', 'ALL')
                     ixn.set_listening_translate(False)
-                    ixn.render()
 
             elif ixn.listening_rotate:
                 if ixn.chosen_contour is not None:
@@ -518,7 +529,6 @@ def make_machine_ixn_click_handler(machine, ixn):
                     ixn.rotate(angle)
                     ixn.set_toolpath_color('red')
                     ixn.set_listening_rotate(False)
-                    ixn.render()
 
             # elif ixn.listening_scale:
             #     contour = ixn.chosen_contour
@@ -544,12 +554,15 @@ def make_machine_ixn_click_handler(machine, ixn):
                 instr = machine.travel((scaled_x, scaled_y))
                 print(instr)
 
+            ixn.render()
+
         if event == cv2.EVENT_MOUSEMOVE:
             if ixn.listening_click_to_move and ixn.selected_tp_name:
                 ixn.move_toolpath_with_mdown_offset(ixn.selected_tp_name, x, y)
-                ixn.render()
+            ixn.render()
 
         if event == cv2.EVENT_LBUTTONUP:
+            ixn.curr_mouse_down = False
             # If we released the click outside a bbox, null out the selected tp
             if not hit_tp_name:
                 ixn.selected_tp_name = None
@@ -572,8 +585,7 @@ def run_canvas_loop():
     cv2.namedWindow(window_name, cv2.WND_PROP_FULLSCREEN)
     # cv2.moveWindow(window_name, MAC_SCREEN_SIZE_HW[1], 0)
     # cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-    gui = GuiControl(PROJ_SCREEN_SIZE_HW)
-    ixn = Interaction(img, PROJ_SCREEN_SIZE_HW, gui)
+    ixn = Interaction(img, PROJ_SCREEN_SIZE_HW)
 
     machine = Machine(dry=True)
     camera = Camera()
