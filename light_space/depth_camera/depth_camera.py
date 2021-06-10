@@ -14,6 +14,10 @@ class DepthCamera():
         self.MAX_HAND_HEIGHT = 100
         self.HAND_FINGER_DEPTH_THRESH = 50
         self.FINGER_TIP_DEPTH_THRESH = 15
+        self.CANNY_LOW = 20
+        self.CANNY_HIGH = 30
+
+        self.MIN_DEPTH_Z_SCORE = 2
 
         self.MIN_EDGE_THRESH = 10
 
@@ -115,7 +119,7 @@ class DepthCamera():
         # thresh_mm = 12
         # raw_blobs = np.where(img >= self.stddev_depth, img_high, img_low)
         raw_blobs = np.where(np.logical_and(\
-                    img >= self.stddev_depth,\
+                    img >= self.MIN_DEPTH_Z_SCORE * self.stddev_depth,\
                     img < self.MAX_HAND_HEIGHT), img_high, img_low)
         return raw_blobs
 
@@ -240,9 +244,7 @@ class DepthCamera():
         return cv2.GaussianBlur(img, (3, 3), 1, 1)
 
     def compute_canny(self, img):
-        min_gradient_thresh = 75
-        max_gradient_thresh = 125
-        img_canny = cv2.Canny(img, min_gradient_thresh, max_gradient_thresh,\
+        img_canny = cv2.Canny(img, self.CANNY_LOW, self.CANNY_HIGH,\
                 2, apertureSize=3, L2gradient=True)
         return img_canny
 
