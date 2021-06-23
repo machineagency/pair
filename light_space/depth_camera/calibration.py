@@ -1,46 +1,10 @@
 import pyrealsense2 as rs
+import cv2
+import numpy as np
 from cv2 import aruco
 import sys
 
 # from: https://www.morethantechnical.com/2017/11/17/projector-camera-calibration-the-easy-way/
-
-# --------- detect ChAruco board -----------
-corners, ids, rejected = aruco.detectMarkers(frame, cb.dictionary)
-
-corners, ids, rejected, recovered = cv2.aruco.refineDetectedMarkers(frame, cb, corners, ids, rejected, cameraMatrix=K, distCoeffs=dist_coef)
-
-if corners == None or len(corners) == 0:
-    # continue
-    sys.exit()
-
-ret, charucoCorners, charucoIds = cv2.aruco.interpolateCornersCharuco(corners, ids, frame, cb)
-charucoCornersAccum += [charucoCorners]
-charucoIdsAccum += [charucoIds]
-
-if number_charuco_views == 40:
-    print("calibrate camera")
-    print("camera calib mat before\n%s"%K)
-    # calibrate camera
-    ret, K, dist_coef, rvecs, tvecs = cv2.aruco.calibrateCameraCharuco(charucoCornersAccum,
-                                                                       charucoIdsAccum,
-                                                                       cb,
-                                                                       (w, h),
-                                                                       K,
-                                                                       dist_coef,
-                                                                       flags = cv2.CALIB_USE_INTRINSIC_GUESS)
-    print("camera calib mat after\n%s"%K)
-    print("camera dist_coef %s"%dist_coef.T)
-    print("calibration reproj err %s"%ret)
-
-# --------- detect circles -----------
-ret, circles = cv2.findCirclesGrid(gray, circles_grid_size, flags=cv2.CALIB_CB_SYMMETRIC_GRID)
-img = cv2.drawChessboardCorners(img, circles_grid_size, circles, ret)
-# ray-plane intersection: circle-center to chessboard-plane
-circles3D = intersectCirclesRaysToBoard(circles, rvec, tvec, K, dist_coef)
-# re-project on camera for verification
-circles3D_reprojected, _ = cv2.projectPoints(circles3D, (0,0,0), (0,0,0), K, dist_coef)
-for c in circles3D_reprojected:
-    cv2.circle(img, tuple(c.astype(np.int32)[0]), 3, (255,255,0), cv2.FILLED)
 
 def intersectCirclesRaysToBoard(circles, rvec, t, K, dist_coef):
     circles_normalized = cv2.convertPointsToHomogeneous(cv2.undistortPoints(circles, K, dist_coef))
@@ -63,6 +27,71 @@ def intersectCirclesRaysToBoard(circles, rvec, t, K, dist_coef):
         Psi = w + si * ray_direction + plane_point
         circles_3d = np.append(circles_3d, Psi, axis = 0)
     return circles_3d
+
+video_capture = cv2.VideoCapture('trial_1.mov')
+if not video_capture.isOpened():
+    print('Could not open video file.')
+    sys.exit(1)
+
+charucoCornersAccum = []
+charucoIdsAccum = []
+number_charuco_views = 0
+K = np.array([[1., 0., 1.], [0., 1., 1.], [0., 0., 1.]])
+dist_coef = np.ones((12,))
+img_width = 640
+img_height = 480
+aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
+board = cv2.aruco.CharucoBoard_create(7, 5, 0.01861, 0.01117, aruco_dict)
+
+while video_capture.isOpened():
+    frame_read_success, frame = video_capture.read()
+    if not frame_read_success:
+        continue
+    # --------- detect ChAruco board -----------
+    corners, ids, rejected = aruco.detectMarkers(frame, aruco_dict)
+    corners, ids, rejected, recovered = cv2.aruco.refineDetectedMarkers(frame,\
+            board, corners, ids, rejected, cameraMatrix=K, distCoeffs=dist_coef)
+
+    if corners == None or len(corners) == 0:
+        continue
+        # sys.exit()
+
+    num_detect, charucoCorners, charucoIds = cv2.aruco.interpolateCornersCharuco( \
+            corners, ids, frame, board)
+    min_detects = 4
+    if (num_detect >= min_detects):
+        charucoCornersAccum += [charucoCorners]
+        charucoIdsAccum += [charucoIds]
+        number_charuco_views += 1
+
+    if number_charuco_views == 40:
+        print("calibrate camera")
+        print("camera calib mat before\n%s"%K)
+        # calibrate camera
+        ret, K, dist_coef, rvecs, tvecs = cv2.aruco.\
+                calibrateCameraCharuco(charucoCornersAccum,
+                                       charucoIdsAccum,
+                                       board,
+                                       (img_width, img_height),
+                                       K,
+                                       dist_coef,
+                                       flags = cv2.CALIB_USE_INTRINSIC_GUESS)
+        print("camera calib mat after\n%s"%K)
+        print("camera dist_coef %s"%dist_coef.T)
+        print("calibration reproj err %s"%ret)
+        sys.exit(0)
+
+sys.exit(0)
+
+# --------- detect circles -----------
+ret, circles = cv2.findCirclesGrid(gray, circles_grid_size, flags=cv2.CALIB_CB_SYMMETRIC_GRID)
+img = cv2.drawChessboardCorners(img, circles_grid_size, circles, ret)
+# ray-plane intersection: circle-center to chessboard-plane
+circles3D = intersectCirclesRaysToBoard(circles, rvec, tvec, K, dist_coef)
+# re-project on camera for verification
+circles3D_reprojected, _ = cv2.projectPoints(circles3D, (0,0,0), (0,0,0), K, dist_coef)
+for c in circles3D_reprojected:
+    cv2.circle(img, tuple(c.astype(np.int32)[0]), 3, (255,255,0), cv2.FILLED)
 
 # calibrate projector
 print("calibrate projector")
