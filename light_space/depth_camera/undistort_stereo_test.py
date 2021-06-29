@@ -30,6 +30,26 @@ else:
         print("Calibration issue. Remove ./calibration/ProCamCalibration.pckl and recalibrate your camera with CalibrateCamera.py.")
         exit()
 
+# Derive undistort transforms
+print(f'cam mat: {cameraMatrix.shape}')
+print(f'cam dist coef: {distCoeffs.shape}')
+print(f'proj mat: {projectorMatrix.shape}')
+print(f'proj dist coef: {projectorDistCoeffs.shape}')
+print(f'proj R: {proj_R}')
+print(f'proj T: {proj_T}')
+
+R_rect_cam, R_rect_proj, P_rect_cam, P_rect_proj, Q, _, _ = cv2.stereoRectify(\
+        cameraMatrix, distCoeffs, \
+        projectorMatrix, projectorDistCoeffs, (cam_img_width, cam_img_height), \
+        proj_R, proj_T.T)
+cam_map1, cam_map2 = cv2.initUndistortRectifyMap(cameraMatrix, distCoeffs, \
+        R_rect_cam, P_rect_cam, (cam_img_width, cam_img_height), cv2.CV_32FC1)
+proj_map1, proj_map2 = cv2.initUndistortRectifyMap(projectorMatrix, \
+        projectorDistCoeffs, R_rect_proj, P_rect_proj, \
+        (proj_img_width, proj_img_height), cv2.CV_32FC1)
+print(proj_map1.shape)
+print(proj_map2.shape)
+
 # Initialize projection display
 circles_image = np.zeros((proj_img_height, proj_img_width))
 for cy in range(num_circles_y):
@@ -37,6 +57,8 @@ for cy in range(num_circles_y):
         x = round((proj_img_width - grid_width) / 2 + (grid_width / num_circles_x) * cx)
         y = round((proj_img_height - grid_height) / 2 + (grid_height / num_circles_y) * cy) + y_offset
         cv2.circle(circles_image, (x, y), radius, (255, 255, 255), -1)
+
+circles_image = cv2.remap(circles_image, proj_map1, proj_map2, cv2.INTER_NEAREST)
 
 window_name = 'Calibration Circles'
 cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
@@ -55,6 +77,7 @@ while True:
         if not color_frame:
             continue
         color_image = np.asanyarray(color_frame.get_data())
+        color_image = cv2.remap(color_image, cam_map1, cam_map2, cv2.INTER_NEAREST)
         cv2.imshow('feed', color_image)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
