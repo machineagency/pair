@@ -2,8 +2,11 @@ import cv2
 import pyrealsense2 as rs
 import numpy as np
 
-img_height = 480
-img_width = 640
+# img_height = 480
+# img_width = 640
+
+img_height = 720
+img_width = 1280
 
 proj_height = 900
 proj_width = 1440
@@ -13,6 +16,7 @@ grid_width = 480
 
 num_circles_x = 7
 num_circles_y = 5
+y_offset = 200
 radius = 10
 framerate = 30
 
@@ -30,7 +34,7 @@ circles_image = np.zeros((proj_height, proj_width))
 for cy in range(num_circles_y):
     for cx in range(num_circles_x):
         x = round((proj_width - grid_width) / 2 + (grid_width / num_circles_x) * cx)
-        y = round((proj_height - grid_height) / 2 + (grid_height / num_circles_y) * cy)
+        y = round((proj_height - grid_height) / 2 + (grid_height / num_circles_y) * cy) + y_offset
         cv2.circle(circles_image, (x, y), radius, (255, 255, 255), -1)
 
 window_name = 'Calibration Circles'
@@ -47,6 +51,7 @@ while True:
         if not color_frame:
             continue
         color_image = np.asanyarray(color_frame.get_data())
+        video_writer.write(color_image)
         cv2.imshow('feed', color_image)
         if cv2.waitKey(1) & 0xFF == ord('s'):
             break
