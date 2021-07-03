@@ -4,6 +4,7 @@ from cv2 import aruco
 import pyrealsense2 as rs
 import sys
 from scipy.spatial import distance
+from skimage.measure import block_reduce
 
 cam_img_height = 1080
 cam_img_width = 1920
@@ -12,6 +13,8 @@ proj_img_width = 1440
 framerate = 30
 
 cv2.namedWindow('Projector',cv2.WINDOW_NORMAL)
+cv2.moveWindow('Projector', 1800, 0)
+cv2.setWindowProperty('Projector', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
 cv2.namedWindow('Camera',cv2.WINDOW_NORMAL)
 
 # Project localization pattern
@@ -41,6 +44,8 @@ def get_roi_corner_pts(img):
     aruco_dict = aruco.Dictionary_get(aruco.DICT_5X5_1000)
     parameters =  aruco.DetectorParameters_create()
     corners, ids, rejectedImgPoints = aruco.detectMarkers(img, aruco_dict, parameters=parameters)
+    # aruco.drawDetectedMarkers(img, corners, ids)
+    # cv2.imshow('Camera', img)
     if len(corners) != 4:
         return []
     return get_outermost_points(corners, img)
@@ -65,6 +70,23 @@ def get_outermost_points(corners_arr_lst, img):
     return [all_points[idx_upper_right], all_points[idx_upper_left], \
             all_points[idx_lower_left], all_points[idx_lower_right]]
 
+def crop_and_warp_roi(raw_img, roi_corner_points, out_shape):
+    output_img = np.zeros(out_shape)
+    out_img_corners = get_img_corner_pts(output_img)
+    h, status = cv2.findHomography(np.array(roi_corner_points, np.float32), \
+                                   np.array(out_img_corners, np.float32))
+    return cv2.warpPerspective(raw_img, h, (out_shape[0], \
+                                            out_shape[1]))
+def get_img_corner_pts(img):
+    img_height, img_width = img.shape
+    return [np.array([0, img_width]), \
+            np.array([0, 0]), \
+            np.array([img_height, 0]), \
+            np.array([img_height, img_width])]
+
+def downsample(self, img):
+    return block_reduce(img, block_size=(2, 2), func=np.mean)
+
 # Start camera
 pipeline = rs.pipeline()
 config = rs.config()
@@ -77,8 +99,11 @@ while True:
         if not color_frame:
             continue
         color_image = np.asanyarray(color_frame.get_data())
-        cv2.imshow('Camera', color_image)
         corner_points = get_roi_corner_pts(color_image)
-        print(corner_points)
+        # cv2.imshow('Camera', color_image)
+        if len(corner_points) == 4:
+            img_warp = crop_and_warp_roi(color_image, corner_points, \
+                                       (proj_img_width, proj_img_height))
+            cv2.imshow('Camera', img_warp)
         if cv2.waitKey(200) & 0xFF == ord('q'):
             break
