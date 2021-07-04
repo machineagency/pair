@@ -98,30 +98,40 @@ config.enable_stream(rs.stream.color, cam_img_width,\
 profile = pipeline.start(config)
 h = None
 while True:
-        frames = pipeline.wait_for_frames()
-        color_frame = frames.get_color_frame()
-        if not color_frame:
-            continue
-        color_image = np.asanyarray(color_frame.get_data())
-        corner_points = get_roi_corner_pts(color_image)
-        # cv2.imshow('Camera', color_image)
-        if not h:
-            if len(corner_points) == 4:
-                h = calc_homography(color_image, corner_points, \
-                                           (proj_img_width, proj_img_height))
-                print('Saving homography.')
-                f = open('./calibration/homography.pckl', 'wb')
-                pickle.dump((h, cam_img_width, cam_img_height), f)
-                f.close()
-        else:
-            # img_warp = cv2.warpPerspective(color_image, h, (proj_img_width, \
-            #             proj_img_height))
-            # cv2.imshow('Camera', img_warp)
-            cv2.imshow('Camera', color_image)
-            corners, ids, rejectedImgPoints = aruco.detectMarkers(img, \
-                    aruco_dict, parameters=parameters)
-            if cv2.waitKey(200) & 0xFF == ord('q'):
-                break
+    frames = pipeline.wait_for_frames()
+    color_frame = frames.get_color_frame()
+    if not color_frame:
+        continue
+    color_image = np.asanyarray(color_frame.get_data())
+    corner_points = get_roi_corner_pts(color_image)
+    # cv2.imshow('Camera', color_image)
+    if h is None:
+        if cv2.waitKey(200) & 0xFF == ord('q'):
+            break
+        if len(corner_points) == 4:
+            h = calc_homography(color_image, corner_points, \
+                                       (proj_img_width, proj_img_height))
+            print('Saving homography.')
+            f = open('./calibration/homography.pckl', 'wb')
+            pickle.dump((h, cam_img_width, cam_img_height), f)
+            f.close()
+    else:
+        # img_warp = cv2.warpPerspective(color_image, h, (proj_img_width, \
+        #             proj_img_height))
+        # cv2.imshow('Camera', img_warp)
+        aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_50)
+        parameters =  aruco.DetectorParameters_create()
+        corners, ids, rejectedImgPoints = aruco.detectMarkers(color_image, \
+                aruco_dict, parameters=parameters)
+        if len(corners) > 0:
+            aruco.drawDetectedMarkers(color_image, corners, ids)
+            c_mat = corners[0]
+            c = np.array([c_mat[:,0,0], c_mat[:,0,1], 1])
+            cp = h.dot(c)
+            print(cp)
+        cv2.imshow('Camera', color_image)
+        if cv2.waitKey(200) & 0xFF == ord('q'):
+            break
 
 cv2.destroyAllWindows()
 
