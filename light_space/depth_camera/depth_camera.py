@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 import time, math
 from skimage.measure import block_reduce
+import pickle
 
 class DepthCamera():
     def __init__(self):
@@ -14,8 +15,10 @@ class DepthCamera():
         self.MAX_HAND_HEIGHT = 100
         self.HAND_FINGER_DEPTH_THRESH = 50
         self.FINGER_TIP_DEPTH_THRESH = 15
-        self.CANNY_LOW = 20
-        self.CANNY_HIGH = 30
+        # self.CANNY_LOW = 30
+        # self.CANNY_HIGH = 50
+        self.CANNY_LOW = 75
+        self.CANNY_HIGH = 100
 
         self.MIN_DEPTH_Z_SCORE = 2
 
@@ -30,10 +33,27 @@ class DepthCamera():
         # Is lower than this amount. If this is set too high, we might
         # Reject true positives.
         self.EARLY_REJECT_BLOB = 100
-        self.DOWN_FACTOR = 4
+        self.DOWN_FACTOR = 2
 
-        self.img_height = 480
-        self.img_width = 640
+        # Load homography from previous calibration
+        try:
+            f = open('./calibration/homography.pckl', 'rb')
+            self.h, self.img_width, self.img_height = pickle.load(f)
+            f.close()
+            self.img_width = self.img_width // 1
+            self.img_height = self.img_height // 1
+            # self.img_width = 640
+            # self.img_height = 480
+            print('Loading homography with camera img size')
+            print(self.img_width, self.img_height)
+            # print('to projector img size')
+        except Exception as e:
+            print('Could not load homography.')
+            print(e)
+            self.h = np.identity(3)
+            self.img_width = 640
+            self.img_height = 480
+
         self.recent_centroid = (0, 0)
         if not self.OFFLINE:
             self.pipeline = rs.pipeline()
@@ -78,7 +98,8 @@ class DepthCamera():
         print('Set baseline edge and depth images.')
 
     def downsample(self, img):
-        return block_reduce(img, block_size=(2, 2), func=np.mean)
+        return block_reduce(img, block_size=(self.DOWN_FACTOR, \
+                            self.DOWN_FACTOR), func=np.mean)
 
     def fix_edge_img(self, edge_img):
         edge_img = edge_img# - self.mean_edge
@@ -230,8 +251,13 @@ class DepthCamera():
                 return False
 
         def calc_center(mu):
-            return (mu['m10'] / (mu['m00'] + 1e-5), \
-                    mu['m01'] / (mu['m00'] + 1e-5))
+            c_raw = np.array([mu['m10'] / (mu['m00'] + 1e-5), \
+                              mu['m01'] / (mu['m00'] + 1e-5),
+                              1])
+            c_raw = c_raw * self.DOWN_FACTOR
+            c = self.h.dot(c_raw)
+            # c = c_raw
+            return (c[0], c[1])
 
         tips_img = np.where(blob_img == self.TIP_VALUE, 255, 0).astype(np.uint8)
         _, contours, _ = cv2.findContours(tips_img, cv2.RETR_TREE, \
