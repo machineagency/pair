@@ -5,9 +5,12 @@ import pyrealsense2 as rs
 import sys
 from scipy.spatial import distance
 from skimage.measure import block_reduce
+import pickle
 
-cam_img_height = 1080
-cam_img_width = 1920
+# cam_img_height = 1080
+# cam_img_width = 1920
+cam_img_height = 720
+cam_img_width = 1280
 proj_img_height = 900
 proj_img_width = 1440
 framerate = 30
@@ -70,13 +73,13 @@ def get_outermost_points(corners_arr_lst, img):
     return [all_points[idx_upper_right], all_points[idx_upper_left], \
             all_points[idx_lower_left], all_points[idx_lower_right]]
 
-def crop_and_warp_roi(raw_img, roi_corner_points, out_shape):
+def calc_homography(raw_img, roi_corner_points, out_shape):
     output_img = np.zeros(out_shape)
     out_img_corners = get_img_corner_pts(output_img)
     h, status = cv2.findHomography(np.array(roi_corner_points, np.float32), \
                                    np.array(out_img_corners, np.float32))
-    return cv2.warpPerspective(raw_img, h, (out_shape[0], \
-                                            out_shape[1]))
+    return h
+
 def get_img_corner_pts(img):
     img_height, img_width = img.shape
     return [np.array([0, img_width]), \
@@ -93,6 +96,7 @@ config = rs.config()
 config.enable_stream(rs.stream.color, cam_img_width,\
                        cam_img_height, rs.format.bgr8, framerate)
 profile = pipeline.start(config)
+h = None
 while True:
         frames = pipeline.wait_for_frames()
         color_frame = frames.get_color_frame()
@@ -101,9 +105,23 @@ while True:
         color_image = np.asanyarray(color_frame.get_data())
         corner_points = get_roi_corner_pts(color_image)
         # cv2.imshow('Camera', color_image)
-        if len(corner_points) == 4:
-            img_warp = crop_and_warp_roi(color_image, corner_points, \
-                                       (proj_img_width, proj_img_height))
-            cv2.imshow('Camera', img_warp)
-        if cv2.waitKey(200) & 0xFF == ord('q'):
-            break
+        if not h:
+            if len(corner_points) == 4:
+                h = calc_homography(color_image, corner_points, \
+                                           (proj_img_width, proj_img_height))
+                print('Saving homography.')
+                f = open('./calibration/homography.pckl', 'wb')
+                pickle.dump((h, cam_img_width, cam_img_height), f)
+                f.close()
+        else:
+            # img_warp = cv2.warpPerspective(color_image, h, (proj_img_width, \
+            #             proj_img_height))
+            # cv2.imshow('Camera', img_warp)
+            cv2.imshow('Camera', color_image)
+            corners, ids, rejectedImgPoints = aruco.detectMarkers(img, \
+                    aruco_dict, parameters=parameters)
+            if cv2.waitKey(200) & 0xFF == ord('q'):
+                break
+
+cv2.destroyAllWindows()
+
