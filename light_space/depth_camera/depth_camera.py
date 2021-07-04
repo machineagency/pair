@@ -253,10 +253,9 @@ class DepthCamera():
         def calc_center(mu):
             c_raw = np.array([mu['m10'] / (mu['m00'] + 1e-5), \
                               mu['m01'] / (mu['m00'] + 1e-5),
-                              1])
+                              1 / self.DOWN_FACTOR])
             c_raw = c_raw * self.DOWN_FACTOR
             c = self.h.dot(c_raw)
-            # c = c_raw
             return (c[0], c[1])
 
         tips_img = np.where(blob_img == self.TIP_VALUE, 255, 0).astype(np.uint8)
