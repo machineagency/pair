@@ -297,6 +297,9 @@ class DepthCamera():
         depth_image = np.asanyarray(depth_frame.get_data())
         color_image_raw = np.asanyarray(color_frame.get_data())
         edge_image = self.compute_canny(color_image_raw)
+        # Flip images if need be
+        edge_image = np.fliplr(np.flipud(edge_image))
+        depth_image = np.fliplr(np.flipud(depth_image))
         return (edge_image, depth_image)
 
     def test(self):
