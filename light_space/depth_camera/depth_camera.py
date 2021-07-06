@@ -4,9 +4,11 @@ import cv2
 import time, math
 from skimage.measure import block_reduce
 import pickle
+from mouse_fsm import MouseFsm
 
 class DepthCamera():
     def __init__(self):
+        self.mouse = MouseFsm()
         self.OFFLINE = False
         self.MIN_SIZE_HAND = 500
 
@@ -330,6 +332,7 @@ class DepthCamera():
                                                     depth_image)
                 tips = self.find_tips_in_culled_blob_image(culled_blob_image)
                 print(tips)
+                self.mouse.pass_points(tips)
                 culled_map = cv2.applyColorMap(cv2.convertScaleAbs(culled_blob_image,\
                                 alpha=1.0), cv2.COLORMAP_RAINBOW)
                 cv2.imshow('hand_blob', culled_map)
