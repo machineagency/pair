@@ -20,10 +20,12 @@ class MouseFsm:
         self.state = State.up
         self.down_point = (0, 0)
         self.current_point = (0, 0)
-        self.last_point_time = 0
+        self.last_down_time = 0
+        self.last_up_time = 0
         # We must receive no points for this many milliseconds to transition
         # from mousedown to mouseup
-        self.UP_THRESH_MS = 200
+        self.UP_THRESH_MS = 500
+        self.DOWN_THRESH_MS = 200
         # Using L1 distance, the mouse must move this many pixels in either
         # direction to emit a mouse move event
         self.MIN_MOVE_DELTA = 2
@@ -40,8 +42,9 @@ class MouseFsm:
         # DOWN + empty point (for enough time) -> UP
         if len(pts) == 0:
             if self.state == State.down and time.time() \
-                    - self.last_point_time > self.UP_THRESH_MS / 1000:
+                    - self.last_down_time > self.UP_THRESH_MS / 1000:
                 self.state = State.up
+                self.last_up_time = time.time()
                 pg.mouseUp()
                 print('Mouse up')
 
@@ -54,8 +57,9 @@ class MouseFsm:
 
             self.last_point_time = time.time()
 
-            # UP + nonempty point -> DOWN
-            if self.state == State.up:
+            # UP + nonempty point -> DOWN (after enough time)
+            if self.state == State.up and time.time() \
+                    - self.last_up_time > self.DOWN_THRESH_MS / 1000:
                 self.state = State.down
                 self.down_point = pt
                 self.current_point = pt
