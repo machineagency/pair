@@ -9,8 +9,10 @@ import pickle
 
 # cam_img_height = 1080
 # cam_img_width = 1920
-cam_img_height = 720
-cam_img_width = 1280
+# cam_img_height = 720
+# cam_img_width = 1280
+cam_img_height = 480
+cam_img_width = 640
 proj_img_height = 900
 proj_img_width = 1440
 framerate = 30
@@ -103,6 +105,8 @@ while True:
     if not color_frame:
         continue
     color_image = np.asanyarray(color_frame.get_data())
+    # Be sure to flip the image if we do any flipping later on
+    color_image = np.fliplr(np.flipud(color_image))
     corner_points = get_roi_corner_pts(color_image)
     # cv2.imshow('Camera', color_image)
     if h is None:
@@ -116,9 +120,9 @@ while True:
             pickle.dump((h, cam_img_width, cam_img_height), f)
             f.close()
     else:
-        # img_warp = cv2.warpPerspective(color_image, h, (proj_img_width, \
-        #             proj_img_height))
-        # cv2.imshow('Camera', img_warp)
+        img_warp = cv2.warpPerspective(color_image, h, (proj_img_width, \
+                    proj_img_height))
+        cv2.imshow('Camera', img_warp)
         aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_50)
         parameters =  aruco.DetectorParameters_create()
         corners, ids, rejectedImgPoints = aruco.detectMarkers(color_image, \
@@ -129,7 +133,7 @@ while True:
             c = np.array([c_mat[:,0,0], c_mat[:,0,1], 1])
             cp = h.dot(c)
             print(cp)
-        cv2.imshow('Camera', color_image)
+        # cv2.imshow('Camera', color_image)
         if cv2.waitKey(200) & 0xFF == ord('q'):
             break
 
