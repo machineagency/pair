@@ -258,6 +258,7 @@ class DepthCamera():
                               1 / self.DOWN_FACTOR])
             c_raw = c_raw * self.DOWN_FACTOR
             c = self.h.dot(c_raw)
+            # c = c_raw
             return (c[0], c[1])
 
         tips_img = np.where(blob_img == self.TIP_VALUE, 255, 0).astype(np.uint8)
@@ -321,25 +322,25 @@ class DepthCamera():
                     continue
                 edge_colormap = cv2.applyColorMap(cv2.convertScaleAbs(edge_image, alpha=0.10), cv2.COLORMAP_JET)
                 depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
-                cv2.namedWindow('depth', cv2.WINDOW_AUTOSIZE)
-                cv2.namedWindow('edges', cv2.WINDOW_AUTOSIZE)
-                cv2.namedWindow('raw_blob', cv2.WINDOW_AUTOSIZE)
-                cv2.namedWindow('hand_blob', cv2.WINDOW_AUTOSIZE)
-                cv2.moveWindow('depth', edge_image.shape[0], 0)
-                cv2.moveWindow('hand_blob', 0, edge_image.shape[1])
-                cv2.moveWindow('raw_blob', edge_image.shape[0], edge_image.shape[1])
-                cv2.imshow('depth', depth_colormap)
-                cv2.imshow('edges', edge_colormap)
+                # cv2.namedWindow('depth', cv2.WINDOW_AUTOSIZE)
+                # cv2.namedWindow('edges', cv2.WINDOW_AUTOSIZE)
+                # cv2.namedWindow('raw_blob', cv2.WINDOW_AUTOSIZE)
+                # cv2.namedWindow('hand_blob', cv2.WINDOW_AUTOSIZE)
+                # cv2.moveWindow('depth', edge_image.shape[0], 0)
+                # cv2.moveWindow('hand_blob', 0, edge_image.shape[1])
+                # cv2.moveWindow('raw_blob', edge_image.shape[0], edge_image.shape[1])
+                # cv2.imshow('depth', depth_colormap)
+                # cv2.imshow('edges', edge_colormap)
                 raw_blob_image = self.get_hand_blob_img(depth_image)
                 culled_blob_image = self.cull_blobs(raw_blob_image, edge_image,\
                                                     depth_image)
                 tips = self.find_tips_in_culled_blob_image(culled_blob_image)
-                print(tips)
+                # print(tips)
                 self.mouse.pass_points(tips)
-                culled_map = cv2.applyColorMap(cv2.convertScaleAbs(culled_blob_image,\
-                                alpha=1.0), cv2.COLORMAP_RAINBOW)
-                cv2.imshow('hand_blob', culled_map)
-                cv2.imshow('raw_blob', raw_blob_image)
+                # culled_map = cv2.applyColorMap(cv2.convertScaleAbs(culled_blob_image,\
+                #                 alpha=1.0), cv2.COLORMAP_RAINBOW)
+                # cv2.imshow('hand_blob', culled_map)
+                # cv2.imshow('raw_blob', raw_blob_image)
 
                 key = cv2.waitKey(1)
 
