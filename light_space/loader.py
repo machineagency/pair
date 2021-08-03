@@ -60,7 +60,7 @@ class Loader:
 
     @staticmethod
     def export_contours_as_svg(contours, title):
-        culled_contours = self._cull_small_contours(contours)
+        culled_contours = Loader._cull_small_contours(contours)
         CM_TO_PX = 37.7952755906
         fp = open(f'output_vectors/{title}.svg', mode='w+')
         fp.write(f'<svg id="{title}" data-name="{title}" width="25cm" height="25cm" xmlns="http://www.w3.org/2000/svg">\n')
@@ -91,7 +91,8 @@ class Loader:
             return np.append(c0, c1, axis=0)
         return reduce(combine, matrices).astype(np.int32)
 
-    def _cull_small_contours(self, contours):
+    @staticmethod
+    def _cull_small_contours(contours):
         MIN_CONTOUR_LEN = 10
         min_length_lambda = lambda c: cv2.arcLength(c, closed=True)\
                             > MIN_CONTOUR_LEN

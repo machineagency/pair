@@ -5,13 +5,14 @@ import numpy as np
 from machine import Machine
 from camera import Camera
 from loader import Loader
-from toolpath_collection import ToolpathCollection
+from toolpath_collection import Toolpath, ToolpathCollection
 import projection
 
 class Interaction:
     def __init__(self, img, screen_size):
         self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
-        self.proj_screen_hw = (800, 1280)
+        self.envelope_tp = Toolpath('ENVELOPE', None)
+        self.proj_screen_hw = (720, 1280)
         self.toolpath_collection = ToolpathCollection(self.proj_screen_hw)
         self.GRID_SNAP_DIST = 30
         self.img = img
@@ -577,7 +578,7 @@ def make_machine_ixn_click_handler(machine, ixn):
 
 def run_canvas_loop():
     MAC_SCREEN_SIZE_HW = (900, 1440)
-    PROJ_SCREEN_SIZE_HW = (800, 1280)
+    PROJ_SCREEN_SIZE_HW = (720, 1280)
     SCREEN_W_EPS = 5
     img_size_three_channel = PROJ_SCREEN_SIZE_HW + (3,)
     img = np.zeros(img_size_three_channel, np.float32)
@@ -588,7 +589,7 @@ def run_canvas_loop():
     ixn = Interaction(img, PROJ_SCREEN_SIZE_HW)
 
     machine = Machine(dry=True)
-    camera = Camera()
+    # camera = Camera()
     handle_click = make_machine_ixn_click_handler(machine, ixn)
     cv2.setMouseCallback(window_name, handle_click)
     cv2.imshow(window_name, ixn.img)
@@ -699,9 +700,13 @@ def run_canvas_loop():
                 machine.pen_up()
 
             if pressed_key == ord('d'):
-                toolpath = ixn.toolpaths[ixn.selected_tp_name]
-                Loader.export_contours_as_svg(toolpath, 'drawing')
-                machine.plot_svg('output_vectors/drawing.svg')
+                try:
+                    # TODO: apply toolpath's transforms before plotting
+                    toolpath = ixn.toolpaths[ixn.selected_tp_name]
+                    Loader.export_contours_as_svg(toolpath, 'drawing')
+                    machine.plot_svg('output_vectors/drawing.svg')
+                except Exception as e:
+                    print(e)
 
             if pressed_key == ord('c'):
                 """

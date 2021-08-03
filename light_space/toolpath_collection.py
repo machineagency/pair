@@ -15,12 +15,18 @@ class Toolpath:
         self.translate_y = 0
         self.box_idx = None
         self.mat = np.array([[1, 0, 0], [0, 1, 0]])
-        self._load_path_from_file(filename)
+        if name == 'ENVELOPE':
+            self._set_envelope_path()
+        else:
+            self._load_path_from_file(filename)
 
     def __repr__(self):
         return (f'<TP {self.name} - r:{self.theta}, s:{self.scale}, '
                 f'tx:{self.translate_x}, ty:{self.translate_y}, '
                 f'idx:{self.box_idx}>')
+
+    def __iter__(self):
+        return iter(self.path)
 
     def _load_path_from_file(self, filepath):
         codec = filepath.split('.')[1]
@@ -28,6 +34,9 @@ class Toolpath:
             self.path = Loader.load_svg(filepath)
         else:
             self.path = Loader.extract_contours_from_img_file(filepath)
+
+    def _set_envelope_path(self):
+        pass
 
     def as_combined_subpaths(self):
         def combine(c0, c1):
@@ -44,7 +53,7 @@ class ToolpathCollection:
         This TPC also takes up the rightmost area of the main bitmap for
         rendering thumbnails.
         """
-        self.BITMAP_HW_PX = (800, 215)
+        self.BITMAP_HW_PX = (720, 215)
         self.MAIN_CANVAS_HW_PX = main_canvas_hw_px
         self.margin_left = main_canvas_hw_px[1] - self.BITMAP_HW_PX[1]
         self.GUTTER_PX = 15
