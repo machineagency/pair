@@ -5,8 +5,8 @@ import numpy as np
 # img_height = 480
 # img_width = 640
 
-img_height = 720
-img_width = 1280
+img_height = 1080
+img_width = 1920
 
 proj_height = 900
 proj_width = 1440

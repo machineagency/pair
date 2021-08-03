@@ -46,12 +46,14 @@ class MouseFsm:
                 self.state = State.up
                 self.last_up_time = time.time()
                 pg.mouseUp()
-                print('Mouse up')
+                # print('Mouse up')
 
         # Handle non-idle points
         else:
             # TODO: handle multi touch, for now, only retain the first point
             pt = pts[0]
+            # Hack to fix weird offset?
+            pt = (pt[0] - 125, pt[1] - 125)
             if pt[0] < 0 or pt[1] < 0:
                 return
 
@@ -65,7 +67,7 @@ class MouseFsm:
                 self.current_point = pt
                 pg.moveTo(*pt)
                 pg.mouseDown()
-                print('Mouse down')
+                # print('Mouse down')
             # DOWN + nonempty point -> DOWN
             else:
                 pg.moveTo(*pt)
