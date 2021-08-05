@@ -3,23 +3,27 @@ import math
 import cv2
 import numpy as np
 from machine import Machine
-from camera import Camera
+# from camera import Camera
 from loader import Loader
 from toolpath_collection import Toolpath, ToolpathCollection
 import projection
+import pickle
+import os
 
 class Interaction:
+    es_filename = './envelope_settings.pckl'
+
     def __init__(self, img, screen_size):
-        self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
-        self.envelope_tp = Toolpath('ENVELOPE', None)
         self.proj_screen_hw = (720, 1280)
         self.toolpath_collection = ToolpathCollection(self.proj_screen_hw)
         self.GRID_SNAP_DIST = 30
         self.img = img
+        # TODO: consolidate listening functionality to use mode_flag
         self.set_listening_click_to_move(False)
         self.set_listening_translate(False)
         self.set_listening_rotate(False)
         self.set_listening_scale(False)
+        self.mode_flag = None
         self.candidate_contours = []
         self.chosen_contour = None
         self.chosen_contour_bbox = []
@@ -27,26 +31,21 @@ class Interaction:
         self.curr_mouse_pos = (0, 0)
         self.curr_mouse_down = False
 
+        # Init envelope
+        # if os.path.exists(Interaction.es_filename):
+        if False:
+            f = open(Interaction.es_filename, 'rb')
+            self.envelope_h = pickle.load(f)
+            f.close()
+        else:
+            self.envelope_h = None
+        # TODO: set these from envelope settings
+        self.envelope_hw = (18, 28) # slightly smaller than axidraw envelope
+        self.envelope_tp = Toolpath('ENVELOPE', None)
+
         # Init GUI
         self.gui = GuiControl(self.proj_screen_hw, img.shape)
         self.gui.render_gui(self)
-
-        # NOTE: a dictionary mapping toolpath name to toolpath, where a
-        # toolpath is a tuple of subpaths, where a subpath is a
-        # Numpy array representing a set of points on the subpath
-        # FIXME: the below data structures should really be their own ADT
-        # self.toolpaths = {}
-        # self.toolpaths['bad'] = Loader.load_svg('images/secret/nadya-sig.svg')
-        # self.toolpaths['sig'] = Loader.extract_contours_from_img_file(\
-        #                         'images/secret/real-nadya-sig.jpg')
-        # self.init_bbox_for_toolpath('sig')
-        # self.trans_mat = np.array([[1, 0, 0], [0, 1, 0]])
-        # self.tp_transforms = {\
-        #     'bad': { 'color': 'red', 'theta': 0, 'scale': 1, 'translate_x': 0, \
-        #             'translate_y': 0, 'mat': np.array([[1, 0, 0], [0, 1, 0]]) },
-        #     'sig': { 'color': 'red', 'theta': 0, 'scale': 1, 'translate_x': 0, \
-        #             'translate_y': 0, 'mat': np.array([[1, 0, 0], [0, 1, 0]]) }
-        # }
         self.mdown_offset_x = 0
         self.mdown_offset_y = 0
         self.selected_tp_name = None
@@ -210,6 +209,9 @@ class Interaction:
         p1_x = c_rs[2, 0]
         p1_y = c_rs[2, 1]
         return (int(round((p0_x + p1_x) / 2)), int(round((p0_y + p1_y) / 2)))
+
+    def check_pt_on_handle(self, pt):
+        pass
 
     def check_pt_inside_toolpath_bbox(self, pt):
         for tp in self.toolpaths:
@@ -414,8 +416,6 @@ class Interaction:
         self.gui.render_gui(self)
         if extras_fn:
             extras_fn()
-        if self.curr_mouse_down:
-            projection.dot_at(self.curr_mouse_pos, self.img)
         cv2.imshow('Projection', self.img)
 
 class GuiControl:
@@ -465,6 +465,22 @@ class GuiControl:
         projection.line_from_to(pt2, pt3, 'red', img)
         projection.line_from_to(pt3, pt0, 'red', img)
 
+    def render_envelope_handles(self, img):
+        self.mode_flag = 'resize_envelope'
+        CM_TO_PX = 37.7952755906
+        h, w = self.envelope_hw
+        h = math.floor(h * CM_TO_PX)
+        w = math.floor(w * CM_TO_PX)
+        # Point order convention: CCW from top left
+        corner_handles = [(0, 0), (0, h), (w, h), (w, 0)]
+        for handle in corner_handles:
+            rect_dim = 10
+            projection.rectangle_centered_at(handle, rect_dim, rect_dim,
+                                        img, 'cyan', True)
+
+    def render_envelope_for_toolpath(self, toolpath, img):
+        pass
+
     def render_gui(self, ixn):
         """
         Renders the gui to IXN's bitmap.
@@ -477,6 +493,8 @@ class GuiControl:
         self.add_bottom_button('rotate', r_color, ixn.img)
         self.add_bottom_button('scale', s_color, ixn.img)
         self.calibration_envelope(self.envelope_hw, ixn.img)
+        if ixn.mode_flag == 'resize_envelope':
+            self.render_envelope_handles(ixn.img)
         ixn.img = ixn.toolpath_collection.add_bitmap_to_projection(ixn.img)
 
 def make_machine_ixn_click_handler(machine, ixn):
@@ -677,6 +695,7 @@ def run_canvas_loop():
                 instr = machine.plot_rect_hw(pt, ixn.envelope_hw[0],\
                                              ixn.envelope_hw[1])
                 print(instr)
+                ixn.mode_flag = 'resize_envelope'
 
             if pressed_key == ord('0') or pressed_key == ord('1')\
                 or pressed_key == ord('2'):
