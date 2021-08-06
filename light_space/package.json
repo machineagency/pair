@@ -1,0 +1,25 @@
+{
+  "name": "pair",
+  "version": "1.0.0",
+  "description": "AR + fab, except actually useful",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jhaazpr/machine-o-matic.git"
+  },
+  "author": "Jasper Tran O'Leary",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jhaazpr/machine-o-matic/issues"
+  },
+  "homepage": "https://github.com/jhaazpr/machine-o-matic#readme",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "express": "^4.16.4",
+    "path": "^0.12.7",
+    "python-shell": "^1.0.7"
+  }
+}

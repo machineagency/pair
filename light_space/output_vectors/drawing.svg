@@ -1,0 +1,14 @@
+<svg id="drawing" data-name="drawing" width="25cm" height="25cm" xmlns="http://www.w3.org/2000/svg">
+<defs>
+	<style>
+		.class {
+			fill: none;
+			stroke: #000;
+			stroke-miterlimit: 10;
+			stroke-width: 0.25px;
+		}
+	</style>
+</defs>
+<title>drawing</title>
+<path d="M0.0000,0.0000L25.0000,0.0000L25.0000,0.0000L25.0000,25.0000L25.0000,25.0000L0.0000,25.0000L0.0000,25.0000L0.0000,0.0000Z" translate="(0, 0)" style="fill:none; stroke:#231f20;"/>
+</svg>
