@@ -1,12 +1,23 @@
 /// <reference path="paper.d.ts" />
+
+interface PairNameable extends paper.Group {
+    pairName: string;
+}
+
 class Tabletop {
+    project: paper.Project;
+    tool: paper.Tool;
+    workEnvelope: WorkEnvelope;
+    toolpathCollection: ToolpathCollection;
+
     constructor() {
-        this.project = paper.project;
+        this.project = (paper as any).project;
         this.tool = new paper.Tool();
         this.workEnvelope = new WorkEnvelope(this, 720, 480);
         this.toolpathCollection = new ToolpathCollection(this);
         this.initMouseHandlers();
     }
+
     initMouseHandlers() {
         const hitOptions = {
             segments: true,
@@ -30,10 +41,17 @@ class Tabletop {
             // TODO: add handler for WE and selectable toolpaths
         };
     }
-    loadToolpathToCanvas(toolpathName) {
+
+    loadToolpathToCanvas(toolpathName: String) {
     }
 }
+
 class WorkEnvelope {
+    tabletop: Tabletop;
+    width: number;
+    height: number;
+    strokeWidth: number;
+
     constructor(tabletop, width, height) {
         this.tabletop = tabletop;
         this.width = width;
@@ -41,21 +59,33 @@ class WorkEnvelope {
         this.strokeWidth = 3;
         this.render();
     }
+
     get position() {
         return new paper.Point(this.strokeWidth, this.strokeWidth);
     }
+
     render() {
         let strokeWidth = 3;
-        let rect = new paper.Rectangle(this.position.x, this.position.y, this.width, this.height);
+        let rect = new paper.Rectangle(this.position.x, this.position.y,
+                                 this.width, this.height);
         let path = new paper.Path.Rectangle(rect);
         path.strokeColor = new paper.Color('red');
         path.strokeWidth = 3;
         return path;
     }
 }
+
 class Toolpath {
 }
+
 class ToolpathCollection {
+    tabletop: Tabletop;
+    previewSize: paper.Size;
+    anchor: paper.Point;
+    collection: {[key: string] : PairNameable};
+    toolpathNames: String[];
+    marginSize: number;
+
     constructor(tabletop) {
         this.tabletop = tabletop;
         tabletop.toolpathCollection = this;
@@ -72,6 +102,7 @@ class ToolpathCollection {
         this.marginSize = 10;
         this.initCollection();
     }
+
     initCollection() {
         let origin = new paper.Point(0, 0);
         this.toolpathNames.forEach((tpName, tpIdx) => {
@@ -81,7 +112,7 @@ class ToolpathCollection {
             box.strokeWidth = 2;
             box.fillColor = new paper.Color('black');
             let currBoxPt = new paper.Point(this.anchor.x, this.anchor.y + tpIdx
-                * (this.previewSize.height + this.marginSize));
+                    * (this.previewSize.height + this.marginSize));
             box.position = currBoxPt;
             this.tabletop.project.importSVG(`./toolpaths/${tpName}.svg`, {
                 expandShapes: true,
@@ -99,7 +130,7 @@ class ToolpathCollection {
                         child.strokeColor = 'red';
                         child.strokeWidth = 1;
                     });
-                    let group = new paper.Group([box, item]);
+                    let group = new paper.Group([box, item]) as PairNameable;
                     group.pairName = tpName.toString();
                     this.collection[tpName.toString()] = group;
                 }
@@ -107,14 +138,16 @@ class ToolpathCollection {
         });
     }
 }
+
 class Camera {
 }
+
 const main = () => {
-    paper.setup('main-canvas');
+    (paper as any).setup('main-canvas');
     this.tabletop = new Tabletop();
 };
-window.onload = function () {
-    paper.install(window);
+
+window.onload = function() {
+    (paper as any).install(window);
     main();
-};
-//# sourceMappingURL=main.js.map
+}
