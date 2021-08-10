@@ -31,7 +31,7 @@ class Tabletop {
                 item.selected = false;
             });
             // Check hit for each preview (box + mini toolpath)
-            Object.values(this.toolpathCollection.collection)
+            Object.values(this.toolpathCollection.collectionWithBoxes)
                 .forEach((preview) => {
                 let hitResult = preview.hitTest(event.point);
                 if (hitResult) {
@@ -43,6 +43,13 @@ class Tabletop {
     }
 
     loadToolpathToCanvas(toolpathName: String) {
+        let path = this.toolpathCollection.collection[toolpathName.toString()];
+        path.visible = true;
+        path.children.forEach((child, idx) => {
+            child.strokeColor = new paper.Color('red');
+            child.strokeWidth = 1;
+        });
+        path.position = this.workEnvelope.center;
     }
 }
 
@@ -60,13 +67,18 @@ class WorkEnvelope {
         this.render();
     }
 
-    get position() {
+    get anchor() : paper.Point {
         return new paper.Point(this.strokeWidth, this.strokeWidth);
+    }
+
+    get center() : paper.Point {
+        return new paper.Point(Math.floor(this.width / 2),
+                               Math.floor(this.height / 2));
     }
 
     render() {
         let strokeWidth = 3;
-        let rect = new paper.Rectangle(this.position.x, this.position.y,
+        let rect = new paper.Rectangle(this.anchor.x, this.anchor.y,
                                  this.width, this.height);
         let path = new paper.Path.Rectangle(rect);
         path.strokeColor = new paper.Color('red');
@@ -83,6 +95,7 @@ class ToolpathCollection {
     previewSize: paper.Size;
     anchor: paper.Point;
     collection: {[key: string] : PairNameable};
+    collectionWithBoxes: {[key: string] : PairNameable};
     toolpathNames: String[];
     marginSize: number;
 
@@ -95,6 +108,7 @@ class ToolpathCollection {
             + 20, this.previewSize.height / 2
             + this.tabletop.workEnvelope.strokeWidth);
         this.collection = {};
+        this.collectionWithBoxes = {};
         // TODO: eventually load this from the server
         this.toolpathNames = [
             'nadya-sig', 'box', 'wave'
@@ -110,7 +124,7 @@ class ToolpathCollection {
             let box = new paper.Path.Rectangle(origin, this.previewSize);
             box.strokeColor = new paper.Color('red');
             box.strokeWidth = 2;
-            box.fillColor = new paper.Color('black');
+            box.fillColor = new paper.Color('red');
             let currBoxPt = new paper.Point(this.anchor.x, this.anchor.y + tpIdx
                     * (this.previewSize.height + this.marginSize));
             box.position = currBoxPt;
@@ -121,18 +135,21 @@ class ToolpathCollection {
                     console.warn('Could not load an SVG');
                 },
                 onLoad: (item, svgString) => {
+                    this.collection[tpName.toString()] = item;
+                    let thumbnail = item.clone();
+                    item.visible = false;
                     let scaleFactor = Math.min(this.previewSize.width
                         / item.bounds.width, this.previewSize.height
                         / item.bounds.height);
-                    item.scale(scaleFactor);
-                    item.position = currBoxPt;
-                    item.children.forEach((child, idx) => {
-                        child.strokeColor = 'red';
+                    thumbnail.scale(scaleFactor);
+                    thumbnail.position = currBoxPt;
+                    thumbnail.children.forEach((child, idx) => {
+                        child.strokeColor = 'black';
                         child.strokeWidth = 1;
                     });
-                    let group = new paper.Group([box, item]) as PairNameable;
+                    let group = new paper.Group([box, thumbnail]) as PairNameable;
                     group.pairName = tpName.toString();
-                    this.collection[tpName.toString()] = group;
+                    this.collectionWithBoxes[tpName.toString()] = group;
                 }
             });
         });
