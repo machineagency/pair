@@ -10,7 +10,7 @@ class Tabletop {
     tool: paper.Tool;
     workEnvelope: WorkEnvelope;
     toolpathCollection: ToolpathCollection;
-    activeToolpath: PairNameable;
+    activeToolpath: Toolpath;
 
     constructor() {
         this.project = (paper as any).project;
@@ -29,10 +29,8 @@ class Tabletop {
         };
         this.tool.onMouseDown = (event, hitOptions) => {
             // Clear existing selections
-            this.project.getItems({ selected: true }).forEach((item) => {
-                if (item.pairType !== 'workEnvelope') {
-                    item.selected = false;
-                };
+            this.project.getItems({ selected: true }).forEach((toolpath) => {
+                toolpath.selected = false;
             });
 
             // let hitResult = this.project.hitTest(event.point);
@@ -47,17 +45,17 @@ class Tabletop {
             // }
 
             // Check hit for each preview (box + mini toolpath)
-            Object.values(this.toolpathCollection.collectionWithBoxes)
-            .forEach((preview) => {
-                let hitResult = preview.hitTest(event.point);
+            Object.values(this.toolpathCollection.thumbnailCollection)
+            .forEach((thumbnail) => {
+                let hitResult = thumbnail.hitTest(event.point, hitOptions);
                 if (hitResult) {
-                    this.loadToolpathToCanvas(preview.pairName);
+                    this.loadToolpathToCanvas(thumbnail.pairName);
                 }
             });
             // Able to manipulate toolpaths
             Object.values(this.toolpathCollection.collection)
             .forEach((toolpath) => {
-                let hitResult = toolpath.hitTest(event.point);
+                let hitResult = toolpath.hitTest(event.point, hitOptions);
                 // if (hitResult) {
                 if (toolpath.bounds.contains(event.point)) {
                     toolpath.selected = true;
@@ -82,14 +80,9 @@ class Tabletop {
     }
 
     loadToolpathToCanvas(toolpathName: String) {
-        let group = this.toolpathCollection.collection[toolpathName.toString()];
-        group.visible = true;
-        let path = group.children[0];
-        path.children.forEach((child, idx) => {
-            child.strokeColor = new paper.Color('red');
-            child.strokeWidth = 2;
-        });
-        path.position = this.workEnvelope.center;
+        let toolpath = this.toolpathCollection.collection[toolpathName.toString()];
+        toolpath.visible = true;
+        toolpath.position = this.workEnvelope.center;
     }
 }
 
@@ -128,15 +121,64 @@ class WorkEnvelope {
     }
 }
 
-class Toolpath {
+class Toolpath extends paper.Group {
+    pairName: string;
+
+    constructor(tpName, svgItem, visible) {
+        super(svgItem);
+        this.pairName = tpName;
+        this.children.forEach((child, idx) => {
+            child.strokeColor = new paper.Color('red');
+            child.strokeWidth = 2;
+        });
+        this.visible = visible;
+    }
+}
+
+class ToolpathThumbnail extends paper.Group{
+    toolpath: Toolpath;
+    anchor: paper.Point;
+    size: paper.Size;
+    pairName: string;
+
+    constructor(anchor, size) {
+        let box = new paper.Path.Rectangle(anchor, size);
+        box.strokeColor = new paper.Color('red');
+        box.strokeWidth = 2;
+        box.fillColor = new paper.Color('red');
+        super([box]);
+        this.anchor = anchor;
+        this.size = size;
+    }
+
+    setToolpath(toolpath) {
+        let thumbnailTp = toolpath.clone();
+        thumbnailTp.visible = true;
+        let scaleFactor = Math.min(this.size.width
+            / thumbnailTp.bounds.width, this.size.height
+            / thumbnailTp.bounds.height);
+        thumbnailTp.scale(scaleFactor);
+        let position = new paper.Point(
+            this.anchor.x + 0.5 * this.size.width,
+            this.anchor.y + 0.5 * this.size.height
+        );
+        thumbnailTp.position = position;
+        thumbnailTp.children.forEach((child, idx) => {
+            child.strokeColor = 'black';
+            child.strokeWidth = 3;
+        });
+        this.toolpath = toolpath;
+        this.pairName = toolpath.pairName.toString();
+        this.addChild(thumbnailTp)
+    }
 }
 
 class ToolpathCollection {
     tabletop: Tabletop;
     previewSize: paper.Size;
     anchor: paper.Point;
-    collection: {[key: string] : PairNameable};
-    collectionWithBoxes: {[key: string] : PairNameable};
+    collection: {[key: string] : Toolpath};
+    thumbnailCollection: {[key: string] : ToolpathThumbnail};
     toolpathNames: String[];
     marginSize: number;
 
@@ -149,7 +191,7 @@ class ToolpathCollection {
             + 20, this.previewSize.height / 2
             + this.tabletop.workEnvelope.strokeWidth);
         this.collection = {};
-        this.collectionWithBoxes = {};
+        this.thumbnailCollection = {};
         // TODO: eventually load this from the server
         this.toolpathNames = [
             'nadya-sig', 'box', 'wave'
@@ -161,14 +203,9 @@ class ToolpathCollection {
     initCollection() {
         let origin = new paper.Point(0, 0);
         this.toolpathNames.forEach((tpName, tpIdx) => {
-            // TODO: make each box a Paper.Group
-            let box = new paper.Path.Rectangle(origin, this.previewSize);
-            box.strokeColor = new paper.Color('red');
-            box.strokeWidth = 2;
-            box.fillColor = new paper.Color('red');
             let currBoxPt = new paper.Point(this.anchor.x, this.anchor.y + tpIdx
                     * (this.previewSize.height + this.marginSize));
-            box.position = currBoxPt;
+
             this.tabletop.project.importSVG(`./toolpaths/${tpName}.svg`, {
                 expandShapes: true,
                 insert: true,
@@ -176,22 +213,12 @@ class ToolpathCollection {
                     console.warn('Could not load an SVG');
                 },
                 onLoad: (item, svgString) => {
-                    item = new paper.Group([item]) as PairNameable;
-                    this.collection[tpName.toString()] = item;
-                    let thumbnail = item.clone();
-                    item.visible = false;
-                    let scaleFactor = Math.min(this.previewSize.width
-                        / item.bounds.width, this.previewSize.height
-                        / item.bounds.height);
-                    thumbnail.scale(scaleFactor);
-                    thumbnail.position = currBoxPt;
-                    thumbnail.children.forEach((child, idx) => {
-                        child.strokeColor = 'black';
-                        child.strokeWidth = 3;
-                    });
-                    let group = new paper.Group([box, thumbnail]) as PairNameable;
-                    group.pairName = tpName.toString();
-                    this.collectionWithBoxes[tpName.toString()] = group;
+                    let toolpath = new Toolpath(tpName, item, false);
+                    let thumbnail = new ToolpathThumbnail(currBoxPt, this.previewSize);
+                    thumbnail.setToolpath(toolpath);
+
+                    this.collection[tpName.toString()] = toolpath;
+                    this.thumbnailCollection[tpName.toString()] = thumbnail;
                 }
             });
         });
