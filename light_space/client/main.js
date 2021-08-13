@@ -12,13 +12,23 @@ class Tabletop {
             segments: true,
             stroke: true,
             fill: true,
-            tolerance: 5
+            tolerance: 10
         };
         this.tool.onMouseDown = (event, hitOptions) => {
             // Clear existing selections
             this.project.getItems({ selected: true }).forEach((item) => {
                 item.selected = false;
             });
+            // let hitResult = this.project.hitTest(event.point);
+            // if (hitResult) {
+            //     let item = hitResult.item as PairNameable;
+            //     if (item.pairType === 'thumbnail') {
+            //         this.loadToolpathToCanvas(item.pairName);
+            //     }
+            //     else if (item.pairType === 'toolpath') {
+            //         item.selected = true
+            //     }
+            // }
             // Check hit for each preview (box + mini toolpath)
             Object.values(this.toolpathCollection.collectionWithBoxes)
                 .forEach((preview) => {
@@ -27,15 +37,38 @@ class Tabletop {
                     this.loadToolpathToCanvas(preview.pairName);
                 }
             });
-            // TODO: add handler for WE and selectable toolpaths
+            // Able to manipulate toolpaths
+            Object.values(this.toolpathCollection.collection)
+                .forEach((toolpath) => {
+                let hitResult = toolpath.hitTest(event.point);
+                // if (hitResult) {
+                if (toolpath.bounds.contains(event.point)) {
+                    toolpath.selected = true;
+                    this.activeToolpath = toolpath;
+                }
+            });
+        };
+        this.tool.onMouseDrag = (event, hitOptions) => {
+            if (this.activeToolpath) {
+                this.activeToolpath.position = this.activeToolpath.position.add(event.delta);
+            }
+        };
+        this.tool.onMouseUp = (event, hitOptions) => {
+            this.activeToolpath = undefined;
+        };
+        this.tool.onKeyUp = (event, hitOptions) => {
+            if (event.key === 'e') {
+                this.workEnvelope.path.selected = true;
+            }
         };
     }
     loadToolpathToCanvas(toolpathName) {
-        let path = this.toolpathCollection.collection[toolpathName.toString()];
-        path.visible = true;
+        let group = this.toolpathCollection.collection[toolpathName.toString()];
+        group.visible = true;
+        let path = group.children[0];
         path.children.forEach((child, idx) => {
             child.strokeColor = new paper.Color('red');
-            child.strokeWidth = 1;
+            child.strokeWidth = 2;
         });
         path.position = this.workEnvelope.center;
     }
@@ -55,11 +88,11 @@ class WorkEnvelope {
         return new paper.Point(Math.floor(this.width / 2), Math.floor(this.height / 2));
     }
     render() {
-        let strokeWidth = 3;
         let rect = new paper.Rectangle(this.anchor.x, this.anchor.y, this.width, this.height);
         let path = new paper.Path.Rectangle(rect);
         path.strokeColor = new paper.Color('red');
-        path.strokeWidth = 3;
+        path.strokeWidth = this.strokeWidth;
+        this.path = path;
         return path;
     }
 }
@@ -101,6 +134,7 @@ class ToolpathCollection {
                     console.warn('Could not load an SVG');
                 },
                 onLoad: (item, svgString) => {
+                    item = new paper.Group([item]);
                     this.collection[tpName.toString()] = item;
                     let thumbnail = item.clone();
                     item.visible = false;
@@ -111,7 +145,7 @@ class ToolpathCollection {
                     thumbnail.position = currBoxPt;
                     thumbnail.children.forEach((child, idx) => {
                         child.strokeColor = 'black';
-                        child.strokeWidth = 1;
+                        child.strokeWidth = 3;
                     });
                     let group = new paper.Group([box, thumbnail]);
                     group.pairName = tpName.toString();
