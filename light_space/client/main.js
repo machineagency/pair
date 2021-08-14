@@ -99,7 +99,12 @@ class WorkEnvelope {
         this.width = width;
         this.height = height;
         this.strokeWidth = 3;
-        this.render();
+        let rect = new paper.Rectangle(this.anchor.x, this.anchor.y, this.width, this.height);
+        let path = new paper.Path.Rectangle(rect);
+        path.strokeColor = new paper.Color('red');
+        path.strokeWidth = this.strokeWidth;
+        this.path = path;
+        this.originalCornerPoints = this.cornerPoints();
     }
     get anchor() {
         return new paper.Point(this.strokeWidth, this.strokeWidth);
@@ -107,13 +112,19 @@ class WorkEnvelope {
     get center() {
         return new paper.Point(Math.floor(this.width / 2), Math.floor(this.height / 2));
     }
-    render() {
-        let rect = new paper.Rectangle(this.anchor.x, this.anchor.y, this.width, this.height);
-        let path = new paper.Path.Rectangle(rect);
-        path.strokeColor = new paper.Color('red');
-        path.strokeWidth = this.strokeWidth;
-        this.path = path;
-        return path;
+    cornerPoints() {
+        return this.path.segments.map(segment => segment.point);
+    }
+    calculateHomography() {
+        let srcFlat = this.originalCornerPoints.map(pt => {
+            return [pt.x, pt.y];
+        }).flat();
+        let dstFlat = this.cornerPoints().map(pt => {
+            return [pt.x, pt.y];
+        }).flat();
+        let h = PerspT(srcFlat, dstFlat);
+        console.log(h);
+        return h;
     }
 }
 class Toolpath extends paper.Group {

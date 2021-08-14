@@ -1,4 +1,5 @@
 /// <reference path="paper.d.ts" />
+/// <reference path="perspective-transform.d.ts" />
 
 interface PairNameable extends paper.Group {
     pairName: string;
@@ -129,13 +130,27 @@ class WorkEnvelope {
     height: number;
     strokeWidth: number;
     path: paper.Path = new paper.Path();
+    readonly originalCornerPoints: paper.Point[];
+    homography: Homography;
 
     constructor(tabletop: Tabletop, width: number, height: number) {
         this.tabletop = tabletop;
         this.width = width;
         this.height = height;
         this.strokeWidth = 3;
-        this.render();
+        let rect = new paper.Rectangle(this.anchor.x, this.anchor.y,
+                                 this.width, this.height);
+        let path = new paper.Path.Rectangle(rect);
+        path.strokeColor = new paper.Color('red');
+        path.strokeWidth = this.strokeWidth;
+        this.path = path;
+        this.originalCornerPoints = this.cornerPoints();
+        this.homography = {
+            coeffs: [1, 0, 0, 0, 1, 0, 0, 0, 1],
+            coeffsInv: [1, 0, 0, 0, 1, 0, 0, 0, 1],
+            srcPts: [],
+            dstPts: []
+        };
     }
 
     get anchor() : paper.Point {
@@ -147,14 +162,18 @@ class WorkEnvelope {
                                Math.floor(this.height / 2));
     }
 
-    render() {
-        let rect = new paper.Rectangle(this.anchor.x, this.anchor.y,
-                                 this.width, this.height);
-        let path = new paper.Path.Rectangle(rect);
-        path.strokeColor = new paper.Color('red');
-        path.strokeWidth = this.strokeWidth;
-        this.path = path;
-        return path;
+    cornerPoints() : paper.Point[] {
+        return this.path.segments.map(segment => segment.point);
+    }
+
+    calculateHomography() {
+        // TODO: make this actually work
+        let unpackPoint = (pt: paper.Point) => [pt.x, pt.y];
+        let srcFlat = this.originalCornerPoints.map(unpackPoint).flat();
+        let dstFlat = this.cornerPoints().map(unpackPoint).flat();
+        let h = PerspT(srcFlat, dstFlat);
+        this.homography = h;
+        return h;
     }
 }
 
