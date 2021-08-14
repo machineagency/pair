@@ -5,12 +5,19 @@ interface PairNameable extends paper.Group {
     pairType: string;
 }
 
+interface HitOptions {
+    segments?: boolean;
+    stroke?: boolean;
+    fill?: boolean;
+    tolerance?: number;
+}
+
 class Tabletop {
     project: paper.Project;
     tool: paper.Tool;
     workEnvelope: WorkEnvelope;
     toolpathCollection: ToolpathCollection;
-    activeToolpath: Toolpath;
+    activeToolpath?: Toolpath;
 
     constructor() {
         this.project = (paper as any).project;
@@ -27,7 +34,8 @@ class Tabletop {
             fill: true,
             tolerance: 10
         };
-        this.tool.onMouseDown = (event, hitOptions) => {
+        this.tool.onMouseDown = (event: paper.MouseEvent,
+                                 hitOptions: HitOptions) => {
             // Clear existing selections
             this.project.getItems({ selected: true }).forEach((toolpath) => {
                 toolpath.selected = false;
@@ -64,15 +72,18 @@ class Tabletop {
             });
 
         };
-        this.tool.onMouseDrag = (event, hitOptions) => {
+        this.tool.onMouseDrag = (event: paper.MouseEvent,
+                                 hitOptions: HitOptions) => {
             if (this.activeToolpath) {
                 this.activeToolpath.position = this.activeToolpath.position.add(event.delta);
             }
         };
-        this.tool.onMouseUp = (event, hitOptions) => {
+        this.tool.onMouseUp = (event: paper.MouseEvent,
+                               hitOptions: HitOptions) => {
             this.activeToolpath = undefined;
         };
-        this.tool.onKeyUp = (event, hitOptions) => {
+        this.tool.onKeyUp = (event: paper.KeyEvent,
+                             hitOptions: HitOptions) => {
             if (event.key === 'e') {
                 this.workEnvelope.path.selected = true;
             }
@@ -91,9 +102,9 @@ class WorkEnvelope {
     width: number;
     height: number;
     strokeWidth: number;
-    path: paper.Path;
+    path: paper.Path = new paper.Path();
 
-    constructor(tabletop, width, height) {
+    constructor(tabletop: Tabletop, width: number, height: number) {
         this.tabletop = tabletop;
         this.width = width;
         this.height = height;
@@ -124,7 +135,7 @@ class WorkEnvelope {
 class Toolpath extends paper.Group {
     pairName: string;
 
-    constructor(tpName, svgItem, visible) {
+    constructor(tpName: string, svgItem: paper.Group, visible: boolean) {
         super(svgItem);
         this.pairName = tpName;
         this.children.forEach((child, idx) => {
@@ -136,12 +147,12 @@ class Toolpath extends paper.Group {
 }
 
 class ToolpathThumbnail extends paper.Group{
-    toolpath: Toolpath;
+    toolpath?: Toolpath;
     anchor: paper.Point;
     size: paper.Size;
     pairName: string;
 
-    constructor(anchor, size) {
+    constructor(anchor: paper.Point, size: paper.Size) {
         let box = new paper.Path.Rectangle(anchor, size);
         box.strokeColor = new paper.Color('red');
         box.strokeWidth = 2;
@@ -149,9 +160,10 @@ class ToolpathThumbnail extends paper.Group{
         super([box]);
         this.anchor = anchor;
         this.size = size;
+        this.pairName = '';
     }
 
-    setToolpath(toolpath) {
+    setToolpath(toolpath: Toolpath) {
         let thumbnailTp = toolpath.clone();
         thumbnailTp.visible = true;
         let scaleFactor = Math.min(this.size.width
@@ -164,7 +176,7 @@ class ToolpathThumbnail extends paper.Group{
         );
         thumbnailTp.position = position;
         thumbnailTp.children.forEach((child, idx) => {
-            child.strokeColor = 'black';
+            child.strokeColor = new paper.Color('black');
             child.strokeWidth = 3;
         });
         this.toolpath = toolpath;
@@ -182,7 +194,7 @@ class ToolpathCollection {
     toolpathNames: String[];
     marginSize: number;
 
-    constructor(tabletop) {
+    constructor(tabletop: Tabletop) {
         this.tabletop = tabletop;
         tabletop.toolpathCollection = this;
         this.previewSize = new paper.Size(100, 75);
@@ -212,8 +224,8 @@ class ToolpathCollection {
                 onError: () => {
                     console.warn('Could not load an SVG');
                 },
-                onLoad: (item, svgString) => {
-                    let toolpath = new Toolpath(tpName, item, false);
+                onLoad: (item: paper.Group, svgString: string) => {
+                    let toolpath = new Toolpath(tpName.toString(), item, false);
                     let thumbnail = new ToolpathThumbnail(currBoxPt, this.previewSize);
                     thumbnail.setToolpath(toolpath);
 
@@ -230,7 +242,7 @@ class Camera {
 
 const main = () => {
     (paper as any).setup('main-canvas');
-    this.tabletop = new Tabletop();
+    (window as any).tabletop = new Tabletop();
 };
 
 window.onload = function() {

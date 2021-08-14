@@ -1,3 +1,4 @@
+"use strict";
 /// <reference path="paper.d.ts" />
 class Tabletop {
     constructor() {
@@ -70,6 +71,7 @@ class Tabletop {
 }
 class WorkEnvelope {
     constructor(tabletop, width, height) {
+        this.path = new paper.Path();
         this.tabletop = tabletop;
         this.width = width;
         this.height = height;
@@ -111,6 +113,7 @@ class ToolpathThumbnail extends paper.Group {
         super([box]);
         this.anchor = anchor;
         this.size = size;
+        this.pairName = '';
     }
     setToolpath(toolpath) {
         let thumbnailTp = toolpath.clone();
@@ -122,7 +125,7 @@ class ToolpathThumbnail extends paper.Group {
         let position = new paper.Point(this.anchor.x + 0.5 * this.size.width, this.anchor.y + 0.5 * this.size.height);
         thumbnailTp.position = position;
         thumbnailTp.children.forEach((child, idx) => {
-            child.strokeColor = 'black';
+            child.strokeColor = new paper.Color('black');
             child.strokeWidth = 3;
         });
         this.toolpath = toolpath;
@@ -160,7 +163,7 @@ class ToolpathCollection {
                     console.warn('Could not load an SVG');
                 },
                 onLoad: (item, svgString) => {
-                    let toolpath = new Toolpath(tpName, item, false);
+                    let toolpath = new Toolpath(tpName.toString(), item, false);
                     let thumbnail = new ToolpathThumbnail(currBoxPt, this.previewSize);
                     thumbnail.setToolpath(toolpath);
                     this.collection[tpName.toString()] = toolpath;
@@ -174,7 +177,7 @@ class Camera {
 }
 const main = () => {
     paper.setup('main-canvas');
-    this.tabletop = new Tabletop();
+    window.tabletop = new Tabletop();
 };
 window.onload = function () {
     paper.install(window);
