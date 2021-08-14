@@ -36,11 +36,6 @@ class Tabletop {
         };
         this.tool.onMouseDown = (event: paper.MouseEvent,
                                  hitOptions: HitOptions) => {
-            // Clear existing selections
-            this.project.getItems({ selected: true }).forEach((toolpath) => {
-                toolpath.selected = false;
-            });
-
             // let hitResult = this.project.hitTest(event.point);
             // if (hitResult) {
             //     let item = hitResult.item as PairNameable;
@@ -52,6 +47,7 @@ class Tabletop {
             //     }
             // }
 
+            this.activeToolpath = undefined;
             // Check hit for each preview (box + mini toolpath)
             Object.values(this.toolpathCollection.thumbnailCollection)
             .forEach((thumbnail) => {
@@ -69,6 +65,9 @@ class Tabletop {
                     toolpath.selected = true;
                     this.activeToolpath = toolpath;
                 }
+                else {
+                    toolpath.selected = false;
+                }
             });
 
         };
@@ -80,12 +79,17 @@ class Tabletop {
         };
         this.tool.onMouseUp = (event: paper.MouseEvent,
                                hitOptions: HitOptions) => {
-            this.activeToolpath = undefined;
+            // Nothing here yet...
         };
         this.tool.onKeyUp = (event: paper.KeyEvent,
                              hitOptions: HitOptions) => {
             if (event.key === 'e') {
-                this.workEnvelope.path.selected = true;
+                this.workEnvelope.path.selected = !this.workEnvelope.path.selected;
+            }
+            if (event.key === 'backspace') {
+                if (this.activeToolpath) {
+                    this.removeToolpathFromCanvas(this.activeToolpath.pairName);
+                }
             }
         };
     }
@@ -94,6 +98,11 @@ class Tabletop {
         let toolpath = this.toolpathCollection.collection[toolpathName.toString()];
         toolpath.visible = true;
         toolpath.position = this.workEnvelope.center;
+    }
+
+    removeToolpathFromCanvas(toolpathName: String) {
+        let toolpath = this.toolpathCollection.collection[toolpathName.toString()];
+        toolpath.visible = false;
     }
 }
 
