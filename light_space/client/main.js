@@ -1,11 +1,17 @@
 "use strict";
 /// <reference path="paper.d.ts" />
+var InteractionMode;
+(function (InteractionMode) {
+    InteractionMode[InteractionMode["defaultState"] = 0] = "defaultState";
+    InteractionMode[InteractionMode["adjustEnvelope"] = 1] = "adjustEnvelope";
+})(InteractionMode || (InteractionMode = {}));
 class Tabletop {
     constructor() {
         this.project = paper.project;
         this.tool = new paper.Tool();
         this.workEnvelope = new WorkEnvelope(this, 720, 480);
         this.toolpathCollection = new ToolpathCollection(this);
+        this.interactionMode = InteractionMode.defaultState;
         this.initMouseHandlers();
     }
     initMouseHandlers() {
@@ -16,16 +22,16 @@ class Tabletop {
             tolerance: 10
         };
         this.tool.onMouseDown = (event, hitOptions) => {
-            // let hitResult = this.project.hitTest(event.point);
-            // if (hitResult) {
-            //     let item = hitResult.item as PairNameable;
-            //     if (item.pairType === 'thumbnail') {
-            //         this.loadToolpathToCanvas(item.pairName);
-            //     }
-            //     else if (item.pairType === 'toolpath') {
-            //         item.selected = true
-            //     }
-            // }
+            if (this.interactionMode === InteractionMode.adjustEnvelope) {
+                let hitSegmentOptions = {
+                    segments: true,
+                    tolerance: 15
+                };
+                let hitResult = this.workEnvelope.path.hitTest(event.point, hitSegmentOptions);
+                if (hitResult) {
+                    this.activeEnvelopeSegment = hitResult.segment;
+                }
+            }
             this.activeToolpath = undefined;
             // Check hit for each preview (box + mini toolpath)
             Object.values(this.toolpathCollection.thumbnailCollection)
@@ -53,6 +59,11 @@ class Tabletop {
             if (this.activeToolpath) {
                 this.activeToolpath.position = this.activeToolpath.position.add(event.delta);
             }
+            if (this.interactionMode === InteractionMode.adjustEnvelope
+                && this.activeEnvelopeSegment) {
+                this.activeEnvelopeSegment.point = this.activeEnvelopeSegment
+                    .point.add(event.delta);
+            }
         };
         this.tool.onMouseUp = (event, hitOptions) => {
             // Nothing here yet...
@@ -60,6 +71,9 @@ class Tabletop {
         this.tool.onKeyUp = (event, hitOptions) => {
             if (event.key === 'e') {
                 this.workEnvelope.path.selected = !this.workEnvelope.path.selected;
+                this.interactionMode = this.workEnvelope.path.selected
+                    ? InteractionMode.adjustEnvelope
+                    : InteractionMode.defaultState;
             }
             if (event.key === 'backspace') {
                 if (this.activeToolpath) {

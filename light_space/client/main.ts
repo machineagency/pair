@@ -12,18 +12,26 @@ interface HitOptions {
     tolerance?: number;
 }
 
+enum InteractionMode {
+    defaultState,
+    adjustEnvelope
+}
+
 class Tabletop {
     project: paper.Project;
     tool: paper.Tool;
     workEnvelope: WorkEnvelope;
     toolpathCollection: ToolpathCollection;
+    interactionMode: InteractionMode;
     activeToolpath?: Toolpath;
+    activeEnvelopeSegment?: paper.Segment;
 
     constructor() {
         this.project = (paper as any).project;
         this.tool = new paper.Tool();
         this.workEnvelope = new WorkEnvelope(this, 720, 480);
         this.toolpathCollection = new ToolpathCollection(this);
+        this.interactionMode = InteractionMode.defaultState;
         this.initMouseHandlers();
     }
 
@@ -36,16 +44,17 @@ class Tabletop {
         };
         this.tool.onMouseDown = (event: paper.MouseEvent,
                                  hitOptions: HitOptions) => {
-            // let hitResult = this.project.hitTest(event.point);
-            // if (hitResult) {
-            //     let item = hitResult.item as PairNameable;
-            //     if (item.pairType === 'thumbnail') {
-            //         this.loadToolpathToCanvas(item.pairName);
-            //     }
-            //     else if (item.pairType === 'toolpath') {
-            //         item.selected = true
-            //     }
-            // }
+            if (this.interactionMode === InteractionMode.adjustEnvelope) {
+                let hitSegmentOptions = {
+                    segments: true,
+                    tolerance: 15
+                };
+                let hitResult = this.workEnvelope.path.hitTest(event.point,
+                                                         hitSegmentOptions);
+                if (hitResult) {
+                    this.activeEnvelopeSegment = hitResult.segment;
+                }
+            }
 
             this.activeToolpath = undefined;
             // Check hit for each preview (box + mini toolpath)
@@ -76,6 +85,11 @@ class Tabletop {
             if (this.activeToolpath) {
                 this.activeToolpath.position = this.activeToolpath.position.add(event.delta);
             }
+            if (this.interactionMode === InteractionMode.adjustEnvelope
+                && this.activeEnvelopeSegment) {
+                this.activeEnvelopeSegment.point = this.activeEnvelopeSegment
+                    .point.add(event.delta);
+            }
         };
         this.tool.onMouseUp = (event: paper.MouseEvent,
                                hitOptions: HitOptions) => {
@@ -85,6 +99,9 @@ class Tabletop {
                              hitOptions: HitOptions) => {
             if (event.key === 'e') {
                 this.workEnvelope.path.selected = !this.workEnvelope.path.selected;
+                this.interactionMode = this.workEnvelope.path.selected
+                                        ? InteractionMode.adjustEnvelope
+                                        : InteractionMode.defaultState;
             }
             if (event.key === 'backspace') {
                 if (this.activeToolpath) {
