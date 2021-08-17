@@ -192,13 +192,25 @@ class Toolpath extends paper.Group {
 
     applyHomography(h: Homography) {
         let unpackSegment = (seg: paper.Segment) => [seg.point.x, seg.point.y];
+        let unpackHandleIn = (seg: paper.Segment) => [seg.handleIn.x, seg.handleIn.y];
+        let unpackHandleOut = (seg: paper.Segment) => [seg.handleOut.x, seg.handleOut.y];
+        let transformPt = (pt: number[]) => h.transform(pt[0], pt[1]);
         let principalLayer = this.children[0] as paper.Layer;
         principalLayer.children.forEach((child) => {
             if (child instanceof paper.Path) {
                 let segPoints: number[][] = child.segments.map(unpackSegment);
-                let transPts = segPoints.map(pt => h.transform(pt[0], pt[1]));
-                let newSegs = transPts.map(pt => {
-                    return new paper.Segment(new paper.Point(pt[0], pt[1]));
+                let handlesIn = child.segments.map(unpackHandleIn);
+                let handlesOut = child.segments.map(unpackHandleOut);
+                let transPts = segPoints.map(transformPt);
+                let transHIn = handlesIn.map(transformPt);
+                let transHOut = handlesOut.map(transformPt);
+                let newSegs = transPts.map((pt, idx) => {
+                    let newPt = new paper.Point(pt[0], pt[1]);
+                    let hIn = transHIn[idx];
+                    let hOut = transHOut[idx];
+                    let newHIn = new paper.Point(hIn[0], hIn[1]);
+                    let newHOut = new paper.Point(hOut[0], hOut[1]);
+                    return new paper.Segment(newPt, newHIn, newHOut);
                 });
                 child.segments = newSegs;
             }
@@ -206,7 +218,7 @@ class Toolpath extends paper.Group {
     }
 }
 
-class ToolpathThumbnail extends paper.Group{
+class ToolpathThumbnail extends paper.Group {
     toolpath?: Toolpath;
     anchor: paper.Point;
     size: paper.Size;
