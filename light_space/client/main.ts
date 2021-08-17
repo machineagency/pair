@@ -103,6 +103,12 @@ class Tabletop {
                 this.interactionMode = this.workEnvelope.path.selected
                                         ? InteractionMode.adjustEnvelope
                                         : InteractionMode.defaultState;
+                if (this.interactionMode === InteractionMode.defaultState) {
+                    this.workEnvelope.calculateHomography();
+                    let h = this.workEnvelope.homography;
+                    Object.values(this.toolpathCollection.collection)
+                        .forEach(toolpath => toolpath.applyHomography(h));
+                }
             }
             if (event.key === 'backspace') {
                 if (this.activeToolpath) {
@@ -144,13 +150,9 @@ class WorkEnvelope {
         path.strokeColor = new paper.Color('red');
         path.strokeWidth = this.strokeWidth;
         this.path = path;
-        this.originalCornerPoints = this.cornerPoints();
-        this.homography = {
-            coeffs: [1, 0, 0, 0, 1, 0, 0, 0, 1],
-            coeffsInv: [1, 0, 0, 0, 1, 0, 0, 0, 1],
-            srcPts: [],
-            dstPts: []
-        };
+        this.originalCornerPoints = this.getCornerPoints();
+        let flatIdentity = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+        this.homography = PerspT(flatIdentity, flatIdentity);
     }
 
     get anchor() : paper.Point {
@@ -162,18 +164,16 @@ class WorkEnvelope {
                                Math.floor(this.height / 2));
     }
 
-    cornerPoints() : paper.Point[] {
-        return this.path.segments.map(segment => segment.point);
+    getCornerPoints() : paper.Point[] {
+        return this.path.segments.map(segment => segment.point.clone());
     }
 
     calculateHomography() {
-        // TODO: make this actually work
         let unpackPoint = (pt: paper.Point) => [pt.x, pt.y];
         let srcFlat = this.originalCornerPoints.map(unpackPoint).flat();
-        let dstFlat = this.cornerPoints().map(unpackPoint).flat();
+        let dstFlat = this.getCornerPoints().map(unpackPoint).flat();
         let h = PerspT(srcFlat, dstFlat);
         this.homography = h;
-        return h;
     }
 }
 
@@ -188,6 +188,21 @@ class Toolpath extends paper.Group {
             child.strokeWidth = 2;
         });
         this.visible = visible;
+    }
+
+    applyHomography(h: Homography) {
+        let unpackSegment = (seg: paper.Segment) => [seg.point.x, seg.point.y];
+        let principalLayer = this.children[0] as paper.Layer;
+        principalLayer.children.forEach((child) => {
+            if (child instanceof paper.Path) {
+                let segPoints: number[][] = child.segments.map(unpackSegment);
+                let transPts = segPoints.map(pt => h.transform(pt[0], pt[1]));
+                let newSegs = transPts.map(pt => {
+                    return new paper.Segment(new paper.Point(pt[0], pt[1]));
+                });
+                child.segments = newSegs;
+            }
+        });
     }
 }
 
@@ -291,6 +306,5 @@ const main = () => {
 };
 
 window.onload = function() {
-    (paper as any).install(window);
     main();
 }
