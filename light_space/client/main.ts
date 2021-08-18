@@ -104,8 +104,8 @@ class Tabletop {
                                         ? InteractionMode.adjustEnvelope
                                         : InteractionMode.defaultState;
                 if (this.interactionMode === InteractionMode.defaultState) {
-                    this.workEnvelope.calculateHomography();
-                    let h = this.workEnvelope.homography;
+                    let h = this.workEnvelope.calculateHomography();
+                    this.workEnvelope.homography = h;
                     Object.values(this.toolpathCollection.collection)
                         .forEach(toolpath => toolpath.applyHomography(h));
                 }
@@ -151,8 +151,7 @@ class WorkEnvelope {
         path.strokeWidth = this.strokeWidth;
         this.path = path;
         this.originalCornerPoints = this.getCornerPoints();
-        let flatIdentity = [1, 0, 0, 0, 1, 0, 0, 0, 1];
-        this.homography = PerspT(flatIdentity, flatIdentity);
+        this.homography = this.calculateHomography();
     }
 
     get anchor() : paper.Point {
@@ -168,17 +167,18 @@ class WorkEnvelope {
         return this.path.segments.map(segment => segment.point.clone());
     }
 
-    calculateHomography() {
+    calculateHomography() : Homography {
         let unpackPoint = (pt: paper.Point) => [pt.x, pt.y];
         let srcFlat = this.originalCornerPoints.map(unpackPoint).flat();
         let dstFlat = this.getCornerPoints().map(unpackPoint).flat();
         let h = PerspT(srcFlat, dstFlat);
-        this.homography = h;
+        return h;
     }
 }
 
 class Toolpath extends paper.Group {
     pairName: string;
+    readonly originalChildren: paper.Item[];
 
     constructor(tpName: string, svgItem: paper.Group, visible: boolean) {
         super(svgItem);
@@ -188,14 +188,29 @@ class Toolpath extends paper.Group {
             child.strokeWidth = 2;
         });
         this.visible = visible;
+        this.originalChildren = this.children.map(c => {
+            return c.clone({ insert: false, deep: true });
+        });
+    }
+
+    reinitializeChildren() {
+        let originalChildrenCopy = this.originalChildren.map(c => {
+            return c.clone({ insert: true, deep: true });
+        });
+        this.children = originalChildrenCopy;
     }
 
     applyHomography(h: Homography) {
+        this.reinitializeChildren();
         let unpackSegment = (seg: paper.Segment) => [seg.point.x, seg.point.y];
         let unpackHandleIn = (seg: paper.Segment) => [seg.handleIn.x, seg.handleIn.y];
         let unpackHandleOut = (seg: paper.Segment) => [seg.handleOut.x, seg.handleOut.y];
         let transformPt = (pt: number[]) => h.transform(pt[0], pt[1]);
-        let principalLayer = this.children[0] as paper.Layer;
+        let principalLayer = this.children[0];
+        // FIXME: works with just children, but of course the math will be
+        // wrong since the homograpy maps from the original square to what we
+        // have now. So need to investigate what's going wrong with calculating
+        // original points and showing them.
         principalLayer.children.forEach((child) => {
             if (child instanceof paper.Path) {
                 let segPoints: number[][] = child.segments.map(unpackSegment);
@@ -213,6 +228,7 @@ class Toolpath extends paper.Group {
                     return new paper.Segment(newPt, newHIn, newHOut);
                 });
                 child.segments = newSegs;
+                child.visible = true;
             }
         });
     }

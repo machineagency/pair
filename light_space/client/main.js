@@ -1,5 +1,6 @@
 "use strict";
 /// <reference path="paper.d.ts" />
+/// <reference path="perspective-transform.d.ts" />
 var InteractionMode;
 (function (InteractionMode) {
     InteractionMode[InteractionMode["defaultState"] = 0] = "defaultState";
@@ -74,6 +75,12 @@ class Tabletop {
                 this.interactionMode = this.workEnvelope.path.selected
                     ? InteractionMode.adjustEnvelope
                     : InteractionMode.defaultState;
+                if (this.interactionMode === InteractionMode.defaultState) {
+                    let h = this.workEnvelope.calculateHomography();
+                    this.workEnvelope.homography = h;
+                    Object.values(this.toolpathCollection.collection)
+                        .forEach(toolpath => toolpath.applyHomography(h));
+                }
             }
             if (event.key === 'backspace') {
                 if (this.activeToolpath) {
@@ -104,7 +111,8 @@ class WorkEnvelope {
         path.strokeColor = new paper.Color('red');
         path.strokeWidth = this.strokeWidth;
         this.path = path;
-        this.originalCornerPoints = this.cornerPoints();
+        this.originalCornerPoints = this.getCornerPoints();
+        this.homography = this.calculateHomography();
     }
     get anchor() {
         return new paper.Point(this.strokeWidth, this.strokeWidth);
@@ -112,18 +120,14 @@ class WorkEnvelope {
     get center() {
         return new paper.Point(Math.floor(this.width / 2), Math.floor(this.height / 2));
     }
-    cornerPoints() {
-        return this.path.segments.map(segment => segment.point);
+    getCornerPoints() {
+        return this.path.segments.map(segment => segment.point.clone());
     }
     calculateHomography() {
-        let srcFlat = this.originalCornerPoints.map(pt => {
-            return [pt.x, pt.y];
-        }).flat();
-        let dstFlat = this.cornerPoints().map(pt => {
-            return [pt.x, pt.y];
-        }).flat();
+        let unpackPoint = (pt) => [pt.x, pt.y];
+        let srcFlat = this.originalCornerPoints.map(unpackPoint).flat();
+        let dstFlat = this.getCornerPoints().map(unpackPoint).flat();
         let h = PerspT(srcFlat, dstFlat);
-        console.log(h);
         return h;
     }
 }
@@ -136,6 +140,47 @@ class Toolpath extends paper.Group {
             child.strokeWidth = 2;
         });
         this.visible = visible;
+        this.originalChildren = this.children.map(c => {
+            return c.clone({ insert: false, deep: true });
+        });
+    }
+    reinitializeChildren() {
+        let originalChildrenCopy = this.originalChildren.map(c => {
+            return c.clone({ insert: true, deep: true });
+        });
+        this.children = originalChildrenCopy;
+    }
+    applyHomography(h) {
+        this.reinitializeChildren();
+        let unpackSegment = (seg) => [seg.point.x, seg.point.y];
+        let unpackHandleIn = (seg) => [seg.handleIn.x, seg.handleIn.y];
+        let unpackHandleOut = (seg) => [seg.handleOut.x, seg.handleOut.y];
+        let transformPt = (pt) => h.transform(pt[0], pt[1]);
+        let principalLayer = this.children[0];
+        // FIXME: works with just children, but of course the math will be
+        // wrong since the homograpy maps from the original square to what we
+        // have now. So need to investigate what's going wrong with calculating
+        // original points and showing them.
+        principalLayer.children.forEach((child) => {
+            if (child instanceof paper.Path) {
+                let segPoints = child.segments.map(unpackSegment);
+                let handlesIn = child.segments.map(unpackHandleIn);
+                let handlesOut = child.segments.map(unpackHandleOut);
+                let transPts = segPoints.map(transformPt);
+                let transHIn = handlesIn.map(transformPt);
+                let transHOut = handlesOut.map(transformPt);
+                let newSegs = transPts.map((pt, idx) => {
+                    let newPt = new paper.Point(pt[0], pt[1]);
+                    let hIn = transHIn[idx];
+                    let hOut = transHOut[idx];
+                    let newHIn = new paper.Point(hIn[0], hIn[1]);
+                    let newHOut = new paper.Point(hOut[0], hOut[1]);
+                    return new paper.Segment(newPt, newHIn, newHOut);
+                });
+                child.segments = newSegs;
+                child.visible = true;
+            }
+        });
     }
 }
 class ToolpathThumbnail extends paper.Group {
@@ -214,7 +259,6 @@ const main = () => {
     window.tabletop = new Tabletop();
 };
 window.onload = function () {
-    paper.install(window);
     main();
 };
 //# sourceMappingURL=main.js.map
