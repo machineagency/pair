@@ -237,7 +237,6 @@ class Toolpath {
         let existingGroupVisible = this.group.visible;
         let originalGroupCopy = this.originalGroup.clone({ insert: true, deep: true });
         originalGroupCopy.visible = existingGroupVisible;
-        originalGroupCopy.strokeColor = new paper.Color('blue');
         this.group.remove();
         this.group = originalGroupCopy;
     }
@@ -254,15 +253,16 @@ class Toolpath {
                 let handlesIn = child.segments.map(unpackHandleIn);
                 let handlesOut = child.segments.map(unpackHandleOut);
                 let transPts = segPoints.map(transformPt);
-                let transHIn = handlesIn.map(transformPt);
-                let transHOut = handlesOut.map(transformPt);
                 let newSegs = transPts.map((pt, idx) => {
                     let newPt = new paper.Point(pt[0], pt[1]);
-                    let hIn = transHIn[idx];
-                    let hOut = transHOut[idx];
-                    let newHIn = new paper.Point(hIn[0], hIn[1]);
-                    let newHOut = new paper.Point(hOut[0], hOut[1]);
-                    return new paper.Segment(newPt, newHIn, newHOut);
+                    let hIn = handlesIn[idx];
+                    let hOut = handlesOut[idx];
+                    // Apparently we don't want to apply the homography to
+                    // handles. If we do, we get wildly large handle positions
+                    // from moving the upper left corner.
+                    let oldHIn = new paper.Point(hIn[0], hIn[1]);
+                    let oldHOut = new paper.Point(hOut[0], hOut[1]);
+                    return new paper.Segment(newPt, oldHIn, oldHOut);
                 });
                 child.segments = newSegs;
                 child.visible = true;
