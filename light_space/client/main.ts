@@ -176,42 +176,79 @@ class WorkEnvelope {
     }
 }
 
-class Toolpath extends paper.Group {
+class Toolpath {
     pairName: string;
-    readonly originalChildren: paper.Item[];
+    _visible: boolean;
+    group: paper.Group;
+    readonly originalGroup: paper.Group;
 
     constructor(tpName: string, svgItem: paper.Group, visible: boolean) {
-        super(svgItem);
         this.pairName = tpName;
-        this.children.forEach((child, idx) => {
-            child.strokeColor = new paper.Color('red');
-            child.strokeWidth = 2;
-        });
-        this.visible = visible;
-        this.originalChildren = this.children.map(c => {
-            return c.clone({ insert: false, deep: true });
-        });
+        this.group = svgItem;
+        this.group.strokeColor = new paper.Color('red');
+        this.group.strokeWidth = 2;
+        this.originalGroup = this.group.clone({ insert: true, deep: true });
+        this._visible = visible;
+        this.group.visible = visible;
+        // Original group is never visible
+        this.originalGroup.visible = false;
     }
 
-    reinitializeChildren() {
-        let originalChildrenCopy = this.originalChildren.map(c => {
-            return c.clone({ insert: true, deep: true });
-        });
-        this.children = originalChildrenCopy;
+    /* Wrapper getters, setters, and methods for paper.Group below. */
+
+    get visible() : boolean {
+        return this._visible;
+    }
+
+    set visible(isVisible: boolean) {
+        this.group.visible = isVisible;
+        this._visible = isVisible;
+    }
+
+    get position() : paper.Point {
+        return this.group.position;
+    }
+
+    set position(newPos: paper.Point) {
+        this.group.position = newPos;
+        this.originalGroup.position = newPos;
+    }
+
+    get selected() : boolean {
+        return this.group.selected;
+    }
+
+    set selected(isSelected: boolean) {
+        this.group.selected = isSelected;
+        this.originalGroup.selected = isSelected;
+    }
+
+    get bounds() : paper.Rectangle {
+        return this.group.bounds;
+    }
+
+    hitTest(pt: paper.Point, options: HitOptions) : paper.HitResult {
+        return this.group.hitTest(pt, options);
+    }
+
+    /* Methods that are specific to Toolpath follow. */
+
+    reinitializeGroup() {
+        let existingGroupVisible = this.group.visible;
+        let originalGroupCopy = this.originalGroup.clone({ insert: true, deep: true });
+        originalGroupCopy.visible = existingGroupVisible;
+        originalGroupCopy.strokeColor = new paper.Color('blue');
+        this.group.remove();
+        this.group = originalGroupCopy;
     }
 
     applyHomography(h: Homography) {
-        this.reinitializeChildren();
+        this.reinitializeGroup();
         let unpackSegment = (seg: paper.Segment) => [seg.point.x, seg.point.y];
         let unpackHandleIn = (seg: paper.Segment) => [seg.handleIn.x, seg.handleIn.y];
         let unpackHandleOut = (seg: paper.Segment) => [seg.handleOut.x, seg.handleOut.y];
         let transformPt = (pt: number[]) => h.transform(pt[0], pt[1]);
-        let principalLayer = this.children[0];
-        // FIXME: works with just children, but of course the math will be
-        // wrong since the homograpy maps from the original square to what we
-        // have now. So need to investigate what's going wrong with calculating
-        // original points and showing them.
-        principalLayer.children.forEach((child) => {
+        this.group.children.forEach((child) => {
             if (child instanceof paper.Path) {
                 let segPoints: number[][] = child.segments.map(unpackSegment);
                 let handlesIn = child.segments.map(unpackHandleIn);
@@ -252,7 +289,7 @@ class ToolpathThumbnail extends paper.Group {
     }
 
     setToolpath(toolpath: Toolpath) {
-        let thumbnailTp = toolpath.clone();
+        let thumbnailTp = toolpath.group.clone();
         thumbnailTp.visible = true;
         let scaleFactor = Math.min(this.size.width
             / thumbnailTp.bounds.width, this.size.height

@@ -131,37 +131,67 @@ class WorkEnvelope {
         return h;
     }
 }
-class Toolpath extends paper.Group {
+class Toolpath {
     constructor(tpName, svgItem, visible) {
-        super(svgItem);
         this.pairName = tpName;
-        this.children.forEach((child, idx) => {
-            child.strokeColor = new paper.Color('red');
-            child.strokeWidth = 2;
-        });
-        this.visible = visible;
-        this.originalChildren = this.children.map(c => {
-            return c.clone({ insert: false, deep: true });
-        });
+        this.group = svgItem;
+        this.group.strokeColor = new paper.Color('red');
+        this.group.strokeWidth = 2;
+        this.originalGroup = this.group.clone({ insert: true, deep: true });
+        this._visible = visible;
+        this.group.visible = visible;
+        // Original group is never visible
+        this.originalGroup.visible = false;
     }
-    reinitializeChildren() {
-        let originalChildrenCopy = this.originalChildren.map(c => {
-            return c.clone({ insert: true, deep: true });
-        });
-        this.children = originalChildrenCopy;
+    /* Wrapper getters, setters, and methods for paper.Group below. */
+    get visible() {
+        return this._visible;
+    }
+    set visible(isVisible) {
+        this.group.visible = isVisible;
+        this._visible = isVisible;
+    }
+    get position() {
+        return this.group.position;
+    }
+    set position(newPos) {
+        this.group.position = newPos;
+        this.originalGroup.position = newPos;
+    }
+    get selected() {
+        return this.group.selected;
+    }
+    set selected(isSelected) {
+        this.group.selected = isSelected;
+        this.originalGroup.selected = isSelected;
+    }
+    get bounds() {
+        return this.group.bounds;
+    }
+    hitTest(pt, options) {
+        return this.group.hitTest(pt, options);
+    }
+    /* Methods that are specific to Toolpath follow. */
+    reinitializeGroup() {
+        let existingGroupVisible = this.group.visible;
+        let originalGroupCopy = this.originalGroup.clone({ insert: true, deep: true });
+        originalGroupCopy.visible = existingGroupVisible;
+        originalGroupCopy.strokeColor = new paper.Color('blue');
+        // this.group.replaceWith(originalGroupCopy);
+        this.group.remove();
+        this.group = originalGroupCopy;
     }
     applyHomography(h) {
-        this.reinitializeChildren();
+        this.reinitializeGroup();
         let unpackSegment = (seg) => [seg.point.x, seg.point.y];
         let unpackHandleIn = (seg) => [seg.handleIn.x, seg.handleIn.y];
         let unpackHandleOut = (seg) => [seg.handleOut.x, seg.handleOut.y];
         let transformPt = (pt) => h.transform(pt[0], pt[1]);
-        let principalLayer = this.children[0];
         // FIXME: works with just children, but of course the math will be
         // wrong since the homograpy maps from the original square to what we
         // have now. So need to investigate what's going wrong with calculating
         // original points and showing them.
-        principalLayer.children.forEach((child) => {
+        this.group.children.forEach((child) => {
             if (child instanceof paper.Path) {
                 let segPoints = child.segments.map(unpackSegment);
                 let handlesIn = child.segments.map(unpackHandleIn);
@@ -195,7 +225,7 @@ class ToolpathThumbnail extends paper.Group {
         this.pairName = '';
     }
     setToolpath(toolpath) {
-        let thumbnailTp = toolpath.clone();
+        let thumbnailTp = toolpath.group.clone();
         thumbnailTp.visible = true;
         let scaleFactor = Math.min(this.size.width
             / thumbnailTp.bounds.width, this.size.height
