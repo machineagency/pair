@@ -26,6 +26,7 @@ class Tabletop {
     interactionMode: InteractionMode;
     activeToolpath?: Toolpath;
     activeEnvelopeSegment?: paper.Segment;
+    moveEntireEnvelope: boolean;
 
     constructor() {
         this.project = (paper as any).project;
@@ -33,6 +34,7 @@ class Tabletop {
         this.workEnvelope = new WorkEnvelope(this, 720, 480);
         this.toolpathCollection = new ToolpathCollection(this);
         this.interactionMode = InteractionMode.defaultState;
+        this.moveEntireEnvelope = false;
         this.initMouseHandlers();
     }
 
@@ -48,12 +50,18 @@ class Tabletop {
             if (this.interactionMode === InteractionMode.adjustEnvelope) {
                 let hitSegmentOptions = {
                     segments: true,
+                    stroke: true,
                     tolerance: 15
                 };
                 let hitResult = this.workEnvelope.path.hitTest(event.point,
                                                          hitSegmentOptions);
                 if (hitResult) {
-                    this.activeEnvelopeSegment = hitResult.segment;
+                    if (hitResult.type === 'stroke') {
+                        this.moveEntireEnvelope = true;
+                    }
+                    else if (hitResult.type === 'segment') {
+                        this.activeEnvelopeSegment = hitResult.segment;
+                    }
                 }
             }
 
@@ -86,15 +94,20 @@ class Tabletop {
             if (this.activeToolpath) {
                 this.activeToolpath.position = this.activeToolpath.position.add(event.delta);
             }
-            if (this.interactionMode === InteractionMode.adjustEnvelope
-                && this.activeEnvelopeSegment) {
-                this.activeEnvelopeSegment.point = this.activeEnvelopeSegment
-                    .point.add(event.delta);
+            if (this.interactionMode === InteractionMode.adjustEnvelope) {
+                if (this.moveEntireEnvelope) {
+                    this.workEnvelope.path.position = this.workEnvelope.path
+                        .position.add(event.delta);
+                }
+                else if (this.activeEnvelopeSegment) {
+                    this.activeEnvelopeSegment.point = this.activeEnvelopeSegment
+                        .point.add(event.delta);
+                }
             }
         };
         this.tool.onMouseUp = (event: paper.MouseEvent,
                                hitOptions: HitOptions) => {
-            // Nothing here yet...
+            this.moveEntireEnvelope = false;
         };
         this.tool.onKeyUp = (event: paper.KeyEvent,
                              hitOptions: HitOptions) => {
