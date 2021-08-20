@@ -47,22 +47,41 @@ class Tabletop {
         };
         this.tool.onMouseDown = (event: paper.MouseEvent,
                                  hitOptions: HitOptions) => {
+            // Mode: Adjust Envelope
             if (this.interactionMode === InteractionMode.adjustEnvelope) {
-                let hitSegmentOptions = {
+                let labelOptions = {
+                    tolerance: 20,
+                    fill: true
+                };
+                let envPathOptions = {
                     segments: true,
                     stroke: true,
                     tolerance: 15
                 };
-                let hitResult = this.workEnvelope.path.hitTest(event.point,
-                                                         hitSegmentOptions);
-                if (hitResult) {
-                    if (hitResult.type === 'stroke') {
-                        this.moveEntireEnvelope = true;
-                    }
-                    else if (hitResult.type === 'segment') {
-                        this.activeEnvelopeSegment = hitResult.segment;
+                let labelHitResult = this.workEnvelope.sizeLabel
+                                     .hitTest(event.point, labelOptions);
+                let envPathHitResult = this.workEnvelope.path
+                                     .hitTest(event.point, envPathOptions);
+                if (labelHitResult) {
+                    // TODO: make this more proper.
+                    let sizeString = prompt('Enter envelope size: [width, height].');
+                    if (sizeString) {
+                        let size = new paper.Size(JSON.parse(sizeString));
+                        this.workEnvelope.redrawForSize(size);
+                        this.interactionMode = InteractionMode.defaultState;
+                        Object.values(this.toolpathCollection.collection)
+                            .forEach(tp => tp.reinitializeGroup());
                     }
                 }
+                else if (envPathHitResult) {
+                    if (envPathHitResult.type === 'stroke') {
+                        this.moveEntireEnvelope = true;
+                    }
+                    else if (envPathHitResult.type === 'segment') {
+                        this.activeEnvelopeSegment = envPathHitResult.segment;
+                    }
+                }
+                return;
             }
 
             this.activeToolpath = undefined;
@@ -117,10 +136,13 @@ class Tabletop {
                                         ? InteractionMode.adjustEnvelope
                                         : InteractionMode.defaultState;
                 if (this.interactionMode === InteractionMode.defaultState) {
+                    this.workEnvelope.sizeLabel.fillColor = new paper.Color('red');
                     let h = this.workEnvelope.calculateHomography();
-                    this.workEnvelope.homography = h;
                     Object.values(this.toolpathCollection.collection)
                         .forEach(toolpath => toolpath.applyHomography(h));
+                }
+                else {
+                    this.workEnvelope.sizeLabel.fillColor = new paper.Color('cyan');
                 }
             }
             if (event.key === 'backspace') {
@@ -149,22 +171,43 @@ class WorkEnvelope {
     height: number;
     strokeWidth: number;
     path: paper.Path = new paper.Path();
-    readonly originalCornerPoints: paper.Point[];
-    homography: Homography;
+    sizeLabel: paper.PointText;
+    originalCornerPoints: paper.Point[];
 
     constructor(tabletop: Tabletop, width: number, height: number) {
         this.tabletop = tabletop;
+        this.strokeWidth = 3;
         this.width = width;
         this.height = height;
-        this.strokeWidth = 3;
+        this.path = this._drawPath();
+        this.sizeLabel = this._drawSizeLabel();
+        this.originalCornerPoints = this.getCornerPoints();
+    }
+
+    _drawPath() : paper.Path {
         let rect = new paper.Rectangle(this.anchor.x, this.anchor.y,
                                  this.width, this.height);
         let path = new paper.Path.Rectangle(rect);
         path.strokeColor = new paper.Color('red');
         path.strokeWidth = this.strokeWidth;
-        this.path = path;
-        this.originalCornerPoints = this.getCornerPoints();
-        this.homography = this.calculateHomography();
+        return path;
+    }
+
+    _drawSizeLabel() : paper.PointText {
+        let labelOffset = 30;
+        let labelAnchor = new paper.Point(
+            this.anchor.x,
+            this.anchor.y + this.height + labelOffset
+        );
+        let sizeLabel = new paper.PointText({
+            point: labelAnchor,
+            content: `(${this.width}, ${this.height})`,
+            fillColor: 'red',
+            fontFamily: 'Courier New',
+            fontWeight: 'bold',
+            fontSize: labelOffset - 5
+        });
+        return sizeLabel;
     }
 
     get anchor() : paper.Point {
@@ -186,6 +229,16 @@ class WorkEnvelope {
         let dstFlat = this.getCornerPoints().map(unpackPoint).flat();
         let h = PerspT(srcFlat, dstFlat);
         return h;
+    }
+
+    redrawForSize(newSize: paper.Size) {
+        this.width = newSize.width;
+        this.height = newSize.height;
+        this.path.remove();
+        this.sizeLabel.remove();
+        this.path = this._drawPath();
+        this.sizeLabel = this._drawSizeLabel();
+        this.originalCornerPoints = this.getCornerPoints();
     }
 }
 
