@@ -1,6 +1,9 @@
 import cv2, cmd
 import numpy as np
 from scipy.spatial.distance import euclidean as dist
+from pyaxidraw import axidraw
+from machine import Machine
+import sys
 
 class Camera:
     def __init__(self):
@@ -88,6 +91,8 @@ class Interpreter(cmd.Cmd):
         if not no_camera:
             self.camera = Camera()
 
+        self.machine = Machine(dry=False)
+
     def do_image(self, arg):
         if self.camera.video_preview_open:
             self.camera.update_video_preview()
@@ -128,10 +133,22 @@ class Interpreter(cmd.Cmd):
                 print(f'{scaled_x},{scaled_y}')
                 break
 
-    def do_find_contours(self, arg):
-        pass
+    def do_draw_envelope(self, arg):
+        # TODO: un-hardcode
+        CM_TO_PX = 37.795275591;
+        pt = (3 / CM_TO_PX, 3 / CM_TO_PX)
+        width = 28
+        height = 18
+        instr = self.machine.plot_rect_hw(pt, height, width)
+        print(instr)
 
-    def do_project_select_contours(self,arg):
+    def do_draw_toolpath(self, arg):
+        svg_filepath = './volatile/drawing.svg'
+        svg_string = arg
+        f = open(svg_filepath, 'w')
+        f.write(svg_string)
+        f.close()
+        self.machine.plot_svg(svg_filepath)
         pass
 
     def do_bye(self, arg):
