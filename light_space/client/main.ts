@@ -18,6 +18,10 @@ enum InteractionMode {
     adjustEnvelope
 }
 
+const MM_TO_PX = 3.7795275591;
+const PX_TO_MM = 0.2645833333;
+const BASE_URL = 'localhost:3000';
+
 class Tabletop {
     project: paper.Project;
     tool: paper.Tool;
@@ -31,7 +35,7 @@ class Tabletop {
     constructor() {
         this.project = (paper as any).project;
         this.tool = new paper.Tool();
-        this.workEnvelope = new WorkEnvelope(this, 720, 480);
+        this.workEnvelope = new WorkEnvelope(this, 280, 180);
         this.toolpathCollection = new ToolpathCollection(this);
         this.interactionMode = InteractionMode.defaultState;
         this.moveEntireEnvelope = false;
@@ -177,16 +181,19 @@ class WorkEnvelope {
     constructor(tabletop: Tabletop, width: number, height: number) {
         this.tabletop = tabletop;
         this.strokeWidth = 3;
-        this.width = width;
-        this.height = height;
+        this.width = width * MM_TO_PX;
+        this.height = height * MM_TO_PX;
         this.path = this._drawPath();
         this.sizeLabel = this._drawSizeLabel();
         this.originalCornerPoints = this.getCornerPoints();
     }
 
     _drawPath() : paper.Path {
-        let rect = new paper.Rectangle(this.anchor.x, this.anchor.y,
-                                 this.width, this.height);
+        let rect = new paper.Rectangle(
+            this.anchor.x,
+            this.anchor.y,
+            this.width,
+            this.height);
         let path = new paper.Path.Rectangle(rect);
         path.strokeColor = new paper.Color('red');
         path.strokeWidth = this.strokeWidth;
@@ -199,9 +206,11 @@ class WorkEnvelope {
             this.anchor.x,
             this.anchor.y + this.height + labelOffset
         );
+        let widthMm = Math.round(this.width * PX_TO_MM);
+        let heightMm = Math.round(this.height * PX_TO_MM);
         let sizeLabel = new paper.PointText({
             point: labelAnchor,
-            content: `(${this.width}, ${this.height})`,
+            content: `(${widthMm}, ${heightMm})`,
             fillColor: 'red',
             fontFamily: 'Courier New',
             fontWeight: 'bold',
@@ -211,7 +220,8 @@ class WorkEnvelope {
     }
 
     get anchor() : paper.Point {
-        return new paper.Point(this.strokeWidth, this.strokeWidth);
+        return new paper.Point(this.strokeWidth * MM_TO_PX,
+                               this.strokeWidth * MM_TO_PX);
     }
 
     get center() : paper.Point {
@@ -232,8 +242,8 @@ class WorkEnvelope {
     }
 
     redrawForSize(newSize: paper.Size) {
-        this.width = newSize.width;
-        this.height = newSize.height;
+        this.width = newSize.width * MM_TO_PX;
+        this.height = newSize.height * MM_TO_PX;
         this.path.remove();
         this.sizeLabel.remove();
         this.path = this._drawPath();
@@ -298,6 +308,26 @@ class Toolpath {
     }
 
     /* Methods that are specific to Toolpath follow. */
+
+    sendToMachine() {
+        // TODO: generify
+        let svgString = this.group.exportSVG({
+            asString: true,
+            precision: 2
+        });
+        let url = `${BASE_URL}/machines/drawToolpath?svgString=${svgString}`;
+        fetch(url, {
+            method: 'GET'
+        })
+        .then((response) => {
+            if (response.ok) {
+                console.log(response);
+            }
+            else {
+                console.error(response);
+            }
+        });
+    }
 
     reinitializeGroup() {
         let existingGroupVisible = this.group.visible;

@@ -6,13 +6,17 @@ var InteractionMode;
     InteractionMode[InteractionMode["defaultState"] = 0] = "defaultState";
     InteractionMode[InteractionMode["adjustEnvelope"] = 1] = "adjustEnvelope";
 })(InteractionMode || (InteractionMode = {}));
+const MM_TO_PX = 3.7795275591;
+const PX_TO_MM = 0.2645833333;
+const BASE_URL = 'localhost:3000';
 class Tabletop {
     constructor() {
         this.project = paper.project;
         this.tool = new paper.Tool();
-        this.workEnvelope = new WorkEnvelope(this, 720, 480);
+        this.workEnvelope = new WorkEnvelope(this, 280, 180);
         this.toolpathCollection = new ToolpathCollection(this);
         this.interactionMode = InteractionMode.defaultState;
+        this.moveEntireEnvelope = false;
         this.initMouseHandlers();
     }
     initMouseHandlers() {
@@ -23,15 +27,41 @@ class Tabletop {
             tolerance: 10
         };
         this.tool.onMouseDown = (event, hitOptions) => {
+            // Mode: Adjust Envelope
             if (this.interactionMode === InteractionMode.adjustEnvelope) {
-                let hitSegmentOptions = {
+                let labelOptions = {
+                    tolerance: 20,
+                    fill: true
+                };
+                let envPathOptions = {
                     segments: true,
+                    stroke: true,
                     tolerance: 15
                 };
-                let hitResult = this.workEnvelope.path.hitTest(event.point, hitSegmentOptions);
-                if (hitResult) {
-                    this.activeEnvelopeSegment = hitResult.segment;
+                let labelHitResult = this.workEnvelope.sizeLabel
+                    .hitTest(event.point, labelOptions);
+                let envPathHitResult = this.workEnvelope.path
+                    .hitTest(event.point, envPathOptions);
+                if (labelHitResult) {
+                    // TODO: make this more proper.
+                    let sizeString = prompt('Enter envelope size: [width, height].');
+                    if (sizeString) {
+                        let size = new paper.Size(JSON.parse(sizeString));
+                        this.workEnvelope.redrawForSize(size);
+                        this.interactionMode = InteractionMode.defaultState;
+                        Object.values(this.toolpathCollection.collection)
+                            .forEach(tp => tp.reinitializeGroup());
+                    }
                 }
+                else if (envPathHitResult) {
+                    if (envPathHitResult.type === 'stroke') {
+                        this.moveEntireEnvelope = true;
+                    }
+                    else if (envPathHitResult.type === 'segment') {
+                        this.activeEnvelopeSegment = envPathHitResult.segment;
+                    }
+                }
+                return;
             }
             this.activeToolpath = undefined;
             // Check hit for each preview (box + mini toolpath)
@@ -60,14 +90,19 @@ class Tabletop {
             if (this.activeToolpath) {
                 this.activeToolpath.position = this.activeToolpath.position.add(event.delta);
             }
-            if (this.interactionMode === InteractionMode.adjustEnvelope
-                && this.activeEnvelopeSegment) {
-                this.activeEnvelopeSegment.point = this.activeEnvelopeSegment
-                    .point.add(event.delta);
+            if (this.interactionMode === InteractionMode.adjustEnvelope) {
+                if (this.moveEntireEnvelope) {
+                    this.workEnvelope.path.position = this.workEnvelope.path
+                        .position.add(event.delta);
+                }
+                else if (this.activeEnvelopeSegment) {
+                    this.activeEnvelopeSegment.point = this.activeEnvelopeSegment
+                        .point.add(event.delta);
+                }
             }
         };
         this.tool.onMouseUp = (event, hitOptions) => {
-            // Nothing here yet...
+            this.moveEntireEnvelope = false;
         };
         this.tool.onKeyUp = (event, hitOptions) => {
             if (event.key === 'e') {
@@ -76,10 +111,13 @@ class Tabletop {
                     ? InteractionMode.adjustEnvelope
                     : InteractionMode.defaultState;
                 if (this.interactionMode === InteractionMode.defaultState) {
+                    this.workEnvelope.sizeLabel.fillColor = new paper.Color('red');
                     let h = this.workEnvelope.calculateHomography();
-                    this.workEnvelope.homography = h;
                     Object.values(this.toolpathCollection.collection)
                         .forEach(toolpath => toolpath.applyHomography(h));
+                }
+                else {
+                    this.workEnvelope.sizeLabel.fillColor = new paper.Color('cyan');
                 }
             }
             if (event.key === 'backspace') {
@@ -103,19 +141,37 @@ class WorkEnvelope {
     constructor(tabletop, width, height) {
         this.path = new paper.Path();
         this.tabletop = tabletop;
-        this.width = width;
-        this.height = height;
         this.strokeWidth = 3;
+        this.width = width * MM_TO_PX;
+        this.height = height * MM_TO_PX;
+        this.path = this._drawPath();
+        this.sizeLabel = this._drawSizeLabel();
+        this.originalCornerPoints = this.getCornerPoints();
+    }
+    _drawPath() {
         let rect = new paper.Rectangle(this.anchor.x, this.anchor.y, this.width, this.height);
         let path = new paper.Path.Rectangle(rect);
         path.strokeColor = new paper.Color('red');
         path.strokeWidth = this.strokeWidth;
-        this.path = path;
-        this.originalCornerPoints = this.getCornerPoints();
-        this.homography = this.calculateHomography();
+        return path;
+    }
+    _drawSizeLabel() {
+        let labelOffset = 30;
+        let labelAnchor = new paper.Point(this.anchor.x, this.anchor.y + this.height + labelOffset);
+        let widthMm = Math.round(this.width * PX_TO_MM);
+        let heightMm = Math.round(this.height * PX_TO_MM);
+        let sizeLabel = new paper.PointText({
+            point: labelAnchor,
+            content: `(${widthMm}, ${heightMm})`,
+            fillColor: 'red',
+            fontFamily: 'Courier New',
+            fontWeight: 'bold',
+            fontSize: labelOffset - 5
+        });
+        return sizeLabel;
     }
     get anchor() {
-        return new paper.Point(this.strokeWidth, this.strokeWidth);
+        return new paper.Point(this.strokeWidth * MM_TO_PX, this.strokeWidth * MM_TO_PX);
     }
     get center() {
         return new paper.Point(Math.floor(this.width / 2), Math.floor(this.height / 2));
@@ -129,6 +185,15 @@ class WorkEnvelope {
         let dstFlat = this.getCornerPoints().map(unpackPoint).flat();
         let h = PerspT(srcFlat, dstFlat);
         return h;
+    }
+    redrawForSize(newSize) {
+        this.width = newSize.width * MM_TO_PX;
+        this.height = newSize.height * MM_TO_PX;
+        this.path.remove();
+        this.sizeLabel.remove();
+        this.path = this._drawPath();
+        this.sizeLabel = this._drawSizeLabel();
+        this.originalCornerPoints = this.getCornerPoints();
     }
 }
 class Toolpath {
@@ -172,12 +237,29 @@ class Toolpath {
         return this.group.hitTest(pt, options);
     }
     /* Methods that are specific to Toolpath follow. */
+    sendToMachine() {
+        // TODO: generify
+        let svgString = this.group.exportSVG({
+            asString: true,
+            precision: 2
+        });
+        let url = `${BASE_URL}/machines/drawToolpath?svgString=${svgString}`;
+        fetch(url, {
+            method: 'GET'
+        })
+            .then((response) => {
+            if (response.ok) {
+                console.log(response);
+            }
+            else {
+                console.error(response);
+            }
+        });
+    }
     reinitializeGroup() {
         let existingGroupVisible = this.group.visible;
         let originalGroupCopy = this.originalGroup.clone({ insert: true, deep: true });
         originalGroupCopy.visible = existingGroupVisible;
-        originalGroupCopy.strokeColor = new paper.Color('blue');
-        // this.group.replaceWith(originalGroupCopy);
         this.group.remove();
         this.group = originalGroupCopy;
     }
@@ -187,25 +269,22 @@ class Toolpath {
         let unpackHandleIn = (seg) => [seg.handleIn.x, seg.handleIn.y];
         let unpackHandleOut = (seg) => [seg.handleOut.x, seg.handleOut.y];
         let transformPt = (pt) => h.transform(pt[0], pt[1]);
-        // FIXME: works with just children, but of course the math will be
-        // wrong since the homograpy maps from the original square to what we
-        // have now. So need to investigate what's going wrong with calculating
-        // original points and showing them.
         this.group.children.forEach((child) => {
             if (child instanceof paper.Path) {
                 let segPoints = child.segments.map(unpackSegment);
                 let handlesIn = child.segments.map(unpackHandleIn);
                 let handlesOut = child.segments.map(unpackHandleOut);
                 let transPts = segPoints.map(transformPt);
-                let transHIn = handlesIn.map(transformPt);
-                let transHOut = handlesOut.map(transformPt);
                 let newSegs = transPts.map((pt, idx) => {
                     let newPt = new paper.Point(pt[0], pt[1]);
-                    let hIn = transHIn[idx];
-                    let hOut = transHOut[idx];
-                    let newHIn = new paper.Point(hIn[0], hIn[1]);
-                    let newHOut = new paper.Point(hOut[0], hOut[1]);
-                    return new paper.Segment(newPt, newHIn, newHOut);
+                    let hIn = handlesIn[idx];
+                    let hOut = handlesOut[idx];
+                    // Apparently we don't want to apply the homography to
+                    // handles. If we do, we get wildly large handle positions
+                    // from moving the upper left corner.
+                    let oldHIn = new paper.Point(hIn[0], hIn[1]);
+                    let oldHOut = new paper.Point(hOut[0], hOut[1]);
+                    return new paper.Segment(newPt, oldHIn, oldHOut);
                 });
                 child.segments = newSegs;
                 child.visible = true;

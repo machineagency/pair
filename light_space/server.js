@@ -41,6 +41,18 @@ shell.on('message', (message) => {
 // routes and start ========================================
 
 let attachRoutesAndStart = () => {
+
+    app.get('/machine/drawEnvelope', (req, res) => {
+        shell.send('draw_envelope');
+        res.status(200).send();
+    });
+
+    app.get('/machine/drawToolpath', (req, res) => {
+        let svg_string = req.query['svgString']
+        shell.send('draw_toolpath '+ svg_string);
+        res.status(200).send();
+    });
+
     app.listen(port, () => {
         console.log("Running on port: " + port);
         exports = module.exports = app;
