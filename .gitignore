@@ -31,4 +31,5 @@ tags
 *.pyc
 
 light_space/test_images/secret
+light_space/volatile
 
