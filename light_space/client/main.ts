@@ -311,11 +311,38 @@ class Toolpath {
 
     sendToMachine() {
         // TODO: generify
-        let svgString = this.group.exportSVG({
+        // Credit: https://github.com/yoksel/url-encoder/ .
+        const urlEncodeSvg = (data: String) : String => {
+            const symbols = /[\r\n%#()<>?[\\\]^`{|}]/g;
+            // Use single quotes instead of double to avoid encoding.
+            let externalQuotesValue = 'double';
+            if (externalQuotesValue === `double`) {
+              data = data.replace(/"/g, `'`);
+            } else {
+              data = data.replace(/'/g, `"`);
+            }
+
+            data = data.replace(/>\s{1,}</g, `><`);
+            data = data.replace(/\s{2,}/g, ` `);
+
+            // Using encodeURIComponent() as replacement function
+            // allows to keep result code readable
+            return data.replace(symbols, encodeURIComponent);
+        }
+        const headerXmlns = 'xmlns="http://www.w3.org/2000/svg"';
+        const headerWidth = `width="${this.bounds.width}"`;
+        const headerHeight = `height="${this.bounds.height}"`;
+        const headerViewbox = `viewbox="0 0 ${this.bounds.width} ${this.bounds.height}"`;
+        const svgHeader = `<svg ${headerXmlns} ${headerWidth} ${headerHeight} ${headerViewbox}>`;
+        const svgFooter = `</svg>`;
+        const svgPath = this.group.exportSVG({
+            bounds: 'content',
             asString: true,
             precision: 2
         });
-        let url = `${BASE_URL}/machines/drawToolpath?svgString=${svgString}`;
+        const svgString = svgHeader + svgPath + svgFooter;
+        const encodedSvg = urlEncodeSvg(svgString);
+        const url = `${BASE_URL}/machine/drawToolpath?svgString=${encodedSvg}`;
         fetch(url, {
             method: 'GET'
         })

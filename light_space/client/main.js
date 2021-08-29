@@ -239,11 +239,36 @@ class Toolpath {
     /* Methods that are specific to Toolpath follow. */
     sendToMachine() {
         // TODO: generify
-        let svgString = this.group.exportSVG({
+        function urlEncodeSvg(data) {
+            const symbols = /[\r\n%#()<>?[\\\]^`{|}]/g;
+            // Use single quotes instead of double to avoid encoding.
+            let externalQuotesValue = 'double';
+            if (externalQuotesValue === `double`) {
+                data = data.replace(/"/g, `'`);
+            }
+            else {
+                data = data.replace(/'/g, `"`);
+            }
+            data = data.replace(/>\s{1,}</g, `><`);
+            data = data.replace(/\s{2,}/g, ` `);
+            // Using encodeURIComponent() as replacement function
+            // allows to keep result code readable
+            return data.replace(symbols, encodeURIComponent);
+        }
+        let headerXmlns = 'xmlns="http://www.w3.org/2000/svg"';
+        let headerWidth = `width="${this.bounds.width}"`;
+        let headerHeight = `height="${this.bounds.height}"`;
+        let headerViewbox = `viewbox="0 0 ${this.bounds.width} ${this.bounds.height}"`;
+        let svgHeader = `<svg ${headerXmlns} ${headerWidth} ${headerHeight} ${headerViewbox}>`;
+        let svgFooter = `</svg>`;
+        let svgPath = this.group.exportSVG({
+            bounds: 'content',
             asString: true,
             precision: 2
         });
-        let url = `${BASE_URL}/machines/drawToolpath?svgString=${svgString}`;
+        let svgString = svgHeader + svgPath + svgFooter;
+        let encodedSvg = urlEncodeSvg(svgString);
+        let url = `${BASE_URL}/machine/drawToolpath?svgString=${encodedSvg}`;
         fetch(url, {
             method: 'GET'
         })
