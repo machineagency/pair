@@ -20,7 +20,7 @@ enum InteractionMode {
 
 const MM_TO_PX = 3.7795275591;
 const PX_TO_MM = 0.2645833333;
-const BASE_URL = 'localhost:3000';
+const BASE_URL = 'http://localhost:3000';
 
 class Tabletop {
     project: paper.Project;
