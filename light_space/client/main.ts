@@ -303,22 +303,65 @@ class WorkEnvelope {
         this.sizeLabel = this._drawSizeLabel();
         this.originalCornerPoints = this.getCornerPoints();
     }
+
+    applyHomographyToGroup(g: paper.Group) {
+        let h = this.homography;
+        let boundTransformMethod = h.transform.bind(h);
+        this._pointwisePathTransform(g, boundTransformMethod);
+    }
+
+    applyInverseHomography(g: paper.Group) {
+        let h = this.homography;
+        let boundTransformMethod = h.transformInverse.bind(h);
+        this._pointwisePathTransform(g, boundTransformMethod);
+    }
+
+    _pointwisePathTransform(groupToTransform: paper.Group,
+                            transform: (x: number, y:number) => number[]) {
+        let unpackSegment = (seg: paper.Segment) => [seg.point.x, seg.point.y];
+        let unpackHandleIn = (seg: paper.Segment) => [seg.handleIn.x, seg.handleIn.y];
+        let unpackHandleOut = (seg: paper.Segment) => [seg.handleOut.x, seg.handleOut.y];
+        let transformPt = (pt: number[]) => transform(pt[0], pt[1]);
+        groupToTransform.children.forEach((child) => {
+            if (child instanceof paper.Path) {
+                let segPoints: number[][] = child.segments.map(unpackSegment);
+                let handlesIn = child.segments.map(unpackHandleIn);
+                let handlesOut = child.segments.map(unpackHandleOut);
+                let transPts = segPoints.map(transformPt);
+                let newSegs = transPts.map((pt, idx) => {
+                    let newPt = new paper.Point(pt[0], pt[1]);
+                    let hIn = handlesIn[idx];
+                    let hOut = handlesOut[idx];
+                    // Apparently we don't want to apply the homography to
+                    // handles. If we do, we get wildly large handle positions
+                    // from moving the upper left corner.
+                    let oldHIn = new paper.Point(hIn[0], hIn[1]);
+                    let oldHOut = new paper.Point(hOut[0], hOut[1]);
+                    return new paper.Segment(newPt, oldHIn, oldHOut);
+                });
+                child.segments = newSegs;
+                child.visible = true;
+            }
+        });
+    }
 }
 
 class Toolpath {
     pairName: string;
     _visible: boolean;
     group: paper.Group;
+    tabletop: Tabletop;
     readonly originalGroup: paper.Group;
 
-    constructor(tpName: string, svgItem: paper.Group, visible: boolean) {
+    constructor(tpName: string, svgItem: paper.Group, tabletop: Tabletop) {
         this.pairName = tpName;
+        this.tabletop = tabletop;
         this.group = svgItem;
         this.group.strokeColor = new paper.Color('red');
         this.group.strokeWidth = 2;
         this.originalGroup = this.group.clone({ insert: true, deep: true });
-        this._visible = visible;
-        this.group.visible = visible;
+        this._visible = false;
+        this.group.visible = false;
         // Original group is never visible
         this.originalGroup.visible = false;
     }
@@ -451,7 +494,7 @@ class ToolpathCollection {
                     console.warn('Could not load an SVG');
                 },
                 onLoad: (item: paper.Group, svgString: string) => {
-                    let toolpath = new Toolpath(tpName.toString(), item, false);
+                    let toolpath = new Toolpath(tpName.toString(), item, this.tabletop);
                     let thumbnail = new ToolpathThumbnail(currBoxPt, this.previewSize);
                     thumbnail.setToolpath(toolpath);
 
