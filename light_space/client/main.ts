@@ -142,11 +142,33 @@ class Tabletop {
                 if (this.interactionMode === InteractionMode.defaultState) {
                     this.workEnvelope.sizeLabel.fillColor = new paper.Color('red');
                     let h = this.workEnvelope.calculateHomography();
-                    Object.values(this.toolpathCollection.collection)
-                        .forEach(toolpath => toolpath.applyHomography(h));
+                    this.workEnvelope.homography = h;
                 }
                 else {
                     this.workEnvelope.sizeLabel.fillColor = new paper.Color('cyan');
+                }
+            }
+            // TODO: think about how to handle copy and application of
+            // transforms. Also if possible, create graphical elements
+            // for keypresses.
+            if (event.key === 'b') {
+                let wePathCopy = this.workEnvelope.path.clone({
+                    deep: true,
+                    insert: false
+                });
+                let wePathGroup = new paper.Group([ wePathCopy ]);
+                this.workEnvelope.applyInverseHomography(wePathGroup);
+                this.sendPaperItemToMachine(wePathGroup);
+                wePathGroup.remove();
+            }
+            if (event.key === 't') {
+                if (this.activeToolpath) {
+                    let tpGroupCopy = this.activeToolpath.group.clone({
+                        deep: true,
+                        insert: false
+                    });
+                    this.workEnvelope.applyInverseHomography(tpGroupCopy);
+                    this.sendPaperItemToMachine(tpGroupCopy);
                 }
             }
             if (event.key === 'backspace') {
@@ -167,6 +189,35 @@ class Tabletop {
         let toolpath = this.toolpathCollection.collection[toolpathName.toString()];
         toolpath.visible = false;
     }
+
+    sendPaperItemToMachine(itemToSend: paper.Item) : Promise<Response> {
+        // Credit: https://github.com/yoksel/url-encoder/ .
+        const urlEncodeSvg = (data: String) : String => {
+            const symbols = /[\r\n%#()<>?[\\\]^`{|}]/g;
+            data = data.replace(/"/g, `'`);
+            data = data.replace(/>\s{1,}</g, `><`);
+            data = data.replace(/\s{2,}/g, ` `);
+            return data.replace(symbols, encodeURIComponent);
+        }
+        const headerXmlns = 'xmlns="http://www.w3.org/2000/svg"';
+        // If the height and width cause issues, switch them back to a large
+        // number, say 300 or 500.
+        const headerWidth = `width="${this.workEnvelope.width}mm"`;
+        const headerHeight = `height="${this.workEnvelope.height}mm"`;
+        const svgHeader = `<svg ${headerXmlns} ${headerWidth} ${headerHeight}>`;
+        const svgFooter = `</svg>`;
+        const svgPath = itemToSend.exportSVG({
+            bounds: 'content',
+            asString: true,
+            precision: 2
+        });
+        const svgString = svgHeader + svgPath + svgFooter;
+        const encodedSvg = urlEncodeSvg(svgString);
+        const url = `${BASE_URL}/machine/drawToolpath?svgString=${encodedSvg}`;
+        return fetch(url, {
+            method: 'GET'
+        });
+    }
 }
 
 class WorkEnvelope {
@@ -177,6 +228,7 @@ class WorkEnvelope {
     path: paper.Path = new paper.Path();
     sizeLabel: paper.PointText;
     originalCornerPoints: paper.Point[];
+    homography: Homography;
 
     constructor(tabletop: Tabletop, width: number, height: number) {
         this.tabletop = tabletop;
@@ -186,6 +238,7 @@ class WorkEnvelope {
         this.path = this._drawPath();
         this.sizeLabel = this._drawSizeLabel();
         this.originalCornerPoints = this.getCornerPoints();
+        this.homography = this.calculateHomography();
     }
 
     _drawPath() : paper.Path {
@@ -309,53 +362,6 @@ class Toolpath {
 
     /* Methods that are specific to Toolpath follow. */
 
-    sendToMachine() {
-        // TODO: generify
-        // Credit: https://github.com/yoksel/url-encoder/ .
-        const urlEncodeSvg = (data: String) : String => {
-            const symbols = /[\r\n%#()<>?[\\\]^`{|}]/g;
-            // Use single quotes instead of double to avoid encoding.
-            let externalQuotesValue = 'double';
-            if (externalQuotesValue === `double`) {
-              data = data.replace(/"/g, `'`);
-            } else {
-              data = data.replace(/'/g, `"`);
-            }
-
-            data = data.replace(/>\s{1,}</g, `><`);
-            data = data.replace(/\s{2,}/g, ` `);
-
-            // Using encodeURIComponent() as replacement function
-            // allows to keep result code readable
-            return data.replace(symbols, encodeURIComponent);
-        }
-        const headerXmlns = 'xmlns="http://www.w3.org/2000/svg"';
-        const headerWidth = `width="${this.bounds.width}"`;
-        const headerHeight = `height="${this.bounds.height}"`;
-        const headerViewbox = `viewbox="0 0 ${this.bounds.width} ${this.bounds.height}"`;
-        const svgHeader = `<svg ${headerXmlns} ${headerWidth} ${headerHeight} ${headerViewbox}>`;
-        const svgFooter = `</svg>`;
-        const svgPath = this.group.exportSVG({
-            bounds: 'content',
-            asString: true,
-            precision: 2
-        });
-        const svgString = svgHeader + svgPath + svgFooter;
-        const encodedSvg = urlEncodeSvg(svgString);
-        const url = `${BASE_URL}/machine/drawToolpath?svgString=${encodedSvg}`;
-        fetch(url, {
-            method: 'GET'
-        })
-        .then((response) => {
-            if (response.ok) {
-                console.log(response);
-            }
-            else {
-                console.error(response);
-            }
-        });
-    }
-
     reinitializeGroup() {
         let existingGroupVisible = this.group.visible;
         let originalGroupCopy = this.originalGroup.clone({ insert: true, deep: true });
@@ -364,34 +370,6 @@ class Toolpath {
         this.group = originalGroupCopy;
     }
 
-    applyHomography(h: Homography) {
-        this.reinitializeGroup();
-        let unpackSegment = (seg: paper.Segment) => [seg.point.x, seg.point.y];
-        let unpackHandleIn = (seg: paper.Segment) => [seg.handleIn.x, seg.handleIn.y];
-        let unpackHandleOut = (seg: paper.Segment) => [seg.handleOut.x, seg.handleOut.y];
-        let transformPt = (pt: number[]) => h.transform(pt[0], pt[1]);
-        this.group.children.forEach((child) => {
-            if (child instanceof paper.Path) {
-                let segPoints: number[][] = child.segments.map(unpackSegment);
-                let handlesIn = child.segments.map(unpackHandleIn);
-                let handlesOut = child.segments.map(unpackHandleOut);
-                let transPts = segPoints.map(transformPt);
-                let newSegs = transPts.map((pt, idx) => {
-                    let newPt = new paper.Point(pt[0], pt[1]);
-                    let hIn = handlesIn[idx];
-                    let hOut = handlesOut[idx];
-                    // Apparently we don't want to apply the homography to
-                    // handles. If we do, we get wildly large handle positions
-                    // from moving the upper left corner.
-                    let oldHIn = new paper.Point(hIn[0], hIn[1]);
-                    let oldHOut = new paper.Point(hOut[0], hOut[1]);
-                    return new paper.Segment(newPt, oldHIn, oldHOut);
-                });
-                child.segments = newSegs;
-                child.visible = true;
-            }
-        });
-    }
 }
 
 class ToolpathThumbnail extends paper.Group {
