@@ -6,7 +6,8 @@ class Machine:
         if not self.dry:
             self.ad = axidraw.AxiDraw()
             self.ad.interactive()
-            self.ad.options.units = 1 # Use centimeters
+            MILLIMETER_FLAG = 2
+            self.ad.options.units = MILLIMETER_FLAG
             self.ad.connect()
         else:
             print('Running in DRY mode.')
