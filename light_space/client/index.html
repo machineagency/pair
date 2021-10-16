@@ -9,5 +9,44 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <canvas id="main-canvas" resize></canvas>
+    <div id="main-container">
+        <div id="canvas-container">
+            <canvas id="main-canvas" resize></canvas>
+        </div>
+        <div id="program-container">
+            <div class="program-lines">
+                <div class="program-line pl-highlight" id="pl-0">
+                    let signature = $geometryBrowser;
+                </div>
+                <div class="livelit-window">
+                    <div class="title">
+                        Geometry Browser
+                    </div>
+                    <div class="content">
+                        <div class="gallery">
+                            <div class="gallery-item"></div>
+                            <div class="gallery-item"></div>
+                            <div class="gallery-item"></div>
+                            <div class="gallery-item"></div>
+                            <div class="gallery-item"></div>
+                            <div class="gallery-item"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="program-line" id="pl-1">
+                    let point = $pointPicker;
+                </div>
+                <div class="program-line" id="pl-2">
+                    let toolpath = signature.placeAt(point);
+                </div>
+                <div class="program-line" id="pl-333">
+                    machine.plot(toolpath);
+                </div>
+            </div>
+            <div class="program-controls">
+                <div class="pc-btn pc-step">Run</div>
+                <div class="pc-btn pc-reset">Reset</div>
+            </div>
+        </div>
+    </div>
 </html>
