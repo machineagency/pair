@@ -7,6 +7,123 @@ body {
     background-color: black;
 }
 
+#main-container {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+}
+
+#program-container {
+    width: 30%;
+    color: whitesmoke;
+    font-family: 'JetBrains Mono', monospace;
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    margin-top: 20px;
+}
+
+.program-line {
+    max-width: 95%;
+    counter-increment: line;
+}
+
+.program-line::before {
+    content: counter(line);
+    display: inline-block;
+    font-weight: bold;
+    margin-left: -30px;
+    text-align: right;
+    width: 20px;
+    color: #ffffffab;
+}
+
+.livelit-window {
+    max-width: 90%;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    border: 1px solid whitesmoke;
+    padding: 5px 10px 5px 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.livelit-window .title {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.livelit-window .content {
+    margin-bottom: 10px;
+}
+
+.livelit-window .geometry-browser {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.livelit-window .geometry-browser .gallery-item {
+    height: 50px;
+    width: 50px;
+    background-color: whitesmoke;
+    color: black;
+    margin-left: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+.livelit-window .point-picker {
+    display: flex;
+    flex-direction: column;
+}
+
+.livelit-window .point-picker .table-thumbnail {
+    height: 18mm;
+    width: 28mm;
+    border: 1px solid whitesmoke;
+}
+
+.livelit-window .point-picker .point-text {
+    margin-top: 10px;
+    font-weight: bold;
+    font-style: italic;
+}
+
+.livelit-window .point-picker .help-text {
+    margin-top: 10px;
+    font-style: italic;
+}
+
+.program-controls {
+    margin-top: 20px;
+    height: 75px;
+    display: flex;
+    flex-direction: row;
+}
+
+.program-controls .pc-btn {
+    height: 36px;
+    width: 100px;
+    background-color: whitesmoke;
+    color: black;
+    text-align: center;
+    margin-right: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 18px;
+    padding-top: 16px;
+}
+
+.pl-highlight {
+    background-color: whitesmoke;
+    color: black;
+}
+
+#canvas-container {
+    width: 80%;
+}
+
 #main-canvas {
     height: 100%;
     width: 100%;
