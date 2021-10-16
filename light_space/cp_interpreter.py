@@ -1,6 +1,5 @@
 import cv2, cmd
 import numpy as np
-from scipy.spatial.distance import euclidean as dist
 from pyaxidraw import axidraw
 from machine import Machine
 import sys
