@@ -23,7 +23,7 @@
                         Geometry Browser
                     </div>
                     <div class="content">
-                        <div class="gallery">
+                        <div class="geometry-browser">
                             <div class="gallery-item"></div>
                             <div class="gallery-item"></div>
                             <div class="gallery-item"></div>
@@ -36,10 +36,31 @@
                 <div class="program-line" id="pl-1">
                     let point = $pointPicker;
                 </div>
+                <div class="livelit-window">
+                    <div class="title">
+                        Point Picker
+                    </div>
+                    <div class="content">
+                        <div class="point-picker">
+                            <div class="table-thumbnail">
+                                <div class="crosshair"></div>
+                            </div>
+                            <div class="point-text">
+                                (154, 132)
+                            </div>
+                            <div class="help-text">
+                                Click a point in the work envelope to update this value.
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="program-line" id="pl-2">
                     let toolpath = signature.placeAt(point);
                 </div>
-                <div class="program-line" id="pl-333">
+                <div class="program-line" id="pl-3">
+                    // $toolpathTransformer signature
+                </div>
+                <div class="program-line" id="pl-4">
                     machine.plot(toolpath);
                 </div>
             </div>
