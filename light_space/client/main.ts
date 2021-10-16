@@ -506,6 +506,18 @@ class ToolpathCollection {
     }
 }
 
+class Region {
+    name: string;
+    rectangle: paper.Rectangle;
+
+    constructor(name: string, anchor: paper.Point, height: number,
+                width: number) {
+        this.name = name;
+        this.rectangle = new paper.Rectangle(anchor,
+                                             new paper.Size(width, height));
+    }
+}
+
 class Camera {
 }
 
