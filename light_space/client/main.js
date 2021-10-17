@@ -403,6 +403,12 @@ class ToolpathCollection {
         });
     }
 }
+class Region {
+    constructor(name, anchor, height, width) {
+        this.name = name;
+        this.rectangle = new paper.Rectangle(anchor, new paper.Size(width, height));
+    }
+}
 class Camera {
 }
 const main = () => {
