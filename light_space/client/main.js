@@ -159,27 +159,19 @@ class Tabletop {
         toolpath.visible = false;
     }
     sendPaperItemToMachine(itemToSend) {
-        // TODO: generify
         // Credit: https://github.com/yoksel/url-encoder/ .
         const urlEncodeSvg = (data) => {
             const symbols = /[\r\n%#()<>?[\\\]^`{|}]/g;
-            // Use single quotes instead of double to avoid encoding.
-            let externalQuotesValue = 'double';
-            if (externalQuotesValue === `double`) {
-                data = data.replace(/"/g, `'`);
-            }
-            else {
-                data = data.replace(/'/g, `"`);
-            }
+            data = data.replace(/"/g, `'`);
             data = data.replace(/>\s{1,}</g, `><`);
             data = data.replace(/\s{2,}/g, ` `);
-            // Using encodeURIComponent() as replacement function
-            // allows to keep result code readable
             return data.replace(symbols, encodeURIComponent);
         };
         const headerXmlns = 'xmlns="http://www.w3.org/2000/svg"';
-        const headerWidth = `width="300mm"`;
-        const headerHeight = `height="300mm"`;
+        // If the height and width cause issues, switch them back to a large
+        // number, say 300 or 500.
+        const headerWidth = `width="${this.workEnvelope.width}mm"`;
+        const headerHeight = `height="${this.workEnvelope.height}mm"`;
         const svgHeader = `<svg ${headerXmlns} ${headerWidth} ${headerHeight}>`;
         const svgFooter = `</svg>`;
         const svgPath = itemToSend.exportSVG({
