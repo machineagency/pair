@@ -32,4 +32,6 @@ tags
 
 light_space/test_images/secret
 light_space/volatile
+light_space/client/*.js
+light_space/client/*.js.map
 
