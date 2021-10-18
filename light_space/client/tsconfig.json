@@ -5,9 +5,11 @@
     "sourceMap": true,
     "moduleResolution": "node",
     "strict": true,
-    "noImplicitAny": true
+    "noImplicitAny": true,
+    "allowSyntheticDefaultImports": true,
+    "allowUmdGlobalAccess": true
   },
   "files": [
-      "main.ts"
+      "main.ts", "livelit-windows.ts"
   ]
 }
