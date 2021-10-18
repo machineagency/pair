@@ -10,6 +10,37 @@ interface ProgramLineState {
 };
 
 class ProgramPane extends React.Component<Props, State> {
+    defaultLines = [
+        'let signature = $geometryBrowser;',
+        'let point = $pointPicker;',
+        'let toolpath = signature.placeAt(point);',
+        '// $toolpathTransformer signature',
+        '// $machineSynthesizer gigapan coinGeometry',
+        'machine.plot(toolpath);'
+    ];
+
+    constructor(props: Props) {
+        super(props);
+    }
+
+    renderTextLines(lines: string[]) {
+        return lines.map((line, index) => {
+            return <ProgramLine lineNumber={index + 1}
+                                lineText={line}></ProgramLine>
+        });
+    }
+
+    render() {
+        return [
+            <div className="program-lines">
+                { this.renderTextLines(this.defaultLines) }
+            </div>,
+            <div className="program-controls">
+                <div className="pc-btn pc-step">Run</div>
+                <div className="pc-btn pc-reset">Reset</div>
+            </div>
+        ];
+    }
 }
 
 class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
@@ -23,7 +54,7 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
     render() {
         const lineNumber = this.props.lineNumber || 0;
         return <div className="program-line"
-                    id={lineNumber.toString()}>
+                    id={`line-${lineNumber - 1}`}>
                     {this.state.lineText}
                </div>
     }
@@ -97,8 +128,8 @@ class PointPicker extends LivelitWindow {
 
 const inflateProgramPane = () => {
     const blankDom = document.querySelector('#program-container');
-    const livelitWindow = React.createElement(GeometryGallery);
-    ReactDOM.render(livelitWindow, blankDom);
+    const programPane = <ProgramPane></ProgramPane>;
+    ReactDOM.render(programPane, blankDom);
 };
 
 export { inflateProgramPane };
