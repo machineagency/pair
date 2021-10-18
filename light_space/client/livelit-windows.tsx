@@ -18,14 +18,10 @@ class LivelitWindow extends React.Component<Props, State> {
     }
 
     renderTitle() {
-        return e(
-            'div',
-             {
-                className: 'title',
-                key: this.titleKey.toString()
-             },
-            this.titleText
-        );
+        return <div className="title"
+                    key={this.titleKey.toString()}>
+                    {this.titleText}
+               </div>;
     }
 
     renderContent() {

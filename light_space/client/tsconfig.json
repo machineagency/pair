@@ -6,10 +6,11 @@
     "moduleResolution": "node",
     "strict": true,
     "noImplicitAny": true,
+    "jsx": "react",
     "allowSyntheticDefaultImports": true,
     "allowUmdGlobalAccess": true
   },
   "files": [
-      "main.ts", "livelit-windows.ts"
+      "main.ts", "livelit-windows.tsx"
   ]
 }
