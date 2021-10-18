@@ -1,7 +1,7 @@
 /// <reference path="paper.d.ts" />
 /// <reference path="perspective-transform.d.ts" />
 
-import { LivelitWindow } from "./livelit-windows.js";
+import { LivelitWindow, GeometryGallery, PointPicker } from "./livelit-windows.js";
 
 interface PairNameable extends paper.Group {
     pairName: string;
@@ -526,7 +526,7 @@ class Camera {
 // TODO: make into actual class, split up this file
 const inflateProgramPane = () => {
     const blankDom = document.querySelector('#react-window');
-    const livelitWindow = React.createElement(LivelitWindow);
+    const livelitWindow = React.createElement(GeometryGallery);
     ReactDOM.render(livelitWindow, blankDom);
 };
 
