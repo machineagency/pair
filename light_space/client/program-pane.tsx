@@ -1,5 +1,33 @@
 interface Props {};
+interface ProgramLineProps {
+    lineNumber: number;
+    lineText: string;
+};
+
 interface State {};
+interface ProgramLineState {
+    lineText: string;
+};
+
+class ProgramPane extends React.Component<Props, State> {
+}
+
+class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
+    constructor(props: ProgramLineProps) {
+        super(props);
+        this.state = {
+            lineText: props.lineText
+        };
+    }
+
+    render() {
+        const lineNumber = this.props.lineNumber || 0;
+        return <div className="program-line"
+                    id={lineNumber.toString()}>
+                    {this.state.lineText}
+               </div>
+    }
+}
 
 class LivelitWindow extends React.Component<Props, State> {
     titleText: string;
@@ -67,4 +95,10 @@ class PointPicker extends LivelitWindow {
     }
 }
 
-export { LivelitWindow, GeometryGallery, PointPicker };
+const inflateProgramPane = () => {
+    const blankDom = document.querySelector('#program-container');
+    const livelitWindow = React.createElement(GeometryGallery);
+    ReactDOM.render(livelitWindow, blankDom);
+};
+
+export { inflateProgramPane };
