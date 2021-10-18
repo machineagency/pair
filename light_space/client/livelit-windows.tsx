@@ -1,8 +1,6 @@
 interface Props {};
 interface State {};
 
-const e = React.createElement;
-
 class LivelitWindow extends React.Component<Props, State> {
     titleText: string;
     livelitClassName: string;
@@ -25,21 +23,15 @@ class LivelitWindow extends React.Component<Props, State> {
     }
 
     renderContent() {
-        return e(
-            'div',
-            {
-                className: 'content',
-                key: this.contentKey.toString()
-            }
-        );
+        return <div className="content"
+                    key={this.contentKey.toString()}>
+               </div>;
     }
 
     render() {
-        return e(
-            'div',
-            { className: this.livelitClassName },
-            [ this.renderTitle(), this.renderContent() ]
-        );
+        return <div className={this.livelitClassName}>
+                    {[ this.renderTitle(), this.renderContent() ]}
+               </div>
     }
 };
 
@@ -50,13 +42,9 @@ class GeometryGallery extends LivelitWindow {
     }
 
     renderGalleryItem(itemNumber: number) {
-        return e(
-            'div',
-            {
-                className: 'gallery-item',
-                key: itemNumber.toString()
-            }
-        );
+        return <div className="gallery-item"
+                    key={itemNumber.toString()}>
+               </div>;
     }
 
     renderContent() {
@@ -64,26 +52,12 @@ class GeometryGallery extends LivelitWindow {
         const galleryItems = [...Array(numGalleryItems).keys()].map(n => {
             return this.renderGalleryItem(n);
         });
-        return e(
-            'div',
-            {
-                className: 'content',
-                key: this.contentKey.toString()
-            },
-            e(
-                'div',
-                { className: 'geometry-browser' },
-                galleryItems
-            )
-        );
-    }
-
-    render() {
-        return e(
-            'div',
-            { className: this.livelitClassName },
-            [ this.renderTitle(), this.renderContent() ]
-        );
+        return <div className="content"
+                    key={this.contentKey.toString()}>
+                    <div className="geometry-browser">
+                        { galleryItems }
+                    </div>
+               </div>
     }
 }
 
