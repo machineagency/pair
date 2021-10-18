@@ -13,66 +13,7 @@
         <div id="canvas-container">
             <canvas id="main-canvas" resize></canvas>
         </div>
-        <div id="program-container">
-            <div class="program-lines">
-                <div class="program-line pl-highlight" id="pl-0">
-                    let signature = $geometryBrowser;
-                </div>
-                <div class="livelit-window">
-                    <div class="title">
-                        Geometry Browser
-                    </div>
-                    <div class="content">
-                        <div class="geometry-browser">
-                            <div class="gallery-item"></div>
-                            <div class="gallery-item"></div>
-                            <div class="gallery-item"></div>
-                            <div class="gallery-item"></div>
-                            <div class="gallery-item"></div>
-                            <div class="gallery-item"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="program-line" id="pl-1">
-                    let point = $pointPicker;
-                </div>
-                <div class="livelit-window">
-                    <div class="title">
-                        Point Picker
-                    </div>
-                    <div class="content">
-                        <div class="point-picker">
-                            <div class="table-thumbnail">
-                                <div class="crosshair"></div>
-                            </div>
-                            <div class="point-text">
-                                (154, 132)
-                            </div>
-                            <div class="help-text">
-                                Click a point in the work envelope to update this value.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="program-line" id="pl-2">
-                    let toolpath = signature.placeAt(point);
-                </div>
-                <div class="program-line" id="pl-3">
-                    // $toolpathTransformer signature
-                </div>
-                <div id="react-window"></div>
-                <div class="program-line" id="pl-4">
-                    // $machineSynthesizer gigapan coinGeometry
-                </div>
-                <div class="program-line" id="pl-5">
-                    machine.plot(toolpath);
-                </div>
-            </div>
-            <div class="program-controls">
-                <div class="pc-btn pc-step">Run</div>
-                <div class="pc-btn pc-reset">Reset</div>
-            </div>
-        </div>
+        <div id="program-container"></div>
     </div>
 
     <!-- Load React. -->
