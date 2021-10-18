@@ -4,7 +4,7 @@
 <title>Pair</title>
 <script type="text/javascript" src="paper-full.js"></script>
 <script type="text/javascript" src="perspective-transform.js"></script>
-<script type="text/javascript" src="main.js" canvas="main-canvas">
+<script type="module" src="main.js" canvas="main-canvas">
 </script>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -60,6 +60,7 @@
                 <div class="program-line" id="pl-3">
                     // $toolpathTransformer signature
                 </div>
+                <div id="react-window"></div>
                 <div class="program-line" id="pl-4">
                     // $machineSynthesizer gigapan coinGeometry
                 </div>
@@ -78,5 +79,6 @@
     <!-- Note: when deploying, replace "development.js" with "production.min.js". -->
     <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
+    <script type="text/javascript" src="livelit-windows.js">
 </body>
 </html>
