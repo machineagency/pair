@@ -5,13 +5,17 @@ interface ProgramLineProps {
 };
 
 interface State {};
+interface ProgramPaneState {
+    showLivelitWindow: boolean;
+    livelitLineNumber: number;
+};
 interface ProgramLineState {
     lineText: string;
 };
 
-class ProgramPane extends React.Component<Props, State> {
+class ProgramPane extends React.Component<Props, ProgramPaneState> {
     defaultLines = [
-        'let signature = $geometryBrowser;',
+        'let signature = $geometryGallery;',
         'let point = $pointPicker;',
         'let toolpath = signature.placeAt(point);',
         '// $toolpathTransformer signature',
@@ -21,13 +25,50 @@ class ProgramPane extends React.Component<Props, State> {
 
     constructor(props: Props) {
         super(props);
+        this.state = {
+            showLivelitWindow: true,
+            livelitLineNumber: 1
+        };
     }
 
-    renderTextLines(lines: string[]) {
-        return lines.map((line, index) => {
-            return <ProgramLine lineNumber={index + 1}
+    parseTextForLivelit(text: string) : JSX.Element {
+        const re = /\$\w+/;
+        const maybeMatch = text.match(re);
+        const defaultEl = <div></div>;
+        if (!maybeMatch) {
+            return <div></div>
+        }
+        const livelitName = maybeMatch[0].slice(1);
+        switch (livelitName) {
+            case 'geometryGallery':
+                return <GeometryGallery></GeometryGallery>
+            case 'pointPicker':
+                return <PointPicker></PointPicker>
+            default:
+                return defaultEl;
+        }
+    }
+
+    renderTextLines(textLines: string[]) {
+        const lines = textLines.map((line, index) => {
+            const lineNumber = index + 1;
+            // TODO: for now naively expand all livelits, next step is
+            // to add on click functionality
+            if (true) {
+            // if (lineNumber === this.state.livelitLineNumber) {
+                const livelitWindow = this.parseTextForLivelit(line);
+                return [
+                    <ProgramLine lineNumber={lineNumber}
+                                 key={index}
+                                 lineText={line}></ProgramLine>,
+                    livelitWindow
+                ]
+            }
+            return <ProgramLine lineNumber={lineNumber}
+                                key={index}
                                 lineText={line}></ProgramLine>
-        });
+        }).flat();
+        return lines;
     }
 
     render() {
