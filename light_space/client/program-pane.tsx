@@ -167,17 +167,17 @@ class PointPicker extends LivelitWindow {
     }
 
     renderContent() {
-    return <div className="point-picker">
-               <div className="table-thumbnail">
-                   <div className="crosshair"></div>
-               </div>
-               <div className="point-text">
-                   (154, 132)
-               </div>
-               <div className="help-text">
-                   Click a point in the work envelope to update this value.
-               </div>
-           </div>
+        return <div className="point-picker">
+                   <div className="table-thumbnail">
+                       <div className="crosshair"></div>
+                   </div>
+                   <div className="point-text">
+                       (154, 132)
+                   </div>
+                   <div className="help-text">
+                       Click a point in the work envelope to update this value.
+                   </div>
+               </div>;
     }
 }
 
