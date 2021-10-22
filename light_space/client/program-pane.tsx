@@ -10,6 +10,8 @@ interface Props {};
 interface ProgramLineProps {
     lineNumber: number;
     lineText: string;
+    immediateEval: boolean;
+    highlight: boolean;
 };
 interface TabletopCalibratorProps {
     machine: pair.Machine;
@@ -22,7 +24,7 @@ interface FaceFinderProps {
 interface State {};
 interface ProgramPaneState {
     showLivelitWindow: boolean;
-    livelitLineNumber: number;
+    activeLine: number;
 };
 interface ProgramLineState {
     lineText: string;
@@ -67,7 +69,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         super(props);
         this.state = {
             showLivelitWindow: true,
-            livelitLineNumber: 1
+            activeLine: 0
         };
     }
 
@@ -96,6 +98,8 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     renderTextLines(textLines: string[]) {
         const lines = textLines.map((line, index) => {
             const lineNumber = index + 1;
+            const immediateEval = lineNumber === this.state.activeLine - 1;
+            const highlight = lineNumber === this.state.activeLine;
             // TODO: for now naively expand all livelits, next step is
             // to add on click functionality
             if (false) {
@@ -103,16 +107,32 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
                 const livelitWindow = this.parseTextForLivelit(line);
                 return [
                     <ProgramLine lineNumber={lineNumber}
+                                 immediateEval={immediateEval}
+                                 highlight={highlight}
                                  key={index}
                                  lineText={line}></ProgramLine>,
                     livelitWindow
                 ]
             }
             return <ProgramLine lineNumber={lineNumber}
+                                immediateEval={immediateEval}
+                                highlight={highlight}
                                 key={index}
                                 lineText={line}></ProgramLine>
         }).flat();
         return lines;
+    }
+
+    stepLine() {
+        this.setState((prevState) => {
+            return {
+                showLivelitWindow: true,
+                activeLine: prevState.activeLine + 1
+            }
+        });
+    }
+
+    resetLine() {
     }
 
     render() {
@@ -121,8 +141,10 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
                 { this.renderTextLines(this.defaultLinesMustacheExpanded) }
             </div>,
             <div className="program-controls">
-                <div className="pc-btn pc-step">Run</div>
-                <div className="pc-btn pc-reset">Reset</div>
+                <div className="pc-btn pc-step"
+                     onClick={this.stepLine.bind(this)}>Run</div>
+                <div className="pc-btn pc-reset"
+                     onClick={this.resetLine.bind(this)}>Reset</div>
             </div>
         ];
     }
@@ -156,20 +178,25 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
     }
 
     evalLine() {
-        if (!this.hasLivelitExpansion) {
+        if (this.hasLivelitExpansion()) {
             // TODO: prompt the user to enter splices if we are unable to
             // do the expansion as is. For now, just print an error if
             // we try to eval and unexpanded livelit.
             console.error('I can\'t yet evaluate unexpanded livelits. Skipping this line for now.');
         }
         else {
-            eval(this.state.expandedLineText);
+            eval(this.state.lineText);
         };
     }
 
     render() {
+        const highlightClass = this.props.highlight ? 'pl-highlight' : '';
         const lineNumber = this.props.lineNumber || 0;
-        return <div className="program-line"
+        // FIXME: this is messy side effect
+        if (this.props.immediateEval) {
+            this.evalLine();
+        }
+        return <div className={`program-line ${highlightClass}`}
                     id={`line-${lineNumber - 1}`}>
                     {this.state.lineText}
                </div>
