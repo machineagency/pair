@@ -35,7 +35,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
 
     defaultLinesMustacheLiveLits = [
         'let machine = new Machine(\'axidraw\');',
-        '$tabletopCalibration(tabletop);',
+        '$tabletopCalibrator(tabletop);',
         'let mustache = $geometryGallery;',
         'let faceBoundingPolygons = $faceFinder;',
         'let faceCenters = faceBoundingPolygons.map(poly => poly.center);',
@@ -64,6 +64,10 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
                 return <GeometryGallery></GeometryGallery>
             case 'pointPicker':
                 return <PointPicker></PointPicker>
+            case 'tabletopCalibrator':
+                return <TabletopCalibrator></TabletopCalibrator>
+            case 'faceFinder':
+                return <FaceFinder></FaceFinder>
             default:
                 return defaultEl;
         }
@@ -199,6 +203,12 @@ class PointPicker extends LivelitWindow {
                    </div>
                </div>;
     }
+}
+
+class TabletopCalibrator extends LivelitWindow {
+}
+
+class FaceFinder extends LivelitWindow {
 }
 
 const inflateProgramPane = () => {
