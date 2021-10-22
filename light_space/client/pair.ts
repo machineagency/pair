@@ -524,6 +524,19 @@ export class Region {
 export class Camera {
 }
 
+export class Geometry {
+}
+
 export class Machine {
+    machineName: string;
+
+    constructor(machineName: string) {
+        this.machineName = machineName;
+        // TODO: look up machine name and initialize—fake it for now
+    }
+
+    plot(toolpath: Toolpath) {
+        // TODO:
+    }
 }
 
