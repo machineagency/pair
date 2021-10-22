@@ -21,6 +21,7 @@ body {
     display: flex;
     flex-direction: column;
     margin-top: 20px;
+    overflow-y: scroll;
 }
 
 .program-line {
@@ -38,6 +39,8 @@ body {
     width: 20px;
     color: #ffffffab;
 }
+
+/* Shared Livelit Styles */
 
 .livelit-window {
     max-width: 90%;
@@ -79,6 +82,20 @@ body {
     font-style: italic;
 }
 
+.livelit-window .bold-text {
+    margin-top: 10px;
+    font-weight: bold;
+    font-style: italic;
+}
+
+.livelit-window .image-thumbnail {
+    height: 100%;
+    width: 100%;
+    border: 1px solid whitesmoke;
+}
+
+/* Livelit-Specific Styles */
+
 .livelit-window .geometry-browser {
     display: flex;
     flex-direction: row;
@@ -106,10 +123,10 @@ body {
     border: 1px solid whitesmoke;
 }
 
-.livelit-window .point-picker .point-text {
-    margin-top: 10px;
-    font-weight: bold;
-    font-style: italic;
+.livelit-window .face-finder-thumbnail img {
+    max-height: 100%;
+    max-width: 100%;
+
 }
 
 .program-controls {
