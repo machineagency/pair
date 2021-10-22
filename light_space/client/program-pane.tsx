@@ -44,9 +44,9 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     ];
 
     defaultLinesMustacheExpanded = [
-        'let machine = new Machine(\'axidraw\');',
-        'tabletop.__calibrate(machine); // TODO: this is a messy temporary interface',
-        'let mustache = new Geometry(\'./toolpaths/mustache.svg\')',
+        'let machine = new pair.Machine(\'axidraw\');',
+        '(() => {})(); // TODO: run calibration, no-op for now',
+        'let mustache = new pair.Geometry(\'./toolpaths/mustache.svg\')',
         'let faceBoundingPolygons = [] // TODO: initialize array values',
         'let faceCenters = faceBoundingPolygons.map(poly => poly.center);',
         'let toolpaths = faceCenters.map(c => mustache.placeAt(c));',
@@ -54,7 +54,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     ];
 
     defaultLinesMustacheLiveLits = [
-        'let machine = new Machine(\'axidraw\');',
+        'let machine = new pair.Machine(\'axidraw\');',
         '$tabletopCalibrator(tabletop, machine);',
         'let mustache = $geometryGallery;',
         'let faceBoundingPolygons = $faceFinder;',
