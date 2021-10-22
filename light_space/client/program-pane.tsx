@@ -26,6 +26,7 @@ interface ProgramPaneState {
 };
 interface ProgramLineState {
     lineText: string;
+    expandedLineText: string;
 };
 interface FaceFinderState {
     imagePath: string;
@@ -131,7 +132,8 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
     constructor(props: ProgramLineProps) {
         super(props);
         this.state = {
-            lineText: props.lineText
+            lineText: props.lineText,
+            expandedLineText: ''
         };
     }
 
