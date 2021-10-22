@@ -21,7 +21,9 @@ body {
     display: flex;
     flex-direction: column;
     margin-top: 20px;
-    overflow-y: scroll;
+    /* TODO: figure out how to scroll without overflow-y: scroll because
+     * this seems to causing the ::before pseudoelement not to show.
+     */
 }
 
 .program-line {
