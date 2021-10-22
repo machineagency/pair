@@ -98,7 +98,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
             const lineNumber = index + 1;
             // TODO: for now naively expand all livelits, next step is
             // to add on click functionality
-            if (true) {
+            if (false) {
             // if (lineNumber === this.state.livelitLineNumber) {
                 const livelitWindow = this.parseTextForLivelit(line);
                 return [
@@ -118,7 +118,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     render() {
         return [
             <div className="program-lines">
-                { this.renderTextLines(this.defaultLinesMustacheLiveLits) }
+                { this.renderTextLines(this.defaultLinesMustacheExpanded) }
             </div>,
             <div className="program-controls">
                 <div className="pc-btn pc-step">Run</div>

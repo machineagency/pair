@@ -8,5 +8,6 @@ const main = () => {
 };
 
 window.onload = function() {
+    (window as any).pair = pair;
     main();
 }

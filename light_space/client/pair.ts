@@ -509,22 +509,51 @@ class ToolpathCollection {
     }
 }
 
+/**
+ * Pair-level point object, one abstraction layer higher than paper.Point.
+ */
+export class Point {
+    paperPoint: paper.Point;
+
+    constructor(x: number, y: number) {
+        this.paperPoint = new paper.Point(x, y);
+    }
+
+    get x() {
+        return this.paperPoint.x;
+    }
+
+    get y() {
+        return this.paperPoint.y;
+    }
+}
+
 export class Region {
     name: string;
-    rectangle: paper.Rectangle;
+    corners: Point[];
 
-    constructor(name: string, anchor: paper.Point, height: number,
-                width: number) {
+    constructor(name: string, corners: Point[]) {
         this.name = name;
-        this.rectangle = new paper.Rectangle(anchor,
-                                             new paper.Size(width, height));
+        this.corners = corners;
     }
 }
 
 export class Camera {
+    status: string;
+
+    constructor() {
+        this.status = 'Not yet implemented.';
+    }
 }
 
 export class Geometry {
+    name: string;
+    svgText: string;
+
+    constructor(name: string, svgText: string) {
+        this.name = name;
+        this.svgText = svgText;
+    }
 }
 
 export class Machine {
