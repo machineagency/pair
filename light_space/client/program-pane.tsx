@@ -129,11 +129,41 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
 }
 
 class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
+
+    colorSetLivelit = 0x888888;
+
     constructor(props: ProgramLineProps) {
         super(props);
         this.state = {
             lineText: props.lineText,
             expandedLineText: ''
+        };
+    }
+
+    hasLivelitExpansion() {
+        return this.state.expandedLineText !== '';
+    }
+
+    expandLivelit(lineText: string) : void {
+        this.setState((prevState) => {
+        // TODO: actually expand
+            let newState: ProgramLineState = {
+                lineText: prevState.lineText,
+                expandedLineText: prevState.lineText
+            };
+            return newState;
+        })
+    }
+
+    evalLine() {
+        if (!this.hasLivelitExpansion) {
+            // TODO: prompt the user to enter splices if we are unable to
+            // do the expansion as is. For now, just print an error if
+            // we try to eval and unexpanded livelit.
+            console.error('I can\'t yet evaluate unexpanded livelits. Skipping this line for now.');
+        }
+        else {
+            eval(this.state.expandedLineText);
         };
     }
 
