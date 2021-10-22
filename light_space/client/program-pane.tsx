@@ -11,11 +11,13 @@ interface ProgramLineProps {
     lineNumber: number;
     lineText: string;
 };
-
 interface TabletopCalibratorProps {
     machine: pair.Machine;
     tabletop: pair.Tabletop;
 };
+interface FaceFinderProps {
+    camera: pair.Camera;
+}
 
 interface State {};
 interface ProgramPaneState {
@@ -25,6 +27,10 @@ interface ProgramPaneState {
 interface ProgramLineState {
     lineText: string;
 };
+interface FaceFinderState {
+    imagePath: string;
+    detectedRegions: pair.Region[];
+}
 
 class ProgramPane extends React.Component<Props, ProgramPaneState> {
     defaultLinesSignature = [
@@ -38,7 +44,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
 
     defaultLinesMustacheExpanded = [
         'let machine = new Machine(\'axidraw\');',
-        'tabletop.__calibrate(); // TODO: this is a messy temporary interface',
+        'tabletop.__calibrate(machine); // TODO: this is a messy temporary interface',
         'let mustache = new Geometry(\'./toolpaths/mustache.svg\')',
         'let faceBoundingPolygons = [] // TODO: initialize array values',
         'let faceCenters = faceBoundingPolygons.map(poly => poly.center);',
@@ -48,7 +54,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
 
     defaultLinesMustacheLiveLits = [
         'let machine = new Machine(\'axidraw\');',
-        '$tabletopCalibrator(tabletop);',
+        '$tabletopCalibrator(tabletop, machine);',
         'let mustache = $geometryGallery;',
         'let faceBoundingPolygons = $faceFinder;',
         'let faceCenters = faceBoundingPolygons.map(poly => poly.center);',
@@ -257,6 +263,40 @@ class TabletopCalibrator extends LivelitWindow {
 }
 
 class FaceFinder extends LivelitWindow {
+    state: FaceFinderState;
+    camera: pair.Camera;
+
+    constructor(props: FaceFinderProps) {
+        super(props);
+        this.titleText = 'Face Finder';
+        this.camera = props.camera;
+        this.state = {
+            imagePath: './img/seattle-times.jpg',
+            detectedRegions: []
+        }
+    }
+
+    renderContent() {
+        return <div className="face-finder">
+                   <div className="button" id="take-photo">
+                       Take Photo
+                   </div>
+                   <div className="image-thumbnail face-finder-thumbnail">
+                       <img src={this.state.imagePath}/>
+                   </div>
+                   <div className="bold-text">
+                       Faces Found
+                   </div>
+                   <ul className="face-list">
+                       <li>Face 1</li>
+                       <li>Face 2</li>
+                       <li>Face 3</li>
+                   </ul>
+                   <div className="button" id="accept-faces">
+                       Accept
+                   </div>
+               </div>;
+    }
 }
 
 const inflateProgramPane = () => {
