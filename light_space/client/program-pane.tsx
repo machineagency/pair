@@ -1,3 +1,11 @@
+/** This file contains React components for:
+ *  - The program pane
+ *  - All livelit windows and functionality as described in the Omar et al.
+ *    paper.
+ */
+
+import * as pair from './pair.js';
+
 interface Props {};
 interface ProgramLineProps {
     lineNumber: number;
