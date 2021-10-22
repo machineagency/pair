@@ -14,13 +14,33 @@ interface ProgramLineState {
 };
 
 class ProgramPane extends React.Component<Props, ProgramPaneState> {
-    defaultLines = [
+    defaultLinesSignature = [
         'let signature = $geometryGallery;',
         'let point = $pointPicker;',
         'let toolpath = signature.placeAt(point);',
         '// $toolpathTransformer signature',
         '// $machineSynthesizer gigapan coinGeometry',
         'machine.plot(toolpath);'
+    ];
+
+    defaultLinesMustacheExpanded = [
+        'let machine = new Machine(\'axidraw\');',
+        'tabletop.__calibrate(); // TODO: this is a messy temporary interface',
+        'let mustache = new Geometry(\'./toolpaths/mustache.svg\')',
+        'let faceBoundingPolygons = [] // TODO: initialize array values',
+        'let faceCenters = faceBoundingPolygons.map(poly => poly.center);',
+        'let toolpaths = faceCenters.map(c => mustache.placeAt(c));',
+        'toolpaths.forEach(toolpath => machine.plot(toolpath))'
+    ];
+
+    defaultLinesMustacheLiveLits = [
+        'let machine = new Machine(\'axidraw\');',
+        '$tabletopCalibration(tabletop);',
+        'let mustache = $geometryGallery;',
+        'let faceBoundingPolygons = $faceFinder;',
+        'let faceCenters = faceBoundingPolygons.map(poly => poly.center);',
+        'let toolpaths = faceCenters.map(c => mustache.placeAt(c));',
+        'toolpaths.forEach(toolpath => machine.plot(toolpath))'
     ];
 
     constructor(props: Props) {
@@ -74,7 +94,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     render() {
         return [
             <div className="program-lines">
-                { this.renderTextLines(this.defaultLines) }
+                { this.renderTextLines(this.defaultLinesMustacheLiveLits) }
             </div>,
             <div className="program-controls">
                 <div className="pc-btn pc-step">Run</div>
