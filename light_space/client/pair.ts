@@ -1,5 +1,5 @@
-/// <reference path="paper.d.ts" />
-/// <reference path="perspective-transform.d.ts" />
+/// <reference path="lib/paper.d.ts" />
+/// <reference path="lib/perspective-transform.d.ts" />
 
 /** This file contains all primitives in the (expanded) Pair language.
  */

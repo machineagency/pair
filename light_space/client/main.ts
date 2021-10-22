@@ -1,6 +1,3 @@
-/// <reference path="paper.d.ts" />
-/// <reference path="perspective-transform.d.ts" />
-
 import { inflateProgramPane } from "./program-pane.js";
 import * as pair from './pair.js';
 
