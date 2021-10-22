@@ -236,21 +236,21 @@ class TabletopCalibrator extends LivelitWindow {
                        1. Draw a border around the work envelope with the
                        machine.
                    </div>
-                   <div className="button">
+                   <div className="button" id="draw-border">
                        Draw Border
                    </div>
                    <div className="help-text">
                        2. Drag the corners of the projected border to match
                        the drawn border.
                    </div>
+                   <div className="button" id="unlock-corners">
+                       Unlock Corners
+                   </div>
                    <div className="help-text">
                        3. Press 'Apply' when you are satisfied.
                    </div>
-                   <div className="table-thumbnail">
-                       <div className="crosshair"></div>
-                   </div>
-                   <div className="point-text">
-                       (154, 132)
+                   <div className="button" id="apply">
+                       Apply
                    </div>
                </div>;
     }
