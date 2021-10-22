@@ -4,6 +4,11 @@ interface ProgramLineProps {
     lineText: string;
 };
 
+interface TabletopCalibratorProps {
+    machine: pair.Machine;
+    tabletop: pair.Tabletop;
+};
+
 interface State {};
 interface ProgramPaneState {
     showLivelitWindow: boolean;
@@ -188,6 +193,7 @@ class GeometryGallery extends LivelitWindow {
 class PointPicker extends LivelitWindow {
     constructor(props: Props) {
         super(props);
+        this.titleText = 'Point Picker';
     }
 
     renderContent() {
@@ -206,6 +212,40 @@ class PointPicker extends LivelitWindow {
 }
 
 class TabletopCalibrator extends LivelitWindow {
+    machine: pair.Machine;
+    tabletop: pair.Tabletop;
+
+    constructor(props: TabletopCalibratorProps) {
+        super(props);
+        this.titleText = 'Tabletop Calibrator';
+        this.machine = props.machine;
+        this.tabletop = props.tabletop;
+    }
+
+    renderContent() {
+        return <div className="tabletop-calibrator">
+                   <div className="help-text">
+                       1. Draw a border around the work envelope with the
+                       machine.
+                   </div>
+                   <div className="button">
+                       Draw Border
+                   </div>
+                   <div className="help-text">
+                       2. Drag the corners of the projected border to match
+                       the drawn border.
+                   </div>
+                   <div className="help-text">
+                       3. Press 'Apply' when you are satisfied.
+                   </div>
+                   <div className="table-thumbnail">
+                       <div className="crosshair"></div>
+                   </div>
+                   <div className="point-text">
+                       (154, 132)
+                   </div>
+               </div>;
+    }
 }
 
 class FaceFinder extends LivelitWindow {
