@@ -12,7 +12,9 @@ interface ProgramLineProps {
     lineText: string;
     immediateEval: boolean;
     highlight: boolean;
+    programContext: ProgramContext; // WRONG this is aliasing the constructor
 };
+type ProgramContext = typeof Proxy;
 interface TabletopCalibratorProps {
     machine: pair.Machine;
     tabletop: pair.Tabletop;
@@ -36,6 +38,7 @@ interface FaceFinderState {
 }
 
 class ProgramPane extends React.Component<Props, ProgramPaneState> {
+    programWideContext: ProgramContext;
     defaultLinesSignature = [
         'let signature = $geometryGallery;',
         'let point = $pointPicker;',
@@ -49,8 +52,8 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'let machine = new pair.Machine(\'axidraw\');',
         '(() => {})(); // TODO: run calibration, no-op for now',
         'let mustache = new pair.Geometry(\'./toolpaths/mustache.svg\')',
-        'let faceBoundingPolygons = [] // TODO: initialize array values',
-        'let faceCenters = faceBoundingPolygons.map(poly => poly.center);',
+        'let faceRegions = []; // TODO: initialize array values',
+        'let faceCenters = faceRegions.map(poly => poly.center);',
         'let toolpaths = faceCenters.map(c => mustache.placeAt(c));',
         'toolpaths.forEach(toolpath => machine.plot(toolpath))'
     ];
@@ -59,14 +62,15 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'let machine = new pair.Machine(\'axidraw\');',
         '$tabletopCalibrator(tabletop, machine);',
         'let mustache = $geometryGallery;',
-        'let faceBoundingPolygons = $faceFinder;',
-        'let faceCenters = faceBoundingPolygons.map(poly => poly.center);',
+        'let faceRegions = $faceFinder;',
+        'let faceCenters = faceRegions.map(poly => poly.center);',
         'let toolpaths = faceCenters.map(c => mustache.placeAt(c));',
         'toolpaths.forEach(toolpath => machine.plot(toolpath))'
     ];
 
     constructor(props: Props) {
         super(props);
+        this.programWideContext = Proxy;
         this.state = {
             showLivelitWindow: true,
             activeLine: 0
@@ -110,6 +114,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
                                  immediateEval={immediateEval}
                                  highlight={highlight}
                                  key={index}
+                                 programContext={this.programWideContext}
                                  lineText={line}></ProgramLine>,
                     livelitWindow
                 ]
@@ -118,6 +123,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
                                 immediateEval={immediateEval}
                                 highlight={highlight}
                                 key={index}
+                                programContext={this.programWideContext}
                                 lineText={line}></ProgramLine>
         }).flat();
         return lines;
@@ -135,18 +141,30 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     resetLine() {
     }
 
+    runAllLines() {
+        const extractProgramText = () => {
+            const programLines = Array.from(document
+                                      .getElementsByClassName('program-line'));
+            return programLines.map(el => (el as HTMLElement).innerText).join('\n');
+        };
+        let progText = extractProgramText();
+        eval(progText);
+    }
+
     render() {
-        return [
+        return <div className="program-pane">
             <div className="program-lines">
                 { this.renderTextLines(this.defaultLinesMustacheExpanded) }
-            </div>,
+            </div>
             <div className="program-controls">
                 <div className="pc-btn pc-step"
-                     onClick={this.stepLine.bind(this)}>Run</div>
+                     onClick={this.stepLine.bind(this)}>Step</div>
                 <div className="pc-btn pc-reset"
                      onClick={this.resetLine.bind(this)}>Reset</div>
+                <div className="pc-btn pc-run"
+                     onClick={this.runAllLines.bind(this)}>Run</div>
             </div>
-        ];
+        </div>
     }
 }
 
@@ -185,7 +203,12 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
             console.error('I can\'t yet evaluate unexpanded livelits. Skipping this line for now.');
         }
         else {
-            eval(this.state.lineText);
+            let lineText : string = this.state.lineText;
+            let programContext : ProgramContext = this.props.programContext;
+            const evalInContext = (progText: string) => {
+                eval(progText);
+            };
+            evalInContext.call(programContext, lineText);
         };
     }
 
