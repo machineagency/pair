@@ -53,11 +53,11 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'let camera = new pair.Camera();',
         '(() => {})(); // TODO: run calibration, no-op for now',
         'let mustache = new pair.Geometry(\'./toolpaths/mustache.svg\')',
-        'camera.findFaceRegions().then((regions) => console.log(regions));',
-        'let faceRegions = []; // TODO: initialize array values',
-        'let faceCenters = faceRegions.map(poly => poly.center);',
-        'let toolpaths = faceCenters.map(c => mustache.placeAt(c));',
-        'toolpaths.forEach(toolpath => machine.plot(toolpath))'
+        'camera.findFaceRegions().then((faceRegions) => {',
+        '\tlet faceCentroids = faceRegions.map(r => r.centroid);',
+        '\tlet toolpaths = faceCentroids.map(c => mustache.placeAt(c));',
+        '\ttoolpaths.forEach(toolpath => machine.plot(toolpath))',
+        '});'
     ];
 
     defaultLinesMustacheLiveLits = [
@@ -65,7 +65,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         '$tabletopCalibrator(tabletop, machine);',
         'let mustache = $geometryGallery;',
         'let faceRegions = $faceFinder;',
-        'let faceCenters = faceRegions.map(poly => poly.center);',
+        'let faceCentroids = faceRegions.map(r => r.centroid);',
         'let toolpaths = faceCenters.map(c => mustache.placeAt(c));',
         'toolpaths.forEach(toolpath => machine.plot(toolpath))'
     ];

@@ -416,6 +416,9 @@ export class Toolpath {
         this.group = originalGroupCopy;
     }
 
+    plot() {
+        console.log(`Sending ${this.pairName} to machine.`);
+    }
 }
 
 class ToolpathThumbnail extends paper.Group {
@@ -536,6 +539,15 @@ export class Region {
         this.name = name;
         this.corners = corners;
     }
+
+    get centroid() : Point {
+        let xSum = this.corners.reduce((soFar, pt) => soFar + pt.x, 0);
+        let ySum = this.corners.reduce((soFar, pt) => soFar + pt.y, 0);
+        return new Point(xSum / this.corners.length, ySum / this.corners.length);
+    }
+
+    drawOnTabletop(tabletop: Tabletop) {
+    }
 }
 
 export class Camera {
@@ -580,6 +592,10 @@ export class Geometry {
     constructor(name: string, svgText: string) {
         this.name = name;
         this.svgText = svgText;
+    }
+
+    placeAt(point: Point) {
+        // TODO
     }
 }
 
