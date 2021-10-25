@@ -135,9 +135,14 @@ class Interpreter(cmd.Cmd):
                 break
 
     def do_detect_face_boxes(self, arg):
+        def marshal_boxes_into_one_line(boxes):
+            string_arrays = [np.array2string(box, separator=', ') for box in boxes]
+            return '[' + ', '.join(string_arrays) + ']'
+
         show_on_preview = arg == 'True'
         boxes = self.camera.detect_face_boxes(show_on_preview)
-        print(boxes)
+        marshaled_boxes = marshal_boxes_into_one_line(boxes)
+        print(marshaled_boxes)
 
     def do_choose_point(self, arg):
         # TODO: determine x and y scaling factors based on the ratio
