@@ -586,16 +586,24 @@ export class Camera {
 }
 
 export class Geometry {
-    name: string;
-    svgText: string;
+    filepath: string;
 
-    constructor(name: string, svgText: string) {
-        this.name = name;
-        this.svgText = svgText;
+    constructor(filepath: string) {
+        this.filepath = filepath;
     }
 
-    placeAt(point: Point) {
-        // TODO
+    placeAt(placementPoint: Point, tabletop: Tabletop) {
+        return tabletop.project.importSVG(this.filepath, {
+            expandShapes: true,
+            insert: true,
+            onError: () => {
+                console.warn('Could not load an SVG');
+            },
+            onLoad: (item: paper.Group, svgString: string) => {
+                item.strokeColor = new paper.Color(0xffffff);
+                item.position = placementPoint.paperPoint;
+            }
+        });
     }
 }
 

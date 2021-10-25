@@ -51,12 +51,14 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     defaultLinesMustacheExpanded = [
         'let machine = new pair.Machine(\'axidraw\');',
         'let camera = new pair.Camera();',
-        '(() => {})(); // TODO: run calibration, no-op for now',
+        'let tabletop = new pair.Tabletop();',
         'let mustache = new pair.Geometry(\'./toolpaths/mustache.svg\')',
         'camera.findFaceRegions().then((faceRegions) => {',
-        '\tlet faceCentroids = faceRegions.map(r => r.centroid);',
-        '\tlet toolpaths = faceCentroids.map(c => mustache.placeAt(c));',
-        '\ttoolpaths.forEach(toolpath => machine.plot(toolpath))',
+        '  let faceCentroids = faceRegions.map(r => r.centroid);',
+        '  let toolpaths = faceCentroids.map(c => {',
+        '    return mustache.placeAt(c, tabletop)',
+        '  });',
+        '  toolpaths.forEach(toolpath => machine.plot(toolpath))',
         '});'
     ];
 
