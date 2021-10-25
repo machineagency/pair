@@ -5,16 +5,17 @@ from machine import Machine
 import sys
 
 class Camera:
-    def __init__(self):
+    def __init__(self, dry=False):
+        self.dry_mode = dry
         self.PROJ_SCREEN_SIZE_HW = (720, 1280)
         self.CM_TO_PX = 37.7952755906
         self.MIN_CONTOUR_LEN = 100
-        self.path = 'test_images/form.png'
-        self.img_orig = cv2.imread(self.path)
+        self.static_image_path = './client/img/seattle-times.jpg'
         self.contours = []
         self.work_env_contour = None
-        self.video_capture = cv2.VideoCapture(0)
-        self.video_preview_open = False
+        self.preview_open = False
+        if not self.dry_mode:
+            self.video_capture = cv2.VideoCapture(0)
 
     def _process_image(self, img):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -24,14 +25,19 @@ class Camera:
         return img
 
     def _load_file_image(self):
-        return cv2.imread(self.path)
+        return cv2.imread(self.static_image_path)
 
     def _read_video_image(self):
         ret, frame = self.video_capture.read()
         return frame
 
+    def open_static_image_preview(self):
+        self.preview_open = True
+        self.static_image = self._load_file_image()
+        cv2.imshow('preview', self.static_image)
+
     def open_video_preview(self):
-        self.video_preview_open = True
+        self.preview_open = True
         cv2.imshow('preview', self._read_video_image())
 
     def update_video_preview(self):
@@ -46,7 +52,7 @@ class Camera:
         cv2.imshow('preview', img)
 
     def close_video_preview(self):
-        self.video_preview_open = False
+        self.preview_open = False
         cv2.destroyWindow('preview')
 
     def calc_candidate_contours(self, envelope_hw):
@@ -58,7 +64,7 @@ class Camera:
         envelope_hw_px = (round(envelope_hw[0] * self.CM_TO_PX),\
                           round(envelope_hw[1] * self.CM_TO_PX))
         # TODO: this works with img_orig but we shouldn't be using it
-        work_env_homog = calc_work_env_homog(self.img_orig, work_env_contour,\
+        work_env_homog = calc_work_env_homog(self.static_image, work_env_contour,\
                                              envelope_hw_px)
         decimated_contours = decimate_contours(contours)
         # Not sure whether/how closed=T/F matters here
@@ -74,8 +80,31 @@ class Camera:
     def candidate_contours(self):
         return self.contours
 
+    def detect_face_boxes(self, display_on_preview=False):
+        """
+        Returns bounding boxes as 4-tuples of the form (x, y, width, height).
+        """
+        face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+        # TODO: generalize choice of image
+        img = cv2.imread(self.static_image_path)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+        if display_on_preview:
+            self.draw_face_boxes_on_preview(faces)
+        return faces
+
+    def draw_face_boxes_on_preview(self, faces):
+        if not self.preview_open:
+            self.open_static_image_preview()
+        image_with_boxes = self.static_image.copy()
+        for (x, y, w, h) in faces:
+            cv2.rectangle(image_with_boxes, (x, y), (x + w, y + h), \
+                         (255, 0, 0), 2)
+        cv2.imshow('preview', image_with_boxes)
+        cv2.waitKey()
+
 class Interpreter(cmd.Cmd):
-    def __init__(self, use_prompt=False, no_camera=True):
+    def __init__(self, use_prompt=False):
         cmd.Cmd.__init__(self)
         self.PROJ_SCREEN_SIZE_HW = (720, 1280)
         self.PROJ_NAME = 'projection'
@@ -87,25 +116,28 @@ class Interpreter(cmd.Cmd):
         else:
             Interpreter.prompt = ""
 
-        if not no_camera:
-            self.camera = Camera()
-
-        self.machine = Machine(dry=False)
+        self.camera = Camera(dry=True)
+        self.machine = Machine(dry=True)
 
     def do_image(self, arg):
-        if self.camera.video_preview_open:
-            self.camera.update_video_preview()
+        if self.camera.dry_mode:
+            self.camera.open_static_image_preview()
         else:
-            self.camera.open_video_preview()
+            if self.camera.preview_open:
+                self.camera.update_video_preview()
+            else:
+                self.camera.open_video_preview()
         while True:
-            # NOTE: Seems to receive buffered key presses from the interpreter
-            # which causes premature firing sometimes. Not sure how to
-            # fix this, adding delay does't seem to help.
             maybe_key = cv2.waitKey(100)
-            if maybe_key > 0:
+            if maybe_key == ord('q'):
                 self.camera.close_video_preview()
                 cv2.waitKey(1)
                 break
+
+    def do_detect_face_boxes(self, arg):
+        show_on_preview = arg == 'True'
+        boxes = self.camera.detect_face_boxes(show_on_preview)
+        print(boxes)
 
     def do_choose_point(self, arg):
         # TODO: determine x and y scaling factors based on the ratio
