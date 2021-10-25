@@ -542,7 +542,34 @@ export class Camera {
     status: string;
 
     constructor() {
+        // TODO: dry mode only right now
         this.status = 'Not yet implemented.';
+    }
+
+    async findFaceRegions() : Promise<Region[]> {
+        interface BoxResponseObj {
+            x: number,
+            y: number,
+            width: number,
+            height: number
+        };
+        const url = '/image/detectFaceBoxes';
+        let response = await fetch(url);
+        let regions : Region[];
+        if (response.ok) {
+            let resJson = await response.json();
+            regions = resJson.results.map((obj: BoxResponseObj, idx: number) => {
+                let tl = new Point(obj.x - 0.5 * obj.width, obj.y - 0.5 * obj.height);
+                let bl = new Point(obj.x - 0.5 * obj.width, obj.y + 0.5 * obj.height);
+                let tr = new Point(obj.x + 0.5 * obj.width, obj.y - 0.5 * obj.height);
+                let br = new Point(obj.x + 0.5 * obj.width, obj.y + 0.5 * obj.height);
+                return new Region(`face ${idx}`, [tl, bl, tr, br]);
+            });
+        }
+        else {
+            regions = [];
+        }
+        return new Promise((resolve, reject) => resolve(regions));
     }
 }
 

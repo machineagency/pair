@@ -50,8 +50,10 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
 
     defaultLinesMustacheExpanded = [
         'let machine = new pair.Machine(\'axidraw\');',
+        'let camera = new pair.Camera();',
         '(() => {})(); // TODO: run calibration, no-op for now',
         'let mustache = new pair.Geometry(\'./toolpaths/mustache.svg\')',
+        'camera.findFaceRegions().then((regions) => console.log(regions));',
         'let faceRegions = []; // TODO: initialize array values',
         'let faceCenters = faceRegions.map(poly => poly.center);',
         'let toolpaths = faceCenters.map(c => mustache.placeAt(c));',
