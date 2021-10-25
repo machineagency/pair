@@ -34,7 +34,20 @@ shell.on('message', (message) => {
         shell.currRpcName = '';
     }
     else if (shell.currRpcName === 'detectFaceBoxes') {
-        console.log(`I want to send this to the client: ${message}`);
+        let arrayOfArrays = JSON.parse(message);
+        let boxes = arrayOfArrays.map(box => {
+            return {
+                x: box[0],
+                y: box[1],
+                width: box[2],
+                height: box[3]
+            }
+        });
+        shell.currRpcResponse.status(200).json({
+            results: boxes
+        });
+        shell.currRpcResponse = undefined;
+        shell.currRpcName = '';
     }
     else {
         console.log(`PC --> ${message}`);
@@ -57,6 +70,7 @@ let attachRoutesAndStart = () => {
     });
 
     app.get('/image/detectFaceBoxes', (req, res) => {
+        shell.currRpcResponse = res;
         shell.currRpcName = 'detectFaceBoxes';
         shell.send('detect_face_boxes');
     });
