@@ -10,11 +10,7 @@ interface Props {};
 interface ProgramLineProps {
     lineNumber: number;
     lineText: string;
-    immediateEval: boolean;
-    highlight: boolean;
-    programContext: ProgramContext; // WRONG this is aliasing the constructor
 };
-type ProgramContext = typeof Proxy;
 interface TabletopCalibratorProps {
     machine: pair.Machine;
     tabletop: pair.Tabletop;
@@ -25,21 +21,45 @@ interface FaceFinderProps {
 
 interface State {};
 interface ProgramPaneState {
-    showLivelitWindow: boolean;
-    activeLine: number;
     defaultLines: string[]
 };
 interface ProgramLineState {
     lineText: string;
     expandedLineText: string;
+    windowOpen: boolean;
+    highlight: boolean;
 };
 interface FaceFinderState {
     imagePath: string;
     detectedRegions: pair.Region[];
 }
 
+class ProgramUtil {
+    static parseTextForLivelit(text: string) : JSX.Element {
+        const re = /\$\w+/;
+        const maybeMatch = text.match(re);
+        const defaultEl = <div></div>;
+        if (!maybeMatch) {
+            return <div></div>
+        }
+        const livelitName = maybeMatch[0].slice(1);
+        switch (livelitName) {
+            case 'geometryGallery':
+                return <GeometryGallery></GeometryGallery>
+            case 'pointPicker':
+                return <PointPicker></PointPicker>
+            case 'tabletopCalibrator':
+                return <TabletopCalibrator></TabletopCalibrator>
+            case 'faceFinder':
+                return <FaceFinder></FaceFinder>
+            default:
+                return defaultEl;
+        }
+    }
+
+}
+
 class ProgramPane extends React.Component<Props, ProgramPaneState> {
-    programWideContext: ProgramContext;
     defaultLinesSignature = [
         'let signature = $geometryGallery;',
         'let point = $pointPicker;',
@@ -70,81 +90,24 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'let faceRegions = $faceFinder;',
         'let faceCentroids = faceRegions.map(r => r.centroid);',
         'let toolpaths = faceCenters.map(c => mustache.placeAt(c, tabletop));',
-        'toolpaths.forEach(toolpath => machine.plot(toolpath))'
+        'toolpaths.forEach(toolpath => machine.plot(toolpath));'
     ];
 
     constructor(props: Props) {
         super(props);
-        this.programWideContext = Proxy;
         this.state = {
-            showLivelitWindow: true,
-            activeLine: 0,
-            defaultLines: this.defaultLinesMustacheExpanded
+            defaultLines: this.defaultLinesMustacheLiveLits
         };
-    }
-
-    parseTextForLivelit(text: string) : JSX.Element {
-        const re = /\$\w+/;
-        const maybeMatch = text.match(re);
-        const defaultEl = <div></div>;
-        if (!maybeMatch) {
-            return <div></div>
-        }
-        const livelitName = maybeMatch[0].slice(1);
-        switch (livelitName) {
-            case 'geometryGallery':
-                return <GeometryGallery></GeometryGallery>
-            case 'pointPicker':
-                return <PointPicker></PointPicker>
-            case 'tabletopCalibrator':
-                return <TabletopCalibrator></TabletopCalibrator>
-            case 'faceFinder':
-                return <FaceFinder></FaceFinder>
-            default:
-                return defaultEl;
-        }
     }
 
     renderTextLines(textLines: string[]) {
         const lines = textLines.map((line, index) => {
             const lineNumber = index + 1;
-            const immediateEval = lineNumber === this.state.activeLine - 1;
-            const highlight = lineNumber === this.state.activeLine;
-            // TODO: for now naively expand all livelits, next step is
-            // to add on click functionality
-            if (true) {
-            // if (lineNumber === this.state.livelitLineNumber) {
-                const livelitWindow = this.parseTextForLivelit(line);
-                return [
-                    <ProgramLine lineNumber={lineNumber}
-                                 immediateEval={immediateEval}
-                                 highlight={highlight}
-                                 key={index}
-                                 programContext={this.programWideContext}
-                                 lineText={line}></ProgramLine>,
-                    livelitWindow
-                ]
-            }
             return <ProgramLine lineNumber={lineNumber}
-                                immediateEval={immediateEval}
-                                highlight={highlight}
                                 key={index}
-                                programContext={this.programWideContext}
                                 lineText={line}></ProgramLine>
         }).flat();
         return lines;
-    }
-
-    stepLine() {
-        this.setState((prevState) => {
-            return {
-                showLivelitWindow: true,
-                activeLine: prevState.activeLine + 1
-            }
-        });
-    }
-
-    resetLine() {
     }
 
     runAllLines() {
@@ -158,22 +121,12 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         eval(progTextWrappedInAsyncFn);
     }
 
-    expandAllLines() {
-        this.setState({
-            showLivelitWindow: true,
-            activeLine: 0,
-            defaultLines: this.defaultLinesMustacheExpanded
-        });
-    }
-
     render() {
         return <div className="program-pane">
             <div className="program-lines">
                 { this.renderTextLines(this.state.defaultLines) }
             </div>
             <div className="program-controls">
-                <div className="pc-btn pc-expand"
-                     onClick={this.expandAllLines.bind(this)}>Expand</div>
                 <div className="pc-btn pc-run"
                      onClick={this.runAllLines.bind(this)}>Run</div>
             </div>
@@ -189,7 +142,9 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
         super(props);
         this.state = {
             lineText: props.lineText,
-            expandedLineText: ''
+            expandedLineText: '',
+            windowOpen: false,
+            highlight: false
         };
     }
 
@@ -197,44 +152,40 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
         return this.state.expandedLineText !== '';
     }
 
-    expandLivelit(lineText: string) : void {
+    toggleLivelitWindow() {
         this.setState((prevState) => {
-        // TODO: actually expand
             let newState: ProgramLineState = {
                 lineText: prevState.lineText,
-                expandedLineText: prevState.lineText
+                expandedLineText: prevState.lineText,
+                windowOpen: !prevState.windowOpen,
+                highlight: prevState.highlight
             };
             return newState;
         })
     }
 
-    evalLine() {
-        if (this.hasLivelitExpansion()) {
-            // TODO: prompt the user to enter splices if we are unable to
-            // do the expansion as is. For now, just print an error if
-            // we try to eval and unexpanded livelit.
-            console.error('I can\'t yet evaluate unexpanded livelits. Skipping this line for now.');
-        }
-        else {
-            let lineText : string = this.state.lineText;
-            let programContext : ProgramContext = this.props.programContext;
-            const evalInContext = (progText: string) => {
-                eval(progText);
+    expandLivelit(lineText: string) : void {
+        this.setState((prevState) => {
+        // TODO: actually expand
+            let newState: ProgramLineState = {
+                lineText: prevState.lineText,
+                expandedLineText: prevState.lineText,
+                windowOpen: prevState.windowOpen,
+                highlight: prevState.highlight
             };
-            evalInContext.call(programContext, lineText);
-        };
+            return newState;
+        });
     }
 
     render() {
-        const highlightClass = this.props.highlight ? 'pl-highlight' : '';
+        const highlightClass = this.state.highlight ? 'pl-highlight' : '';
         const lineNumber = this.props.lineNumber || 0;
-        // FIXME: this is messy side effect
-        if (this.props.immediateEval) {
-            this.evalLine();
-        }
+        const livelitWindow = ProgramUtil.parseTextForLivelit(this.state.lineText);
         return <div className={`program-line ${highlightClass}`}
-                    id={`line-${lineNumber - 1}`}>
-                    {this.state.lineText}
+                    id={`line-${lineNumber - 1}`}
+                    onClick={this.toggleLivelitWindow.bind(this)}>
+                        {this.state.lineText}
+                        {this.state.windowOpen ? livelitWindow : null}
                </div>
     }
 }
