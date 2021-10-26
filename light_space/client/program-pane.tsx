@@ -65,10 +65,11 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     defaultLinesMustacheLiveLits = [
         'let machine = new pair.Machine(\'axidraw\');',
         '$tabletopCalibrator(tabletop, machine);',
+        'let camera = new pair.Camera(tabletop);',
         'let mustache = $geometryGallery;',
         'let faceRegions = $faceFinder;',
         'let faceCentroids = faceRegions.map(r => r.centroid);',
-        'let toolpaths = faceCenters.map(c => mustache.placeAt(c));',
+        'let toolpaths = faceCenters.map(c => mustache.placeAt(c, tabletop));',
         'toolpaths.forEach(toolpath => machine.plot(toolpath))'
     ];
 
