@@ -108,6 +108,14 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         return lines;
     }
 
+    rewriteProgWithLivelitExpansions(unexpandedText: string) : string {
+        // TODO: keep local storage of splice parameters
+        // Do expansion as described in the paper, we probably can't solve
+        // this by writing functions alone.
+        // Implement expand() in each Livelit window class
+        return unexpandedText;
+    }
+
     runAllLines() {
         const extractProgramText = () => {
             const programLines = Array.from(document
@@ -115,8 +123,9 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
             return programLines.map(el => (el as HTMLElement).innerText).join('\n');
         };
         let progText = extractProgramText();
-        let progTextWrappedInAsyncFn = `(async function() { ${progText} })();`;
-        eval(progTextWrappedInAsyncFn);
+        progText = this.rewriteProgWithLivelitExpansions(progText);
+        progText  = `(async function() { ${progText} })();`;
+        eval(progText);
     }
 
     render() {
@@ -160,19 +169,6 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
             };
             return newState;
         })
-    }
-
-    expandLivelit(lineText: string) : void {
-        this.setState((prevState) => {
-        // TODO: actually expand
-            let newState: ProgramLineState = {
-                lineText: prevState.lineText,
-                expandedLineText: prevState.lineText,
-                windowOpen: prevState.windowOpen,
-                highlight: prevState.highlight
-            };
-            return newState;
-        });
     }
 
     render() {
