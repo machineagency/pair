@@ -27,6 +27,7 @@ interface State {};
 interface ProgramPaneState {
     showLivelitWindow: boolean;
     activeLine: number;
+    defaultLines: string[]
 };
 interface ProgramLineState {
     lineText: string;
@@ -50,16 +51,15 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
 
     defaultLinesMustacheExpanded = [
         'let machine = new pair.Machine(\'axidraw\');',
-        'let camera = new pair.Camera();',
         'let tabletop = new pair.Tabletop();',
+        'let camera = new pair.Camera(tabletop);',
         'let mustache = new pair.Geometry(\'./toolpaths/mustache.svg\')',
-        'camera.findFaceRegions().then((faceRegions) => {',
-        '  let faceCentroids = faceRegions.map(r => r.centroid);',
-        '  let toolpaths = faceCentroids.map(c => {',
-        '    return mustache.placeAt(c, tabletop)',
-        '  });',
-        '  toolpaths.forEach(toolpath => machine.plot(toolpath))',
-        '});'
+        'let faceRegions = await camera.findFaceRegions();',
+        'let faceCentroids = faceRegions.map(r => r.centroid);',
+        'let toolpaths = faceCentroids.map(c => {',
+        '  return mustache.placeAt(c, tabletop)',
+        '});',
+        'toolpaths.forEach(toolpath => machine.plot(toolpath))'
     ];
 
     defaultLinesMustacheLiveLits = [
@@ -77,7 +77,8 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         this.programWideContext = Proxy;
         this.state = {
             showLivelitWindow: true,
-            activeLine: 0
+            activeLine: 0,
+            defaultLines: this.defaultLinesMustacheExpanded
         };
     }
 
@@ -110,7 +111,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
             const highlight = lineNumber === this.state.activeLine;
             // TODO: for now naively expand all livelits, next step is
             // to add on click functionality
-            if (false) {
+            if (true) {
             // if (lineNumber === this.state.livelitLineNumber) {
                 const livelitWindow = this.parseTextForLivelit(line);
                 return [
@@ -152,19 +153,26 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
             return programLines.map(el => (el as HTMLElement).innerText).join('\n');
         };
         let progText = extractProgramText();
-        eval(progText);
+        let progTextWrappedInAsyncFn = `(async function() { ${progText} })();`;
+        eval(progTextWrappedInAsyncFn);
+    }
+
+    expandAllLines() {
+        this.setState({
+            showLivelitWindow: true,
+            activeLine: 0,
+            defaultLines: this.defaultLinesMustacheExpanded
+        });
     }
 
     render() {
         return <div className="program-pane">
             <div className="program-lines">
-                { this.renderTextLines(this.defaultLinesMustacheExpanded) }
+                { this.renderTextLines(this.state.defaultLines) }
             </div>
             <div className="program-controls">
-                <div className="pc-btn pc-step"
-                     onClick={this.stepLine.bind(this)}>Step</div>
-                <div className="pc-btn pc-reset"
-                     onClick={this.resetLine.bind(this)}>Reset</div>
+                <div className="pc-btn pc-expand"
+                     onClick={this.expandAllLines.bind(this)}>Expand</div>
                 <div className="pc-btn pc-run"
                      onClick={this.runAllLines.bind(this)}>Run</div>
             </div>
