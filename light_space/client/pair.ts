@@ -547,15 +547,20 @@ export class Region {
     }
 
     drawOnTabletop(tabletop: Tabletop) {
+        let from: paper.Point = this.corners[0].paperPoint;
+        let to: paper.Point = this.corners[3].paperPoint;
+        let rectPath = new paper.Path.Rectangle(from, to);
+        rectPath.strokeColor = new paper.Color(0x00ff00);
+        rectPath.strokeWidth = 1;
+        tabletop.project.activeLayer.addChild(rectPath);
     }
 }
 
 export class Camera {
-    status: string;
+    tabletop: Tabletop;
 
-    constructor() {
-        // TODO: dry mode only right now
-        this.status = 'Not yet implemented.';
+    constructor(tabletop: Tabletop) {
+        this.tabletop = tabletop;
     }
 
     async findFaceRegions() : Promise<Region[]> {
@@ -575,7 +580,9 @@ export class Camera {
                 let bl = new Point(obj.x - 0.5 * obj.width, obj.y + 0.5 * obj.height);
                 let tr = new Point(obj.x + 0.5 * obj.width, obj.y - 0.5 * obj.height);
                 let br = new Point(obj.x + 0.5 * obj.width, obj.y + 0.5 * obj.height);
-                return new Region(`face ${idx}`, [tl, bl, tr, br]);
+                let region = new Region(`face ${idx}`, [tl, bl, tr, br]);
+                region.drawOnTabletop(this.tabletop);
+                return region;
             });
         }
         else {
