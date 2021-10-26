@@ -365,7 +365,7 @@ class FaceFinder extends LivelitWindow {
         this.titleText = 'Face Finder';
         this.camera = props.camera;
         this.state = {
-            imagePath: './img/seattle-times.jpg',
+            imagePath: './img/seattle-times-boxed.png',
             detectedRegions: []
         }
     }
