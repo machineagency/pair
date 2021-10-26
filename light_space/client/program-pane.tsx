@@ -76,10 +76,8 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'let mustache = new pair.Geometry(\'./toolpaths/mustache.svg\')',
         'let faceRegions = await camera.findFaceRegions();',
         'let faceCentroids = faceRegions.map(r => r.centroid);',
-        'let toolpaths = faceCentroids.map(c => {',
-        '  return mustache.placeAt(c, tabletop)',
-        '});',
-        'toolpaths.forEach(toolpath => machine.plot(toolpath))'
+        'let toolpaths = faceCentroids.map(c => mustache.placeAt(c, tabletop));',
+        'toolpaths.forEach(toolpath => machine.plot(toolpath));'
     ];
 
     defaultLinesMustacheLiveLits = [
