@@ -2,8 +2,12 @@
  *  - The program pane
  *  - All livelit windows and functionality as described in the Omar et al.
  *    paper.
+ *  - Props of Livelit Components represent that livelit's parameter.
+ *  - State of Livelit Components represent any GUI input elements within
+ *    the livelit window whose splices will be used to write the expansion.
  */
 
+/// <reference path="lib/perspective-transform.d.ts" />
 import * as pair from './pair.js';
 
 interface Props {};
@@ -72,6 +76,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     defaultLinesMustacheExpanded = [
         'let machine = new pair.Machine(\'axidraw\');',
         'let tabletop = new pair.Tabletop();',
+        'tabletop = tabletop',
         'let camera = new pair.Camera(tabletop);',
         'let mustache = new pair.Geometry(\'./toolpaths/mustache.svg\')',
         'let faceRegions = await camera.findFaceRegions();',
@@ -82,10 +87,11 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
 
     defaultLinesMustacheLiveLits = [
         'let machine = new pair.Machine(\'axidraw\');',
-        '$tabletopCalibrator(tabletop, machine);',
+        'let tabletop = new pair.Tabletop();',
+        'tabletop = $tabletopCalibrator(tabletop, machine);',
         'let camera = new pair.Camera(tabletop);',
-        'let mustache = $geometryGallery;',
-        'let faceRegions = $faceFinder;',
+        'let mustache = $geometryGallery();',
+        'let faceRegions = $faceFinder(camera);',
         'let faceCentroids = faceRegions.map(r => r.centroid);',
         'let toolpaths = faceCenters.map(c => mustache.placeAt(c, tabletop));',
         'toolpaths.forEach(toolpath => machine.plot(toolpath));'
@@ -108,12 +114,18 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         return lines;
     }
 
-    rewriteProgWithLivelitExpansions(unexpandedText: string) : string {
-        // TODO: keep local storage of splice parameters
-        // Do expansion as described in the paper, we probably can't solve
-        // this by writing functions alone.
-        // Implement expand() in each Livelit window class
-        return unexpandedText;
+    gatherLivelitsAsFunctionDeclarations() : string {
+        // TODO: traverse over livelit window react objects and expand,
+        // don't traverse over text. Expansion is like e.g.
+        // tc : TabletopCalibrator ->
+        // function $tableTopCalibrator(tabletop, machine) {
+        //      // We should not actually have to deal with the parameters
+        //      // passed into this function because those values should be
+        //      // closed over the LivelitWindow object.
+        //      return tc.expand();
+        // }
+        debugger;
+        return '';
     }
 
     runAllLines() {
@@ -123,8 +135,8 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
             return programLines.map(el => (el as HTMLElement).innerText).join('\n');
         };
         let progText = extractProgramText();
-        progText = this.rewriteProgWithLivelitExpansions(progText);
-        progText  = `(async function() { ${progText} })();`;
+        let livelitFunctionDeclarations = this.gatherLivelitsAsFunctionDeclarations();
+        progText  = `${livelitFunctionDeclarations};(async function() { ${progText} })();`;
         eval(progText);
     }
 
@@ -179,12 +191,12 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
                     id={`line-${lineNumber - 1}`}
                     onClick={this.toggleLivelitWindow.bind(this)}>
                         {this.state.lineText}
-                        {this.state.windowOpen ? livelitWindow : null}
+                        {livelitWindow}
                </div>
     }
 }
 
-class LivelitWindow extends React.Component<Props, State> {
+class LivelitWindow extends React.Component {
     titleText: string;
     livelitClassName: string;
     titleKey: number;
@@ -218,10 +230,22 @@ class LivelitWindow extends React.Component<Props, State> {
     }
 };
 
+interface GeometryGalleryState {
+    selectedPath: string;
+};
 class GeometryGallery extends LivelitWindow {
+    state: GeometryGalleryState;
+
     constructor(props: Props) {
         super(props);
         this.titleText = 'Geometry Browser';
+        this.state = {
+            selectedPath: './toolpaths/mustache.svg'
+        };
+    }
+
+    expand() : pair.Geometry {
+        return new pair.Geometry(this.state.selectedPath);
     }
 
     renderGalleryItem(itemNumber: number) {
@@ -265,6 +289,10 @@ class PointPicker extends LivelitWindow {
     }
 }
 
+interface TabletopCalibratorState {
+    homography: Homography
+};
+
 class TabletopCalibrator extends LivelitWindow {
     machine: pair.Machine;
     tabletop: pair.Tabletop;
@@ -274,6 +302,13 @@ class TabletopCalibrator extends LivelitWindow {
         this.titleText = 'Tabletop Calibrator';
         this.machine = props.machine;
         this.tabletop = props.tabletop;
+    }
+
+    expand() {
+        return (oldTabletop: pair.Tabletop) => {
+            // TODO: return new tabletop with homography applied
+            new pair.Tabletop();
+        }
     }
 
     renderContent() {
@@ -314,6 +349,10 @@ class FaceFinder extends LivelitWindow {
             imagePath: './img/seattle-times-boxed.png',
             detectedRegions: []
         }
+    }
+
+    async expand () {
+        return await this.camera.findFaceRegions();
     }
 
     renderContent() {
