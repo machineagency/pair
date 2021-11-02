@@ -143,8 +143,34 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         //      // closed over the LivelitWindow object.
         //      return tc.expand();
         // }
-        debugger;
-        return '';
+        interface functionStatePair {
+            functionName: string;
+            state: State;
+        };
+        let livelitRefs = this.livelitRefs as React.RefObject<LivelitWindow>[];
+        let nonNullRefs = livelitRefs.filter((ref) => {
+            return ref.current !== null;
+        });
+        let fsPairs : functionStatePair[] = nonNullRefs.map((ref) => {
+            let functionName, state;
+            if (!(ref && ref.current)) {
+                functionName = '$livelit';
+                state = {};
+            }
+            else {
+                functionName = ref.current.functionName;
+                state = ref.current.state;
+            }
+            return { functionName, state };
+        });
+        let expandedFunctionStrings : string[] = [];
+        fsPairs.forEach((fsPair) => {
+            // TODO: actually do expansion
+            let s = `function ${fsPair.functionName}() { return; }`
+            expandedFunctionStrings.push(s)
+        });
+        let allExpandedFunctions = expandedFunctionStrings.join('\n');
+        return allExpandedFunctions;
     }
 
     runAllLines() {
@@ -155,7 +181,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         };
         let progText = extractProgramText();
         let livelitFunctionDeclarations = this.gatherLivelitsAsFunctionDeclarations();
-        progText  = `${livelitFunctionDeclarations};(async function() { ${progText} })();`;
+        progText  = `${livelitFunctionDeclarations}\n;(async function() { ${progText} })();`;
         eval(progText);
     }
 
@@ -221,6 +247,7 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
 
 class LivelitWindow extends React.Component {
     titleText: string;
+    functionName: string;
     livelitClassName: string;
     titleKey: number;
     contentKey: number;
@@ -228,6 +255,7 @@ class LivelitWindow extends React.Component {
     constructor(props: LivelitProps) {
         super(props);
         this.titleText = 'Livelit Window';
+        this.functionName = '$livelit';
         this.livelitClassName = 'livelit-window';
         this.titleKey = 0;
         this.contentKey = 1;
@@ -261,7 +289,8 @@ class GeometryGallery extends LivelitWindow {
 
     constructor(props: LivelitProps) {
         super(props);
-        this.titleText = 'Geometry Browser';
+        this.titleText = 'Geometry Gallery';
+        this.functionName = '$geometryGallery';
         this.state = {
             selectedPath: './toolpaths/mustache.svg'
         };
@@ -295,6 +324,7 @@ class PointPicker extends LivelitWindow {
     constructor(props: LivelitProps) {
         super(props);
         this.titleText = 'Point Picker';
+        this.functionName = '$pointPicker';
     }
 
     renderContent() {
@@ -324,6 +354,7 @@ class TabletopCalibrator extends LivelitWindow {
     constructor(props: TabletopCalibratorProps) {
         super(props);
         this.titleText = 'Tabletop Calibrator';
+        this.functionName = '$tabletopCalibrator';
         this.state = {
             machine: props.machine,
             tabletop: props.tabletop
@@ -369,6 +400,7 @@ class FaceFinder extends LivelitWindow {
     constructor(props: FaceFinderProps) {
         super(props);
         this.titleText = 'Face Finder';
+        this.functionName = '$faceFinder';
         this.state = {
             camera: props.camera,
             imagePath: './img/seattle-times-boxed.png',
