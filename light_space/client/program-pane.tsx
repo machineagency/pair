@@ -287,6 +287,7 @@ class LivelitWindow extends React.Component {
 
 interface GeometryGalleryState {
     selectedPath: string;
+    names: string[];
 };
 class GeometryGallery extends LivelitWindow {
     state: GeometryGalleryState;
@@ -296,8 +297,10 @@ class GeometryGallery extends LivelitWindow {
         this.titleText = 'Geometry Gallery';
         this.functionName = '$geometryGallery';
         this.state = {
-            selectedPath: './toolpaths/mustache.svg'
+            selectedPath: './toolpaths/mustache.svg',
+            names: []
         };
+        this.fetchGeometryNames();
     }
 
     expandOld() : pair.Geometry {
@@ -311,16 +314,17 @@ class GeometryGallery extends LivelitWindow {
         return s;
     }
 
-    renderGalleryItem(itemNumber: number) {
+    renderGalleryItem(itemNumber: number, letter: string) {
         return <div className="gallery-item"
                     key={itemNumber.toString()}>
+                    { letter }
                </div>;
     }
 
     renderContent() {
         const numGalleryItems = 6;
-        const galleryItems = [...Array(numGalleryItems).keys()].map(n => {
-            return this.renderGalleryItem(n);
+        const galleryItems = this.state.names.map((name, idx) => {
+            return this.renderGalleryItem(idx, name[0]);
         });
         return <div className="content"
                     key={this.contentKey.toString()}>
@@ -328,6 +332,21 @@ class GeometryGallery extends LivelitWindow {
                         { galleryItems }
                     </div>
                </div>
+    }
+
+    async fetchGeometryNames() {
+        const namesUrl = '/geometries';
+        let namesRes = await fetch(namesUrl);
+        if (namesRes.ok) {
+            let namesJson = await namesRes.json();
+            let names = namesJson.names;
+            this.setState((prev) => {
+                return {
+                    selectedPath: './toolpaths/mustache.svg',
+                    names: names
+                }
+            });
+        }
     }
 }
 
