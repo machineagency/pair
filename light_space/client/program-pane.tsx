@@ -38,22 +38,15 @@ interface ProgramLineState {
     highlight: boolean;
 };
 interface FaceFinderState {
+    camera: pair.Camera;
     imagePath: string;
     detectedRegions: pair.Region[];
 }
 
 class ProgramUtil {
-    // static newParseTextForLivelit(text: string) : typeof LivelitWindow | null {
-    //     let callExpression;
-    //     const addCallExpression = (node : Node) => {
-    //         if (node.type === 'CallExpression') {
-    //             callExpression = node;
-    //         }
-    //     };
-    //     esprima.parse(text);
-    // }
-
-    static parseTextForLivelit(text: string) : typeof LivelitWindow | null {
+    static parseTextForLivelit(text: string,
+                               livelitRef: React.Ref<LivelitWindow>)
+                               : JSX.Element | null {
         const re = /\$\w+/;
         const maybeMatch = text.match(re);
         const defaultEl = <div></div>;
@@ -63,13 +56,17 @@ class ProgramUtil {
         const livelitName = maybeMatch[0].slice(1);
         switch (livelitName) {
             case 'geometryGallery':
-                return GeometryGallery;
+                return <GeometryGallery ref={livelitRef}>
+                       </GeometryGallery>;
             case 'pointPicker':
-                return PointPicker;
+                return <PointPicker ref={livelitRef}>
+                       </PointPicker>;
             case 'tabletopCalibrator':
-                return TabletopCalibrator;
+                return <TabletopCalibrator ref={livelitRef}>
+                       </TabletopCalibrator>;
             case 'faceFinder':
-                return FaceFinder;
+                return <FaceFinder ref={livelitRef}>
+                       </FaceFinder>;
             default:
                 return null;
         }
@@ -125,7 +122,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         this.livelitRefs = [];
         const lines = textLines.map((line, index) => {
             const lineNumber = index + 1;
-            const currLineRef = React.createRef<LivelitWindow>();
+            const currLineRef = React.useRef<LivelitWindow>(null);
             this.livelitRefs.push(currLineRef);
             return <ProgramLine lineNumber={lineNumber}
                                 key={index}
@@ -207,8 +204,9 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
     render() {
         const highlightClass = this.state.highlight ? 'pl-highlight' : '';
         const lineNumber = this.props.lineNumber || 0;
-        const LivelitType = ProgramUtil.parseTextForLivelit(this.state.lineText)
-                            || 'div';
+        const livelitWindow = ProgramUtil.parseTextForLivelit(
+                                this.state.lineText,
+                                this.props.refForLivelit);
         // TODO: to solve the type error below, we need to go back to actyally
         // having the above parsing function parse the entire text and return
         // an entire JSX element, including livelit parameters, where the
@@ -219,8 +217,7 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
                     <div className="program-line-text">
                         {this.state.lineText}
                     </div>
-                    <LivelitType ref={this.props.refForLivelit}>
-                    </LivelitType>
+                    { livelitWindow }
                </div>
     }
 }
@@ -319,18 +316,21 @@ class PointPicker extends LivelitWindow {
 }
 
 interface TabletopCalibratorState {
-    homography: Homography
+    machine: pair.Machine;
+    tabletop: pair.Tabletop;
+    homography?: Homography;
 };
 
 class TabletopCalibrator extends LivelitWindow {
-    machine: pair.Machine;
-    tabletop: pair.Tabletop;
+    state: TabletopCalibratorState;
 
     constructor(props: TabletopCalibratorProps) {
         super(props);
         this.titleText = 'Tabletop Calibrator';
-        this.machine = props.machine;
-        this.tabletop = props.tabletop;
+        this.state = {
+            machine: props.machine,
+            tabletop: props.tabletop
+        };
     }
 
     expand() {
@@ -368,20 +368,19 @@ class TabletopCalibrator extends LivelitWindow {
 
 class FaceFinder extends LivelitWindow {
     state: FaceFinderState;
-    camera: pair.Camera;
 
     constructor(props: FaceFinderProps) {
         super(props);
         this.titleText = 'Face Finder';
-        this.camera = props.camera;
         this.state = {
+            camera: props.camera,
             imagePath: './img/seattle-times-boxed.png',
             detectedRegions: []
         }
     }
 
     async expand () {
-        return await this.camera.findFaceRegions();
+        return await this.state.camera.findFaceRegions();
     }
 
     renderContent() {
