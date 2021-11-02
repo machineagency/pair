@@ -54,18 +54,19 @@ class ProgramUtil {
             return null;
         }
         const livelitName = maybeMatch[0].slice(1);
+        // NOTE: casting here might be wrong... But I don't know how to be right.
         switch (livelitName) {
             case 'geometryGallery':
-                return <GeometryGallery ref={livelitRef}>
+                return <GeometryGallery ref={livelitRef as React.Ref<GeometryGallery>}>
                        </GeometryGallery>;
             case 'pointPicker':
                 return <PointPicker ref={livelitRef}>
                        </PointPicker>;
             case 'tabletopCalibrator':
-                return <TabletopCalibrator ref={livelitRef}>
+                return <TabletopCalibrator ref={livelitRef as React.Ref<TabletopCalibrator>}>
                        </TabletopCalibrator>;
             case 'faceFinder':
-                return <FaceFinder ref={livelitRef}>
+                return <FaceFinder ref={livelitRef as React.Ref<FaceFinder>}>
                        </FaceFinder>;
             default:
                 return null;
@@ -122,7 +123,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         this.livelitRefs = [];
         const lines = textLines.map((line, index) => {
             const lineNumber = index + 1;
-            const currLineRef = React.useRef<LivelitWindow>(null);
+            const currLineRef = React.createRef<LivelitWindow>();
             this.livelitRefs.push(currLineRef);
             return <ProgramLine lineNumber={lineNumber}
                                 key={index}
@@ -207,10 +208,6 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
         const livelitWindow = ProgramUtil.parseTextForLivelit(
                                 this.state.lineText,
                                 this.props.refForLivelit);
-        // TODO: to solve the type error below, we need to go back to actyally
-        // having the above parsing function parse the entire text and return
-        // an entire JSX element, including livelit parameters, where the
-        // ref is instantiated there.
         return <div className={`program-line ${highlightClass}`}
                     id={`line-${lineNumber - 1}`}
                     onClick={this.toggleLivelitWindow.bind(this)}>
