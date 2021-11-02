@@ -111,10 +111,21 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'toolpaths.forEach(toolpath => machine.plot(toolpath));'
     ];
 
+    defaultLivelitsNoParams = [
+        'let machine = new pair.Machine(\'axidraw\');',
+        'let tabletop = $tabletopCalibrator();',
+        'let camera = new pair.Camera(tabletop);',
+        'let mustache = $geometryGallery();',
+        'let faceRegions = $faceFinder();',
+        'let faceCentroids = faceRegions.map(r => r.centroid);',
+        'let toolpaths = faceCentroids.map(c => mustache.placeAt(c, tabletop));',
+        'toolpaths.forEach(toolpath => machine.plot(toolpath));'
+    ];
+
     constructor(props: Props) {
         super(props);
         this.state = {
-            defaultLines: this.defaultLinesMustacheLiveLits
+            defaultLines: this.defaultLivelitsNoParams
         };
         this.livelitRefs = [];
     }
@@ -371,7 +382,7 @@ class TabletopCalibrator extends LivelitWindow {
     }
 
     expand() : string {
-        let s = `function ${this.functionName}(tabletop, camera) {`;
+        let s = `function ${this.functionName}() {`;
         s += `return new pair.Tabletop();`;
         s += `}`;
         return s;
@@ -430,15 +441,23 @@ class FaceFinder extends LivelitWindow {
             return {
                 camera: prevState.camera,
                 imagePath: prevState.imagePath,
-                detectRegions: regions
+                detectedRegions: regions
             }
         });
     }
 
     expand() : string {
-        let s = `function ${this.functionName}(camera) {`;
-        // TODO: this doesn't work yet because props.camera is undefined (unsound)
-        s += `return ${this.state.detectedRegions};`;
+        let serializedRegions = JSON.stringify(this.state.detectedRegions, undefined, 0);
+        let s = `function ${this.functionName}() {`;
+        s += `let regions = [];`
+        this.state.detectedRegions.forEach((region, index) => {
+            let name = `region${index}`;
+            let corners = region.corners.map((corner) => {
+                return `new pair.Point(${corner.x}, ${corner.y})`;
+            });
+            s += `regions.push(new pair.Region('${name}', [${corners}]));`;
+        });
+        s += `return regions;`;
         s += `}`;
         return s;
     }
