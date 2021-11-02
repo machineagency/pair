@@ -75,6 +75,17 @@ let attachRoutesAndStart = () => {
         shell.send('detect_face_boxes');
     });
 
+    app.get('/geometries', (req, res) => {
+        let names = fs.readdirSync('./geometries').map((file) => {
+            return file;
+        });
+        res.json({ names: names }).status(200).send();
+    });
+
+    app.get('/geometry/:name', (req, res) => {
+        res.sendFile(__dirname + `/geometries/${req.params.name}`);
+    });
+
     app.listen(port, () => {
         console.log("Running on port: " + port);
         exports = module.exports = app;
