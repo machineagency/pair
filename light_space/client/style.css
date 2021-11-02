@@ -32,6 +32,10 @@ body {
     counter-increment: line;
 }
 
+.program-line-text {
+    display: inline-block;
+}
+
 .program-line::before {
     content: counter(line);
     display: inline-block;

@@ -152,7 +152,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     runAllLines() {
         const extractProgramText = () => {
             const programLines = Array.from(document
-                                      .getElementsByClassName('program-line'));
+                                      .getElementsByClassName('program-line-text'));
             return programLines.map(el => (el as HTMLElement).innerText).join('\n');
         };
         let progText = extractProgramText();
@@ -216,7 +216,9 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
         return <div className={`program-line ${highlightClass}`}
                     id={`line-${lineNumber - 1}`}
                     onClick={this.toggleLivelitWindow.bind(this)}>
+                    <div className="program-line-text">
                         {this.state.lineText}
+                    </div>
                     <LivelitType ref={this.props.refForLivelit}>
                     </LivelitType>
                </div>
