@@ -11,15 +11,19 @@
 import * as pair from './pair.js';
 
 interface Props {};
+interface LivelitProps {
+    ref: React.Ref<LivelitWindow>;
+};
 interface ProgramLineProps {
     lineNumber: number;
     lineText: string;
+    refForLivelit: React.Ref<LivelitWindow>;
 };
-interface TabletopCalibratorProps {
+interface TabletopCalibratorProps extends LivelitProps {
     machine: pair.Machine;
     tabletop: pair.Tabletop;
 };
-interface FaceFinderProps {
+interface FaceFinderProps extends LivelitProps {
     camera: pair.Camera;
 }
 
@@ -39,31 +43,43 @@ interface FaceFinderState {
 }
 
 class ProgramUtil {
-    static parseTextForLivelit(text: string) : JSX.Element {
+    // static newParseTextForLivelit(text: string) : typeof LivelitWindow | null {
+    //     let callExpression;
+    //     const addCallExpression = (node : Node) => {
+    //         if (node.type === 'CallExpression') {
+    //             callExpression = node;
+    //         }
+    //     };
+    //     esprima.parse(text);
+    // }
+
+    static parseTextForLivelit(text: string) : typeof LivelitWindow | null {
         const re = /\$\w+/;
         const maybeMatch = text.match(re);
         const defaultEl = <div></div>;
         if (!maybeMatch) {
-            return <div></div>
+            return null;
         }
         const livelitName = maybeMatch[0].slice(1);
         switch (livelitName) {
             case 'geometryGallery':
-                return <GeometryGallery></GeometryGallery>
+                return GeometryGallery;
             case 'pointPicker':
-                return <PointPicker></PointPicker>
+                return PointPicker;
             case 'tabletopCalibrator':
-                return <TabletopCalibrator></TabletopCalibrator>
+                return TabletopCalibrator;
             case 'faceFinder':
-                return <FaceFinder></FaceFinder>
+                return FaceFinder;
             default:
-                return defaultEl;
+                return null;
         }
     }
 
 }
 
 class ProgramPane extends React.Component<Props, ProgramPaneState> {
+    livelitRefs: React.Ref<LivelitWindow>[];
+
     defaultLinesSignature = [
         'let signature = $geometryGallery;',
         'let point = $pointPicker;',
@@ -102,13 +118,18 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         this.state = {
             defaultLines: this.defaultLinesMustacheLiveLits
         };
+        this.livelitRefs = [];
     }
 
     renderTextLines(textLines: string[]) {
+        this.livelitRefs = [];
         const lines = textLines.map((line, index) => {
             const lineNumber = index + 1;
+            const currLineRef = React.createRef<LivelitWindow>();
+            this.livelitRefs.push(currLineRef);
             return <ProgramLine lineNumber={lineNumber}
                                 key={index}
+                                refForLivelit={currLineRef}
                                 lineText={line}></ProgramLine>
         }).flat();
         return lines;
@@ -186,12 +207,18 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
     render() {
         const highlightClass = this.state.highlight ? 'pl-highlight' : '';
         const lineNumber = this.props.lineNumber || 0;
-        const livelitWindow = ProgramUtil.parseTextForLivelit(this.state.lineText);
+        const LivelitType = ProgramUtil.parseTextForLivelit(this.state.lineText)
+                            || 'div';
+        // TODO: to solve the type error below, we need to go back to actyally
+        // having the above parsing function parse the entire text and return
+        // an entire JSX element, including livelit parameters, where the
+        // ref is instantiated there.
         return <div className={`program-line ${highlightClass}`}
                     id={`line-${lineNumber - 1}`}
                     onClick={this.toggleLivelitWindow.bind(this)}>
                         {this.state.lineText}
-                        {livelitWindow}
+                    <LivelitType ref={this.props.refForLivelit}>
+                    </LivelitType>
                </div>
     }
 }
@@ -202,7 +229,7 @@ class LivelitWindow extends React.Component {
     titleKey: number;
     contentKey: number;
 
-    constructor(props: Props) {
+    constructor(props: LivelitProps) {
         super(props);
         this.titleText = 'Livelit Window';
         this.livelitClassName = 'livelit-window';
@@ -236,7 +263,7 @@ interface GeometryGalleryState {
 class GeometryGallery extends LivelitWindow {
     state: GeometryGalleryState;
 
-    constructor(props: Props) {
+    constructor(props: LivelitProps) {
         super(props);
         this.titleText = 'Geometry Browser';
         this.state = {
@@ -269,7 +296,7 @@ class GeometryGallery extends LivelitWindow {
 }
 
 class PointPicker extends LivelitWindow {
-    constructor(props: Props) {
+    constructor(props: LivelitProps) {
         super(props);
         this.titleText = 'Point Picker';
     }
