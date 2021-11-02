@@ -557,9 +557,9 @@ export class Region {
 }
 
 export class Camera {
-    tabletop: Tabletop;
+    tabletop?: Tabletop;
 
-    constructor(tabletop: Tabletop) {
+    constructor(tabletop?: Tabletop) {
         this.tabletop = tabletop;
     }
 
@@ -581,7 +581,9 @@ export class Camera {
                 let tr = new Point(obj.x + 0.5 * obj.width, obj.y - 0.5 * obj.height);
                 let br = new Point(obj.x + 0.5 * obj.width, obj.y + 0.5 * obj.height);
                 let region = new Region(`face ${idx}`, [tl, bl, tr, br]);
-                region.drawOnTabletop(this.tabletop);
+                if (this.tabletop) {
+                    region.drawOnTabletop(this.tabletop);
+                }
                 return region;
             });
         }
