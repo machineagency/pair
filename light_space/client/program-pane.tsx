@@ -151,23 +151,11 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         let nonNullRefs = livelitRefs.filter((ref) => {
             return ref.current !== null;
         });
-        let fsPairs : functionStatePair[] = nonNullRefs.map((ref) => {
-            let functionName, state;
-            if (!(ref && ref.current)) {
-                functionName = '$livelit';
-                state = {};
-            }
-            else {
-                functionName = ref.current.functionName;
-                state = ref.current.state;
-            }
-            return { functionName, state };
-        });
         let expandedFunctionStrings : string[] = [];
-        fsPairs.forEach((fsPair) => {
-            // TODO: actually do expansion
-            let s = `function ${fsPair.functionName}() { return; }`
-            expandedFunctionStrings.push(s)
+        nonNullRefs.forEach((ref) => {
+            if (ref !== null && ref.current !== null) {
+                expandedFunctionStrings.push(ref.current.expand());
+            }
         });
         let allExpandedFunctions = expandedFunctionStrings.join('\n');
         return allExpandedFunctions;
@@ -181,7 +169,8 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         };
         let progText = extractProgramText();
         let livelitFunctionDeclarations = this.gatherLivelitsAsFunctionDeclarations();
-        progText  = `${livelitFunctionDeclarations}\n;(async function() { ${progText} })();`;
+        progText  = `${livelitFunctionDeclarations}\n(async function() { ${progText} })();`;
+        console.log(progText);
         eval(progText);
     }
 
@@ -261,6 +250,10 @@ class LivelitWindow extends React.Component {
         this.contentKey = 1;
     }
 
+    expand() : string {
+        return 'function livelitExpansion() { };';
+    }
+
     renderTitle() {
         return <div className="title"
                     key={this.titleKey.toString()}>
@@ -296,8 +289,15 @@ class GeometryGallery extends LivelitWindow {
         };
     }
 
-    expand() : pair.Geometry {
+    expandOld() : pair.Geometry {
         return new pair.Geometry(this.state.selectedPath);
+    }
+
+    expand() : string {
+        let s = `function ${this.functionName}() {`;
+        s += `return new pair.Geometry(\'./toolpaths/mustache.svg\');`
+        s += `}`;
+        return s;
     }
 
     renderGalleryItem(itemNumber: number) {
@@ -361,11 +361,20 @@ class TabletopCalibrator extends LivelitWindow {
         };
     }
 
-    expand() {
-        return (oldTabletop: pair.Tabletop) => {
+    expandOld() : (tabletop: pair.Tabletop, camera: pair.Camera) => pair.Tabletop {
+        // NOTE: the names parameters in the returned function must match the
+        // livelit definition.
+        return (tabletop: pair.Tabletop, camera: pair.Camera) : pair.Tabletop => {
             // TODO: return new tabletop with homography applied
-            new pair.Tabletop();
+            return new pair.Tabletop();
         }
+    }
+
+    expand() : string {
+        let s = `function ${this.functionName}(tabletop, camera) {`;
+        s += `return new pair.Tabletop();`;
+        s += `}`;
+        return s;
     }
 
     renderContent() {
@@ -406,10 +415,31 @@ class FaceFinder extends LivelitWindow {
             imagePath: './img/seattle-times-boxed.png',
             detectedRegions: []
         }
+        // TODO: make sure we don't expand before regions are set
+        this.detectRegions();
     }
 
-    async expand () {
+    async expandOld() {
         return await this.state.camera.findFaceRegions();
+    }
+
+    async detectRegions() {
+        let regions = await this.state.camera.findFaceRegions();
+        this.setState((prevState: FaceFinderState) => {
+            return {
+                camera: prevState.camera,
+                imagePath: prevState.imagePath,
+                detectRegions: regions
+            }
+        });
+    }
+
+    expand() : string {
+        let s = `function ${this.functionName}(camera) {`;
+        // TODO: this doesn't work yet because props.camera is undefined (unsound)
+        s += `return ${this.state.detectedRegions};`;
+        s += `}`;
+        return s;
     }
 
     renderContent() {
