@@ -286,9 +286,8 @@ class LivelitWindow extends React.Component {
 };
 
 interface GeometryGalleryState {
-    selectedPath: string;
-    names: string[];
-    imageUrls: string[];
+    selectedUrl: string;
+    imageNameUrlPairs: [string, string][];
 };
 class GeometryGallery extends LivelitWindow {
     state: GeometryGalleryState;
@@ -298,15 +297,14 @@ class GeometryGallery extends LivelitWindow {
         this.titleText = 'Geometry Gallery';
         this.functionName = '$geometryGallery';
         this.state = {
-            selectedPath: './toolpaths/mustache.svg',
-            names: [],
-            imageUrls: []
+            selectedUrl: '',
+            imageNameUrlPairs: []
         };
         this.fetchGeometryNames();
     }
 
     expandOld() : pair.Geometry {
-        return new pair.Geometry(this.state.selectedPath);
+        return new pair.Geometry(this.state.selectedUrl);
     }
 
     expand() : string {
@@ -316,8 +314,20 @@ class GeometryGallery extends LivelitWindow {
         return s;
     }
 
-    renderGalleryItem(itemNumber: number, url: string) {
-        return <div className="gallery-item"
+    setSelectedGeometryUrl(url: string) {
+        this.setState((state: GeometryGalleryState) => {
+            return {
+                selectedUrl: url
+            };
+        });
+    }
+
+    renderGalleryItem(name: string, url: string, itemNumber: number) {
+        const maybeHighlight = this.state.selectedUrl === url
+                               ? 'geometry-highlight' : '';
+        return <div className={`gallery-item ${maybeHighlight}`}
+                    data-geometry-name={name}
+                    onClick={this.setSelectedGeometryUrl.bind(this, url)}
                     key={itemNumber.toString()}>
                     <img src={url}
                          className="gallery-image"/>
@@ -325,8 +335,10 @@ class GeometryGallery extends LivelitWindow {
     }
 
     renderContent() {
-        const galleryItems = this.state.imageUrls.map((url, idx) => {
-            return this.renderGalleryItem(idx, url);
+        const galleryItems = this.state.imageNameUrlPairs.map((nameUrlPair, idx) => {
+            let name = nameUrlPair[0];
+            let url = nameUrlPair[1];
+            return this.renderGalleryItem(name, url, idx);
         });
         return <div className="content"
                     key={this.contentKey.toString()}>
@@ -342,23 +354,21 @@ class GeometryGallery extends LivelitWindow {
         if (namesRes.ok) {
             let namesJson = await namesRes.json();
             let names : string[] = namesJson.names;
-            let imageUrls : string[] = [];
             let fetchImage = async (name: string) => {
                 let imageRes = await fetch(`/geometry/${name}`);
                 if (imageRes.ok) {
                     let blob = await imageRes.blob();
                     let url = URL.createObjectURL(blob);
-                    imageUrls.push(url);
+                    this.setState((prev: GeometryGalleryState) => {
+                        return {
+                            selectedUrl: prev.selectedUrl,
+                            imageNameUrlPairs: prev.imageNameUrlPairs
+                                                   .concat([[name, url]])
+                        };
+                    });
                 };
             };
             names.forEach(fetchImage);
-            this.setState((prev) => {
-                return {
-                    selectedPath: './toolpaths/mustache.svg',
-                    names: names,
-                    imageUrls: imageUrls
-                }
-            });
         }
     }
 }

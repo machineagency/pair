@@ -103,13 +103,13 @@ body {
 
 /* Livelit-Specific Styles */
 
-.livelit-window .geometry-browser {
+.geometry-browser {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
 }
 
-.livelit-window .geometry-browser .gallery-item {
+.geometry-browser .gallery-item {
     height: 50px;
     width: 50px;
     background-color: whitesmoke;
@@ -119,23 +119,27 @@ body {
     cursor: pointer;
 }
 
-.geometry-browser .gallery-image {
+.geometry-browser .gallery-item.geometry-highlight {
+    background-color: red;
+}
+
+.gallery-image {
     max-width: 50px;
     max-height: 50px;
 }
 
-.livelit-window .point-picker {
+.point-picker {
     display: flex;
     flex-direction: column;
 }
 
-.livelit-window .point-picker .table-thumbnail {
+.point-picker .table-thumbnail {
     height: 18mm;
     width: 28mm;
     border: 1px solid whitesmoke;
 }
 
-.livelit-window .face-finder-thumbnail img {
+.face-finder-thumbnail img {
     max-height: 100%;
     max-width: 100%;
 
