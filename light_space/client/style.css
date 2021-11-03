@@ -119,6 +119,11 @@ body {
     cursor: pointer;
 }
 
+.geometry-browser .gallery-image {
+    max-width: 50px;
+    max-height: 50px;
+}
+
 .livelit-window .point-picker {
     display: flex;
     flex-direction: column;

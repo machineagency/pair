@@ -288,6 +288,7 @@ class LivelitWindow extends React.Component {
 interface GeometryGalleryState {
     selectedPath: string;
     names: string[];
+    imageUrls: string[];
 };
 class GeometryGallery extends LivelitWindow {
     state: GeometryGalleryState;
@@ -298,7 +299,8 @@ class GeometryGallery extends LivelitWindow {
         this.functionName = '$geometryGallery';
         this.state = {
             selectedPath: './toolpaths/mustache.svg',
-            names: []
+            names: [],
+            imageUrls: []
         };
         this.fetchGeometryNames();
     }
@@ -314,17 +316,17 @@ class GeometryGallery extends LivelitWindow {
         return s;
     }
 
-    renderGalleryItem(itemNumber: number, letter: string) {
+    renderGalleryItem(itemNumber: number, url: string) {
         return <div className="gallery-item"
                     key={itemNumber.toString()}>
-                    { letter }
+                    <img src={url}
+                         className="gallery-image"/>
                </div>;
     }
 
     renderContent() {
-        const numGalleryItems = 6;
-        const galleryItems = this.state.names.map((name, idx) => {
-            return this.renderGalleryItem(idx, name[0]);
+        const galleryItems = this.state.imageUrls.map((url, idx) => {
+            return this.renderGalleryItem(idx, url);
         });
         return <div className="content"
                     key={this.contentKey.toString()}>
@@ -339,11 +341,22 @@ class GeometryGallery extends LivelitWindow {
         let namesRes = await fetch(namesUrl);
         if (namesRes.ok) {
             let namesJson = await namesRes.json();
-            let names = namesJson.names;
+            let names : string[] = namesJson.names;
+            let imageUrls : string[] = [];
+            let fetchImage = async (name: string) => {
+                let imageRes = await fetch(`/geometry/${name}`);
+                if (imageRes.ok) {
+                    let blob = await imageRes.blob();
+                    let url = URL.createObjectURL(blob);
+                    imageUrls.push(url);
+                };
+            };
+            names.forEach(fetchImage);
             this.setState((prev) => {
                 return {
                     selectedPath: './toolpaths/mustache.svg',
-                    names: names
+                    names: names,
+                    imageUrls: imageUrls
                 }
             });
         }
