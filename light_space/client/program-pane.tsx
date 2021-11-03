@@ -214,7 +214,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         let livelitFunctionDeclarations = this.gatherLivelitsAsFunctionDeclarations();
         progText  = `${livelitFunctionDeclarations}\n(async function() { ${progText} })();`;
         console.log(progText);
-        const PROGRAM = this;
+        const PROGRAM_PANE = this;
         eval(progText);
     }
 
@@ -395,7 +395,7 @@ class GeometryGallery extends LivelitWindow {
                     let url = URL.createObjectURL(blob);
                     this.setState((prev: GeometryGalleryState) => {
                         return {
-                            selectedUrl: prev.selectedUrl,
+                            selectedUrl: prev.selectedUrl || url,
                             imageNameUrlPairs: prev.imageNameUrlPairs
                                                    .concat([[name, url]])
                         };

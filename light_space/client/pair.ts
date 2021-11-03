@@ -604,13 +604,15 @@ export class Geometry {
     placeAt(placementPoint: Point, tabletop: Tabletop) {
         return tabletop.project.importSVG(this.filepath, {
             expandShapes: true,
-            insert: true,
+            insert: false,
             onError: () => {
                 console.warn('Could not load an SVG');
             },
             onLoad: (item: paper.Group, svgString: string) => {
+                tabletop.workEnvelope.applyHomographyToGroup(item);
                 item.strokeColor = new paper.Color(0xffffff);
                 item.position = placementPoint.paperPoint;
+                tabletop.project.activeLayer.addChild(item);
             }
         });
     }
