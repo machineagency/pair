@@ -5,6 +5,9 @@
  *  - Props of Livelit Components represent that livelit's parameter.
  *  - State of Livelit Components represent any GUI input elements within
  *    the livelit window whose splices will be used to write the expansion.
+ *  - Class Properties thereof represent the model that will eventually be
+ *    returned by the livelit. Note that we cannot rely on React state for this
+ *    because we need synchonicity.
  */
 
 /// <reference path="lib/perspective-transform.d.ts" />
@@ -185,17 +188,36 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         this.executionBlockedStatus.executionBlocked = false;
     }
 
+    __getLivelitRefs() {
+        let livelitRefs = this.livelitRefs as React.RefObject<LivelitWindow>[];
+        let nonNullRefs = livelitRefs.filter((ref) => {
+            return ref.current !== null;
+        });
+        return nonNullRefs;
+    }
+
+    getLivelitWithName(functionName: string) : State {
+        let refs = this.__getLivelitRefs();
+        let ref = refs.find((ref) => {
+            return ref && ref.current
+                   && ref.current.functionName === functionName;
+        });
+        if (ref && ref.current) {
+            return ref.current;
+        }
+        else {
+            return {};
+        }
+    }
+
     gatherLivelitsAsFunctionDeclarations() : string {
         interface functionStatePair {
             functionName: string;
             state: State;
         };
-        let livelitRefs = this.livelitRefs as React.RefObject<LivelitWindow>[];
-        let nonNullRefs = livelitRefs.filter((ref) => {
-            return ref.current !== null;
-        });
+        let refs = this.__getLivelitRefs();
         let expandedFunctionStrings : string[] = [];
-        nonNullRefs.forEach((ref) => {
+        refs.forEach((ref) => {
             if (ref !== null && ref.current !== null) {
                 expandedFunctionStrings.push(ref.current.expand());
             }
@@ -430,13 +452,14 @@ class PointPicker extends LivelitWindow {
 }
 
 interface TabletopCalibratorState {
-    tabletop: pair.Tabletop;
+    tabletop?: pair.Tabletop;
 };
 
 class TabletopCalibrator extends LivelitWindow {
     state: TabletopCalibratorState;
     props: TabletopCalibratorProps;
     machine: pair.Machine;
+    tabletop?: pair.Tabletop;
 
     constructor(props: TabletopCalibratorProps) {
         super(props);
@@ -444,9 +467,10 @@ class TabletopCalibrator extends LivelitWindow {
         this.functionName = '$tabletopCalibrator';
         // TODO: take in machine from parameters eventually
         this.machine = new pair.Machine('fakeAxidraw');
+        this.tabletop = undefined;
         this.props = props;
         this.state = {
-            tabletop: props.tabletop || new pair.Tabletop()
+            tabletop: undefined
         };
     }
 
@@ -461,10 +485,10 @@ class TabletopCalibrator extends LivelitWindow {
 
     expand() : string {
         let s = `async function ${this.functionName}() {`;
-        s += `let tt = new pair.Tabletop();`;
+        s += `let tc = PROGRAM_PANE.getLivelitWithName(\'$tabletopCalibrator\');`;
+        s += `tc.tabletop = new pair.Tabletop();`;
         s += `await PROGRAM_PANE.blockExecution();`;
-        s += `console.log(tt.workEnvelope.homography);`;
-        s += `return tt;`;
+        s += `return tc.tabletop;`;
         s += `}`;
         return s;
     }
@@ -474,11 +498,11 @@ class TabletopCalibrator extends LivelitWindow {
     }
 
     unlockCorners() {
-        this.state.tabletop.toggleWorkEnvelopeCalibration();
+        this.tabletop?.toggleWorkEnvelopeCalibration();
     }
 
     unblockExecution() {
-        this.state.tabletop.toggleWorkEnvelopeCalibration();
+        this.tabletop?.toggleWorkEnvelopeCalibration();
         this.props.executionBlockedStatus.executionBlocked = false;
     }
 
