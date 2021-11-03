@@ -310,6 +310,10 @@ class LivelitWindow extends React.Component {
         this.contentKey = 1;
     }
 
+    unblockExecution() {
+        this.props.executionBlockedStatus.executionBlocked = false;
+    }
+
     expand() : string {
         return 'function livelitExpansion() { };';
     }
@@ -550,8 +554,7 @@ class FaceFinder extends LivelitWindow {
         this.titleText = 'Face Finder';
         this.functionName = '$faceFinder';
         this.state = {
-            // camera: props.camera,
-            camera: new pair.Camera(undefined),
+            imageTaken: false,
             imagePath: './img/seattle-times-boxed.png',
             detectedRegions: []
         }
@@ -559,22 +562,26 @@ class FaceFinder extends LivelitWindow {
         this.detectRegions();
     }
 
-    async expandOld() {
-        return await this.state.camera.findFaceRegions();
-    }
-
     async detectRegions() {
-        let regions = await this.state.camera.findFaceRegions();
+        let regions = await this.camera?.findFaceRegions();
         this.setState((prevState: FaceFinderState) => {
             return {
-                camera: prevState.camera,
-                imagePath: prevState.imagePath,
-                detectedRegions: regions
+                detectedRegions: regions || []
             }
         });
     }
 
     expand() : string {
+        let s = `async function ${this.functionName}(camera) {`;
+        s += `let ff = PROGRAM_PANE.getLivelitWithName(\'$faceFinder\');`;
+        s += `ff.camera = camera;`;
+        s += `await ff.takePhoto();`
+        s += `return await ff.detectRegions();`;
+        s += `}`;
+        return s;
+    }
+
+    expandOld() : string {
         let serializedRegions = JSON.stringify(this.state.detectedRegions, undefined, 0);
         let s = `function ${this.functionName}() {`;
         s += `let regions = [];`
@@ -590,13 +597,20 @@ class FaceFinder extends LivelitWindow {
         return s;
     }
 
+    async takePhoto() {
+        console.log('photo taken but i cant update');
+    }
+
     renderContent() {
+        let image = this.state.imageTaken
+                        ? <img src={this.state.imagePath}/>
+                        : <div></div>;
         return <div className="face-finder">
                    <div className="button" id="take-photo">
                        Take Photo
                    </div>
                    <div className="image-thumbnail face-finder-thumbnail">
-                       <img src={this.state.imagePath}/>
+                       { image }
                    </div>
                    <div className="bold-text">
                        Faces Found
@@ -606,7 +620,8 @@ class FaceFinder extends LivelitWindow {
                        <li>Face 2</li>
                        <li>Face 3</li>
                    </ul>
-                   <div className="button" id="accept-faces">
+                   <div onClick={this.unblockExecution.bind(this)}
+                        className="button" id="accept-faces">
                        Accept
                    </div>
                </div>;
