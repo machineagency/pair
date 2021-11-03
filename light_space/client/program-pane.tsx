@@ -33,11 +33,8 @@ interface TabletopCalibratorProps extends LivelitProps {
     tabletop: pair.Tabletop | undefined;
     ref: React.Ref<TabletopCalibrator>;
 };
-interface FaceFinderProps extends LivelitProps {
-    camera: pair.Camera;
-}
 
-interface State {};
+interface State {}
 interface ProgramPaneState {
     defaultLines: string[]
 };
@@ -47,11 +44,6 @@ interface ProgramLineState {
     windowOpen: boolean;
     highlight: boolean;
 };
-interface FaceFinderState {
-    camera: pair.Camera;
-    imagePath: string;
-    detectedRegions: pair.Region[];
-}
 
 class ProgramUtil {
     static parseTextForLivelit(text: string,
@@ -65,26 +57,37 @@ class ProgramUtil {
             return null;
         }
         const livelitName = maybeMatch[0].slice(1);
-        // NOTE: casting here might be wrong... But I don't know how to be right.
         switch (livelitName) {
             case 'geometryGallery':
-                return <GeometryGallery
-                            ref={livelitRef as React.Ref<GeometryGallery>}>
+                const ggProps: GeometryGalleryProps = {
+                    executionBlockedStatus: executionBlockedStatus,
+                    ref: livelitRef as React.Ref<GeometryGallery>
+                };
+                return <GeometryGallery {...ggProps}>
                        </GeometryGallery>;
             case 'pointPicker':
-                return <PointPicker ref={livelitRef}>
+                const ppProps: PointPickerProps = {
+                    executionBlockedStatus: executionBlockedStatus,
+                    ref: livelitRef as React.Ref<PointPicker>
+                };
+                return <PointPicker {...ppProps}>
                        </PointPicker>;
             case 'tabletopCalibrator':
-                const props: TabletopCalibratorProps = {
+                const tcProps: TabletopCalibratorProps = {
                     machine: undefined,
                     tabletop: undefined,
                     executionBlockedStatus: executionBlockedStatus,
                     ref: livelitRef as React.Ref<TabletopCalibrator>
                 };
-                return <TabletopCalibrator {...props}>
+                return <TabletopCalibrator {...tcProps}>
                        </TabletopCalibrator>;
             case 'faceFinder':
-                return <FaceFinder ref={livelitRef as React.Ref<FaceFinder>}>
+                const ffProps: FaceFinderProps = {
+                    camera: undefined,
+                    executionBlockedStatus: executionBlockedStatus,
+                    ref: livelitRef as React.Ref<FaceFinder>
+                };
+                return <FaceFinder {...ffProps}>
                        </FaceFinder>;
             default:
                 return null;
@@ -295,9 +298,11 @@ class LivelitWindow extends React.Component {
     livelitClassName: string;
     titleKey: number;
     contentKey: number;
+    props: LivelitProps;
 
     constructor(props: LivelitProps) {
         super(props);
+        this.props = props;
         this.titleText = 'Livelit Window';
         this.functionName = '$livelit';
         this.livelitClassName = 'livelit-window';
@@ -329,6 +334,10 @@ class LivelitWindow extends React.Component {
     }
 };
 
+interface GeometryGalleryProps extends LivelitProps {
+    ref: React.Ref<GeometryGallery>
+};
+
 interface GeometryGalleryState {
     selectedUrl: string;
     imageNameUrlPairs: [string, string][];
@@ -336,7 +345,7 @@ interface GeometryGalleryState {
 class GeometryGallery extends LivelitWindow {
     state: GeometryGalleryState;
 
-    constructor(props: LivelitProps) {
+    constructor(props: GeometryGalleryProps) {
         super(props);
         this.titleText = 'Geometry Gallery';
         this.functionName = '$geometryGallery';
@@ -418,9 +427,16 @@ class GeometryGallery extends LivelitWindow {
     }
 }
 
+interface PointPickerProps extends LivelitProps {
+    ref: React.Ref<PointPicker>
+};
+
 class PointPicker extends LivelitWindow {
+    props: PointPickerProps;
+
     constructor(props: LivelitProps) {
         super(props);
+        this.props = props;
         this.titleText = 'Point Picker';
         this.functionName = '$pointPicker';
     }
@@ -512,11 +528,25 @@ class TabletopCalibrator extends LivelitWindow {
     }
 }
 
+interface FaceFinderProps extends LivelitProps {
+    camera?: pair.Camera;
+    ref: React.Ref<FaceFinder>;
+}
+
+interface FaceFinderState {
+    imageTaken: boolean;
+    imagePath: string;
+    detectedRegions: pair.Region[];
+}
+
 class FaceFinder extends LivelitWindow {
     state: FaceFinderState;
+    camera?: pair.Camera;
+    props: FaceFinderProps;
 
     constructor(props: FaceFinderProps) {
         super(props);
+        this.props = props;
         this.titleText = 'Face Finder';
         this.functionName = '$faceFinder';
         this.state = {
