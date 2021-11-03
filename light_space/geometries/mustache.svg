@@ -1,13 +1,14 @@
-<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" width="41.05mm" height="15.46mm" viewBox="0 0 116.36 43.83">
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <style>
       .cls-1 {
-        fill: #fff;
+        fill: none;
         stroke: #000;
         stroke-miterlimit: 10;
+        stroke-width: 1px;
       }
     </style>
   </defs>
-  <title>mustashe</title>
+  <title>mustache</title>
   <path class="cls-1" d="M57.5,23.5c5.85,0,17,4,22,8s8,8,13,10,12,0,17-2,6-16,6-16a17.9,17.9,0,0,1-5,6c-3,2-10,2-16-1s-10-11-12-20-25-9-25-9-22,0-24,9-6,17-12,20-13,3-16,1a17.9,17.9,0,0,1-5-6s1,14,6,16,12,4,17,2,8-6,13-10S51.88,23.54,57.5,23.5Z" transform="translate(0.18 1)"/>
 </svg>
