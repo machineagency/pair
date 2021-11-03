@@ -309,7 +309,7 @@ class GeometryGallery extends LivelitWindow {
 
     expand() : string {
         let s = `function ${this.functionName}() {`;
-        s += `return new pair.Geometry(\'./toolpaths/mustache.svg\');`
+        s += `return new pair.Geometry(\'${this.state.selectedUrl}\');`
         s += `}`;
         return s;
     }
