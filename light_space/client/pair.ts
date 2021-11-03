@@ -138,18 +138,7 @@ export class Tabletop {
         this.tool.onKeyUp = (event: paper.KeyEvent,
                              hitOptions: HitOptions) => {
             if (event.key === 'e') {
-                this.workEnvelope.path.selected = !this.workEnvelope.path.selected;
-                this.interactionMode = this.workEnvelope.path.selected
-                                        ? InteractionMode.adjustEnvelope
-                                        : InteractionMode.defaultState;
-                if (this.interactionMode === InteractionMode.defaultState) {
-                    this.workEnvelope.sizeLabel.fillColor = new paper.Color('red');
-                    let h = this.workEnvelope.calculateHomography();
-                    this.workEnvelope.homography = h;
-                }
-                else {
-                    this.workEnvelope.sizeLabel.fillColor = new paper.Color('cyan');
-                }
+                this.toggleWorkEnvelopeCalibration();
             }
             // TODO: think about how to handle copy and application of
             // transforms. Also if possible, create graphical elements
@@ -180,6 +169,21 @@ export class Tabletop {
                 }
             }
         };
+    }
+
+    toggleWorkEnvelopeCalibration() : void {
+        this.workEnvelope.path.selected = !this.workEnvelope.path.selected;
+        this.interactionMode = this.workEnvelope.path.selected
+                                ? InteractionMode.adjustEnvelope
+                                : InteractionMode.defaultState;
+        if (this.interactionMode === InteractionMode.defaultState) {
+            this.workEnvelope.sizeLabel.fillColor = new paper.Color('red');
+            let h = this.workEnvelope.calculateHomography();
+            this.workEnvelope.homography = h;
+        }
+        else {
+            this.workEnvelope.sizeLabel.fillColor = new paper.Color('cyan');
+        }
     }
 
     loadToolpathToCanvas(toolpathName: String) {
@@ -624,6 +628,10 @@ export class Machine {
     constructor(machineName: string) {
         this.machineName = machineName;
         // TODO: look up machine name and initialize—fake it for now
+    }
+
+    drawBorder() {
+        // TODO
     }
 
     plot(toolpath: Toolpath) {

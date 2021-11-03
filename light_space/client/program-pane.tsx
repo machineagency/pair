@@ -430,23 +430,23 @@ class PointPicker extends LivelitWindow {
 }
 
 interface TabletopCalibratorState {
-    machine?: pair.Machine;
-    tabletop?: pair.Tabletop;
-    homography?: Homography;
+    tabletop: pair.Tabletop;
 };
 
 class TabletopCalibrator extends LivelitWindow {
     state: TabletopCalibratorState;
     props: TabletopCalibratorProps;
+    machine: pair.Machine;
 
     constructor(props: TabletopCalibratorProps) {
         super(props);
         this.titleText = 'Tabletop Calibrator';
         this.functionName = '$tabletopCalibrator';
+        // TODO: take in machine from parameters eventually
+        this.machine = new pair.Machine('fakeAxidraw');
         this.props = props;
         this.state = {
-            machine: props.machine,
-            tabletop: props.tabletop
+            tabletop: props.tabletop || new pair.Tabletop()
         };
     }
 
@@ -461,13 +461,24 @@ class TabletopCalibrator extends LivelitWindow {
 
     expand() : string {
         let s = `async function ${this.functionName}() {`;
-        s += `await PROGRAM.blockExecution();`;
-        s += `return new pair.Tabletop();`;
+        s += `let tt = new pair.Tabletop();`;
+        s += `await PROGRAM_PANE.blockExecution();`;
+        s += `console.log(tt.workEnvelope.homography);`;
+        s += `return tt;`;
         s += `}`;
         return s;
     }
 
+    drawBorder() {
+        this.machine.drawBorder();
+    }
+
+    unlockCorners() {
+        this.state.tabletop.toggleWorkEnvelopeCalibration();
+    }
+
     unblockExecution() {
+        this.state.tabletop.toggleWorkEnvelopeCalibration();
         this.props.executionBlockedStatus.executionBlocked = false;
     }
 
@@ -477,14 +488,16 @@ class TabletopCalibrator extends LivelitWindow {
                        1. Draw a border around the work envelope with the
                        machine.
                    </div>
-                   <div className="button" id="draw-border">
+                   <div onClick={this.drawBorder.bind(this)}
+                        className="button" id="draw-border">
                        Draw Border
                    </div>
                    <div className="help-text">
                        2. Drag the corners of the projected border to match
                        the drawn border.
                    </div>
-                   <div className="button" id="unlock-corners">
+                   <div onClick={this.unlockCorners.bind(this)}
+                        className="button" id="unlock-corners">
                        Unlock Corners
                    </div>
                    <div className="help-text">
