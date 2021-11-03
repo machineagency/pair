@@ -120,22 +120,10 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
 
     defaultLinesMustacheLiveLits = [
         'let machine = new pair.Machine(\'axidraw\');',
-        'let tabletop = new pair.Tabletop();',
-        'tabletop = $tabletopCalibrator(tabletop, machine);',
-        'let camera = new pair.Camera(tabletop);',
-        'let mustache = $geometryGallery();',
-        'let faceRegions = $faceFinder(camera);',
-        'let faceCentroids = faceRegions.map(r => r.centroid);',
-        'let toolpaths = faceCenters.map(c => mustache.placeAt(c, tabletop));',
-        'toolpaths.forEach(toolpath => machine.plot(toolpath));'
-    ];
-
-    defaultLivelitsNoParams = [
-        'let machine = new pair.Machine(\'othermill\');',
         'let tabletop = await $tabletopCalibrator(machine);',
         'let camera = new pair.Camera(tabletop);',
-        'let mustache = $geometryGallery();',
-        'let faceRegions = $faceFinder();',
+        'let mustache = $geometryGallery(machine);',
+        'let faceRegions = $faceFinder(camera);',
         'let faceCentroids = faceRegions.map(r => r.centroid);',
         'let toolpaths = faceCentroids.map(c => mustache.placeAt(c, tabletop));',
         'toolpaths.forEach(toolpath => machine.plot(toolpath));'
@@ -144,7 +132,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     constructor(props: Props) {
         super(props);
         this.state = {
-            defaultLines: this.defaultLivelitsNoParams
+            defaultLines: this.defaultLinesMustacheLiveLits
         };
         this.livelitRefs = [];
         this.executionBlockedStatus = {
@@ -364,7 +352,8 @@ class GeometryGallery extends LivelitWindow {
     }
 
     expand() : string {
-        let s = `function ${this.functionName}() {`;
+        let s = `function ${this.functionName}(machine) {`;
+        // TODO: filter geometries by machine
         s += `return new pair.Geometry(\'${this.state.selectedUrl}\');`
         s += `}`;
         return s;
