@@ -131,8 +131,8 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     ];
 
     defaultLivelitsNoParams = [
-        'let machine = new pair.Machine(\'axidraw\');',
-        'let tabletop = await $tabletopCalibrator();',
+        'let machine = new pair.Machine(\'othermill\');',
+        'let tabletop = await $tabletopCalibrator(machine);',
         'let camera = new pair.Camera(tabletop);',
         'let mustache = $geometryGallery();',
         'let faceRegions = $faceFinder();',
@@ -458,15 +458,12 @@ interface TabletopCalibratorState {
 class TabletopCalibrator extends LivelitWindow {
     state: TabletopCalibratorState;
     props: TabletopCalibratorProps;
-    machine: pair.Machine;
     tabletop?: pair.Tabletop;
 
     constructor(props: TabletopCalibratorProps) {
         super(props);
         this.titleText = 'Tabletop Calibrator';
         this.functionName = '$tabletopCalibrator';
-        // TODO: take in machine from parameters eventually
-        this.machine = new pair.Machine('fakeAxidraw');
         this.tabletop = undefined;
         this.props = props;
         this.state = {
@@ -474,19 +471,10 @@ class TabletopCalibrator extends LivelitWindow {
         };
     }
 
-    expandOld() : (tabletop: pair.Tabletop, camera: pair.Camera) => pair.Tabletop {
-        // NOTE: the names parameters in the returned function must match the
-        // livelit definition.
-        return (tabletop: pair.Tabletop, camera: pair.Camera) : pair.Tabletop => {
-            // TODO: return new tabletop with homography applied
-            return new pair.Tabletop();
-        }
-    }
-
     expand() : string {
-        let s = `async function ${this.functionName}() {`;
+        let s = `async function ${this.functionName}(machine) {`;
         s += `let tc = PROGRAM_PANE.getLivelitWithName(\'$tabletopCalibrator\');`;
-        s += `tc.tabletop = new pair.Tabletop();`;
+        s += `tc.tabletop = new pair.Tabletop(machine);`;
         s += `await PROGRAM_PANE.blockExecution();`;
         s += `return tc.tabletop;`;
         s += `}`;
@@ -494,7 +482,7 @@ class TabletopCalibrator extends LivelitWindow {
     }
 
     drawBorder() {
-        this.machine.drawBorder();
+        this.tabletop?.machine.drawBorder();
     }
 
     unlockCorners() {

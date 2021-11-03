@@ -26,6 +26,7 @@ const PX_TO_MM = 0.2645833333;
 const BASE_URL = 'http://localhost:3000';
 
 export class Tabletop {
+    machine: Machine;
     project: paper.Project;
     tool: paper.Tool;
     workEnvelope: WorkEnvelope;
@@ -35,10 +36,13 @@ export class Tabletop {
     activeEnvelopeSegment?: paper.Segment;
     moveEntireEnvelope: boolean;
 
-    constructor() {
+    constructor(machine: Machine) {
+        this.machine = machine;
         this.project = (paper as any).project;
         this.tool = new paper.Tool();
-        this.workEnvelope = new WorkEnvelope(this, 280, 180);
+        this.workEnvelope = new WorkEnvelope(this,
+                                             machine.workEnvelopeDimensions.x,
+                                             machine.workEnvelopeDimensions.y);
         this.toolpathCollection = new ToolpathCollection(this);
         this.interactionMode = InteractionMode.defaultState;
         this.moveEntireEnvelope = false;
@@ -628,6 +632,17 @@ export class Machine {
     constructor(machineName: string) {
         this.machineName = machineName;
         // TODO: look up machine name and initialize—fake it for now
+    }
+
+    get workEnvelopeDimensions() {
+        switch (this.machineName) {
+            case 'axidraw':
+                return new Point(280, 180);
+            case 'othermill':
+                return new Point(200, 200);
+            default:
+                return new Point (10, 10);
+        }
     }
 
     drawBorder() {
