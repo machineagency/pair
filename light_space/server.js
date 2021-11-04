@@ -91,7 +91,7 @@ let attachRoutesAndStart = () => {
         let names = fs.readdirSync('./geometries').map((file) => {
             return file;
         });
-        res.json({ names: names }).status(200).send();
+        res.status(200).json({ names: names });
     });
 
     app.get('/geometry/:name', (req, res) => {
