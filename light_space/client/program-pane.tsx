@@ -557,7 +557,7 @@ class FaceFinder extends LivelitWindow {
         this.functionName = '$faceFinder';
         this.state = {
             imageTaken: false,
-            imagePath: './img/seattle-times-boxed.png',
+            imagePath: './img/seattle-times.jpg',
             detectedRegions: []
         }
         this.photoButton = <div onClick={this.takePhoto.bind(this)}
