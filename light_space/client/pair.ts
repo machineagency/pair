@@ -592,6 +592,18 @@ export class Camera {
         this.tabletop = tabletop;
     }
 
+    async takePhoto() : Promise<string> {
+        let imageRes = await fetch('/camera/takePhoto');
+        if (imageRes.ok) {
+            let blob = await imageRes.blob();
+            let url = URL.createObjectURL(blob);
+            return url;
+        }
+        else {
+            return '';
+        }
+    }
+
     async findFaceRegions() : Promise<Region[]> {
         interface BoxResponseObj {
             x: number,

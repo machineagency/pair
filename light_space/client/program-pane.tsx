@@ -578,14 +578,12 @@ class FaceFinder extends LivelitWindow {
     }
 
     async takePhoto() {
-        let imageRes = await fetch('/camera/takePhoto');
-        if (imageRes.ok) {
-            let blob = await imageRes.blob();
-            let url = URL.createObjectURL(blob);
+        let imageUrl = await this.camera?.takePhoto();
+        if (imageUrl) {
             this.setState((prev: FaceFinderProps) => {
                 return {
                     imageTaken: true,
-                    imagePath: url
+                    imagePath: imageUrl
                 };
             }, this.detectRegions);
         }
