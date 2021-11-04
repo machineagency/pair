@@ -599,11 +599,13 @@ class FaceFinder extends LivelitWindow {
         }
         let regions = await this.camera.findFaceRegions();
         return new Promise<void>((resolve) => {
+            let prevRegions : pair.Region[];
             this.setState((prevState: FaceFinderState) => {
+                prevRegions = prevState.detectedRegions;
                 return {
                     detectedRegions: regions
                 }
-            });
+            }, () => prevRegions.forEach(r => r.clearFromTabletop()));
         });
     }
 

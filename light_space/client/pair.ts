@@ -546,6 +546,7 @@ export class Point {
 export class Region {
     name: string;
     corners: Point[];
+    _paperObj?: paper.Path;
 
     constructor(name: string, corners: Point[]) {
         this.name = name;
@@ -565,6 +566,13 @@ export class Region {
         rectPath.strokeColor = new paper.Color(0x00ff00);
         rectPath.strokeWidth = 1;
         tabletop.project.activeLayer.addChild(rectPath);
+        this._paperObj = rectPath;
+    }
+
+    clearFromTabletop() {
+        if (this._paperObj) {
+            this._paperObj.remove();
+        }
     }
 
     toString() {
@@ -573,6 +581,7 @@ export class Region {
 }
 
 export class Camera {
+    // TODO: camera calibration to machine space with fiducial
     tabletop?: Tabletop;
 
     constructor(tabletop?: Tabletop) {
