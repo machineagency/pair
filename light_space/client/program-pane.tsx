@@ -560,7 +560,8 @@ class FaceFinder extends LivelitWindow {
             imagePath: './img/seattle-times-boxed.png',
             detectedRegions: []
         }
-        this.photoButton = <div className="button" id="take-photo">
+        this.photoButton = <div onClick={this.takePhoto.bind(this)}
+                                className="button" id="take-photo">
                                Take Photo
                            </div>
         this.acceptButton = <div className="button" id="accept-faces">
@@ -568,31 +569,22 @@ class FaceFinder extends LivelitWindow {
                             </div>
     }
 
+    takePhoto() {
+        this.setState((prev: FaceFinderProps) => {
+            return {
+                imageTaken: true
+            };
+        }, this.detectRegions);
+    }
+
     expand() : string {
         let s = `async function ${this.functionName}(camera) {`;
         s += `let ff = PROGRAM_PANE.getLivelitWithName(\'$faceFinder\');`;
         s += `ff.camera = camera;`;
-        s += `await ff.waitForImage();`;
-        s += `ff.detectRegions();`;
         s += `let regions = await ff.acceptDetectedRegions();`;
         s += `return regions;`;
         s += `}`;
         return s;
-    }
-
-    async waitForImage() {
-        return new Promise<void>((resolve) => {
-            // FIXME: try to do this with a functional component
-            let takePhotoDom = document.getElementById('take-photo');
-            if (takePhotoDom) {
-                takePhotoDom.addEventListener('click', () => {
-                    console.log('pressy!');
-                    this.setState((prev: FaceFinderState) => {
-                        return { imageTaken: true };
-                    }, resolve);
-                });
-            }
-        });
     }
 
     async detectRegions() {
@@ -608,7 +600,6 @@ class FaceFinder extends LivelitWindow {
             });
         });
     }
-
 
     async acceptDetectedRegions() {
         return new Promise<pair.Region[]>((resolve) => {
