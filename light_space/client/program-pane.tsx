@@ -468,6 +468,7 @@ class TabletopCalibrator extends LivelitWindow {
     state: TabletopCalibratorState;
     props: TabletopCalibratorProps;
     tabletop?: pair.Tabletop;
+    applyButton: JSX.Element;
 
     constructor(props: TabletopCalibratorProps) {
         super(props);
@@ -478,13 +479,16 @@ class TabletopCalibrator extends LivelitWindow {
         this.state = {
             tabletop: undefined
         };
+        this.applyButton = <div className="button" id="apply-tabletop-homography">
+                                Apply
+                            </div>
     }
 
     expand() : string {
         let s = `async function ${this.functionName}(machine) {`;
         s += `let tc = PROGRAM_PANE.getLivelitWithName(\'$tabletopCalibrator\');`;
         s += `tc.tabletop = new pair.Tabletop(machine);`;
-        s += `await PROGRAM_PANE.blockExecution();`;
+        s += `await tc.applyTabletopHomography();`;
         s += `return tc.tabletop;`;
         s += `}`;
         return s;
@@ -498,9 +502,16 @@ class TabletopCalibrator extends LivelitWindow {
         this.tabletop?.toggleWorkEnvelopeCalibration();
     }
 
-    unblockExecution() {
-        this.tabletop?.toggleWorkEnvelopeCalibration();
-        this.props.executionBlockedStatus.executionBlocked = false;
+    applyTabletopHomography() {
+        return new Promise<void>((resolve) => {
+            const applyButtonDom = document.getElementById('apply-tabletop-homography');
+            if (applyButtonDom) {
+                applyButtonDom.addEventListener('click', (event) => {
+                    this.tabletop?.setHomographyFromCalibration();
+                    resolve();
+                });
+            }
+        });
     }
 
     renderContent() {
@@ -524,10 +535,7 @@ class TabletopCalibrator extends LivelitWindow {
                    <div className="help-text">
                        3. Press 'Apply' when you are satisfied.
                    </div>
-                   <div onClick={this.unblockExecution.bind(this)}
-                        className="button" id="apply">
-                       Apply
-                   </div>
+                   { this.applyButton }
                </div>;
     }
 }
