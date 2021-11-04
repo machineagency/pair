@@ -594,22 +594,6 @@ class FaceFinder extends LivelitWindow {
         return s;
     }
 
-    expandOld() : string {
-        let serializedRegions = JSON.stringify(this.state.detectedRegions, undefined, 0);
-        let s = `function ${this.functionName}() {`;
-        s += `let regions = [];`
-        this.state.detectedRegions.forEach((region, index) => {
-            let name = `region${index}`;
-            let corners = region.corners.map((corner) => {
-                return `new pair.Point(${corner.x}, ${corner.y})`;
-            });
-            s += `regions.push(new pair.Region('${name}', [${corners}]));`;
-        });
-        s += `return regions;`;
-        s += `}`;
-        return s;
-    }
-
     async waitForPhoto() {
         return new Promise<void>((resolve) => {
             // FIXME: try to do this with a functional component
