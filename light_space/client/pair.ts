@@ -537,6 +537,10 @@ export class Point {
     get y() {
         return this.paperPoint.y;
     }
+
+    toString() {
+        return `(${this.x}, ${this.y})`;
+    }
 }
 
 export class Region {
@@ -561,6 +565,10 @@ export class Region {
         rectPath.strokeColor = new paper.Color(0x00ff00);
         rectPath.strokeWidth = 1;
         tabletop.project.activeLayer.addChild(rectPath);
+    }
+
+    toString() {
+        return this.corners.map(c => c.toString()).toString();
     }
 }
 
