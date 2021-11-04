@@ -126,7 +126,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'let tabletop = await $tabletopCalibrator(machine);',
         'let camera = new pair.Camera(tabletop);',
         'let mustache = $geometryGallery(machine);',
-        'let faceRegions = $faceFinder(camera);',
+        'let faceRegions = await $faceFinder(camera);',
         'let faceCentroids = faceRegions.map(r => r.centroid);',
         'let toolpaths = faceCentroids.map(c => mustache.placeAt(c, tabletop));',
         'toolpaths.forEach(toolpath => machine.plot(toolpath));'
@@ -547,6 +547,7 @@ class FaceFinder extends LivelitWindow {
     state: FaceFinderState;
     camera?: pair.Camera;
     props: FaceFinderProps;
+    photoButton: JSX.Element;
 
     constructor(props: FaceFinderProps) {
         super(props);
@@ -558,16 +559,23 @@ class FaceFinder extends LivelitWindow {
             imagePath: './img/seattle-times-boxed.png',
             detectedRegions: []
         }
-        // TODO: make sure we don't expand before regions are set
-        this.detectRegions();
+        this.photoButton = <div className="button" id="take-photo">
+                               Take Photo
+                           </div>
     }
 
     async detectRegions() {
-        let regions = await this.camera?.findFaceRegions();
-        this.setState((prevState: FaceFinderState) => {
-            return {
-                detectedRegions: regions || []
-            }
+        if (!this.camera) {
+            return [];
+        }
+        let regions = await this.camera.findFaceRegions();
+        return new Promise<pair.Region[]>((resolve) => {
+            let resolveRegions = () => resolve(regions);
+            this.setState((prevState: FaceFinderState) => {
+                return {
+                    detectedRegions: regions
+                }
+            }, resolveRegions);
         });
     }
 
@@ -575,8 +583,9 @@ class FaceFinder extends LivelitWindow {
         let s = `async function ${this.functionName}(camera) {`;
         s += `let ff = PROGRAM_PANE.getLivelitWithName(\'$faceFinder\');`;
         s += `ff.camera = camera;`;
-        s += `await ff.takePhoto();`
-        s += `return await ff.detectRegions();`;
+        s += `await ff.waitForPhoto();`
+        s += `let regions = await ff.detectRegions();`;
+        s += `return regions;`;
         s += `}`;
         return s;
     }
@@ -597,8 +606,19 @@ class FaceFinder extends LivelitWindow {
         return s;
     }
 
-    async takePhoto() {
-        console.log('photo taken but i cant update');
+    async waitForPhoto() {
+        return new Promise<void>((resolve) => {
+            // FIXME: try to do this with a functional component
+            let takePhotoDom = document.getElementById('take-photo');
+            if (takePhotoDom) {
+                takePhotoDom.addEventListener('click', () => {
+                    console.log('pressy!');
+                    this.setState((prev: FaceFinderState) => {
+                        return { imageTaken: true };
+                    }, resolve);
+                });
+            }
+        });
     }
 
     renderContent() {
@@ -606,9 +626,7 @@ class FaceFinder extends LivelitWindow {
                         ? <img src={this.state.imagePath}/>
                         : <div></div>;
         return <div className="face-finder">
-                   <div className="button" id="take-photo">
-                       Take Photo
-                   </div>
+                   { this.photoButton }
                    <div className="image-thumbnail face-finder-thumbnail">
                        { image }
                    </div>
