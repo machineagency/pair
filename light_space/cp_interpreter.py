@@ -1,4 +1,5 @@
 import cv2, cmd
+from PIL import Image
 import numpy as np
 from pyaxidraw import axidraw
 from machine import Machine
@@ -30,6 +31,9 @@ class Camera:
     def _read_video_image(self):
         ret, frame = self.video_capture.read()
         return frame
+
+    def capture_video_frame(self):
+        return self._read_video_image()
 
     def open_static_image_preview(self):
         self.preview_open = True
@@ -116,7 +120,7 @@ class Interpreter(cmd.Cmd):
         else:
             Interpreter.prompt = ""
 
-        self.camera = Camera(dry=True)
+        self.camera = Camera(dry=False)
         self.machine = Machine(dry=True)
 
     def do_image(self, arg):
@@ -186,6 +190,12 @@ class Interpreter(cmd.Cmd):
         f.close()
         self.machine.plot_svg(svg_filepath)
         pass
+
+    def do_take_photo(self, arg):
+        img_arr = self.camera.capture_video_frame()
+        img_enc = Image.fromarray(img_arr)
+        img_enc.save('test_img.jpg')
+        print('img written')
 
     def do_bye(self, arg):
         print("Bye!")
