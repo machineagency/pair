@@ -125,7 +125,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'let machine = new pair.Machine(\'axidraw\');',
         'let tabletop = await $tabletopCalibrator(machine);',
         'let camera = new pair.Camera(tabletop);',
-        'let mustache = $geometryGallery(machine);',
+        'let mustache = await $geometryGallery(machine);',
         'let faceRegions = await $faceFinder(camera);',
         'let faceCentroids = faceRegions.map(r => r.centroid);',
         'let toolpaths = faceCentroids.map(c => mustache.placeAt(c, tabletop));',
@@ -348,6 +348,7 @@ interface GeometryGalleryState {
 };
 class GeometryGallery extends LivelitWindow {
     state: GeometryGalleryState;
+    chooseButton: JSX.Element;
 
     constructor(props: GeometryGalleryProps) {
         super(props);
@@ -358,6 +359,9 @@ class GeometryGallery extends LivelitWindow {
             imageNameUrlPairs: []
         };
         this.fetchGeometryNames();
+        this.chooseButton = <div className="button" id="choose-geometry">
+                                Choose
+                            </div>
     }
 
     expandOld() : pair.Geometry {
@@ -365,9 +369,11 @@ class GeometryGallery extends LivelitWindow {
     }
 
     expand() : string {
-        let s = `function ${this.functionName}(machine) {`;
+        let s = `async function ${this.functionName}(machine) {`;
         // TODO: filter geometries by machine
-        s += `return new pair.Geometry(\'${this.state.selectedUrl}\');`
+        s += `let gg = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `let geomUrl = await gg.waitForGeometryChosen();`;
+        s += `return new pair.Geometry(geomUrl);`;
         s += `}`;
         return s;
     }
@@ -377,6 +383,20 @@ class GeometryGallery extends LivelitWindow {
             return {
                 selectedUrl: url
             };
+        });
+    }
+
+    async waitForGeometryChosen() : Promise<string>{
+        return new Promise<string>((resolve) => {
+            const chooseDom = document.getElementById('choose-geometry');
+            if (chooseDom) {
+                chooseDom.addEventListener('click', (event) => {
+                    resolve(this.state.selectedUrl);
+                });
+            }
+            else {
+                resolve('');
+            }
         });
     }
 
@@ -400,9 +420,10 @@ class GeometryGallery extends LivelitWindow {
         });
         return <div className="content"
                     key={this.contentKey.toString()}>
-                    <div className="geometry-browser">
+                    <div className="geometry-gallery">
                         { galleryItems }
                     </div>
+                    { this.chooseButton }
                </div>
     }
 
