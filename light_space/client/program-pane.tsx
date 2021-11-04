@@ -568,33 +568,19 @@ class FaceFinder extends LivelitWindow {
                             </div>
     }
 
-    async detectRegions() {
-        if (!this.camera) {
-            return [];
-        }
-        let regions = await this.camera.findFaceRegions();
-        return new Promise<pair.Region[]>((resolve) => {
-            let resolveRegions = () => resolve(regions);
-            this.setState((prevState: FaceFinderState) => {
-                return {
-                    detectedRegions: regions
-                }
-            }, resolveRegions);
-        });
-    }
-
     expand() : string {
         let s = `async function ${this.functionName}(camera) {`;
         s += `let ff = PROGRAM_PANE.getLivelitWithName(\'$faceFinder\');`;
         s += `ff.camera = camera;`;
-        s += `await ff.waitForPhoto();`
-        s += `let regions = await ff.detectRegions();`;
+        s += `await ff.waitForImage();`;
+        s += `ff.detectRegions();`;
+        s += `let regions = await ff.acceptDetectedRegions();`;
         s += `return regions;`;
         s += `}`;
         return s;
     }
 
-    async waitForPhoto() {
+    async waitForImage() {
         return new Promise<void>((resolve) => {
             // FIXME: try to do this with a functional component
             let takePhotoDom = document.getElementById('take-photo');
@@ -604,6 +590,32 @@ class FaceFinder extends LivelitWindow {
                     this.setState((prev: FaceFinderState) => {
                         return { imageTaken: true };
                     }, resolve);
+                });
+            }
+        });
+    }
+
+    async detectRegions() {
+        if (!this.camera) {
+            return [];
+        }
+        let regions = await this.camera.findFaceRegions();
+        return new Promise<void>((resolve) => {
+            this.setState((prevState: FaceFinderState) => {
+                return {
+                    detectedRegions: regions
+                }
+            });
+        });
+    }
+
+
+    async acceptDetectedRegions() {
+        return new Promise<pair.Region[]>((resolve) => {
+            let acceptDom = document.getElementById('accept-faces');
+            if (acceptDom) {
+                acceptDom.addEventListener('click', () => {
+                    resolve(this.state.detectedRegions);
                 });
             }
         });
