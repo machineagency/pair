@@ -34,6 +34,8 @@ class Camera:
         return frame
 
     def capture_video_frame(self):
+        if self.dry_mode:
+            return self._load_file_image()
         return self._read_video_image()
 
     def open_static_image_preview(self):
