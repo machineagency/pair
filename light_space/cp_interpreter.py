@@ -192,10 +192,9 @@ class Interpreter(cmd.Cmd):
         pass
 
     def do_take_photo(self, arg):
-        img_arr = self.camera.capture_video_frame()
-        img_enc = Image.fromarray(img_arr)
-        img_enc.save('test_img.jpg')
-        print('img written')
+        img = self.camera.capture_video_frame()
+        cv2.imwrite('volatile/camera-photo.jpg', img)
+        print('Image written.')
 
     def do_bye(self, arg):
         print("Bye!")

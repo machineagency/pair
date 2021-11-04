@@ -49,6 +49,11 @@ shell.on('message', (message) => {
         shell.currRpcResponse = undefined;
         shell.currRpcName = '';
     }
+    else if (shell.currRpcName === 'takePhoto') {
+        shell.currRpcResponse.sendFile(__dirname + '/volatile/camera-photo.jpg');
+        shell.currRpcResponse = undefined;
+        shell.currRpcName = '';
+    }
     else {
         console.log(`PC --> ${message}`);
     }
@@ -69,6 +74,13 @@ let attachRoutesAndStart = () => {
         res.status(200).send();
     });
 
+    app.get('/camera/takePhoto', (req, res) => {
+        shell.currRpcResponse = res;
+        shell.currRpcName = 'takePhoto';
+        shell.send('take_photo');
+    });
+
+    // TODO: pass in photo as parameter
     app.get('/image/detectFaceBoxes', (req, res) => {
         shell.currRpcResponse = res;
         shell.currRpcName = 'detectFaceBoxes';
