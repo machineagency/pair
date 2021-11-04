@@ -548,6 +548,7 @@ class FaceFinder extends LivelitWindow {
     camera?: pair.Camera;
     props: FaceFinderProps;
     photoButton: JSX.Element;
+    acceptButton: JSX.Element;
 
     constructor(props: FaceFinderProps) {
         super(props);
@@ -562,6 +563,9 @@ class FaceFinder extends LivelitWindow {
         this.photoButton = <div className="button" id="take-photo">
                                Take Photo
                            </div>
+        this.acceptButton = <div className="button" id="accept-faces">
+                                Accept
+                            </div>
     }
 
     async detectRegions() {
@@ -621,6 +625,13 @@ class FaceFinder extends LivelitWindow {
         });
     }
 
+    renderResults() {
+        let resultLis : JSX.Element[] = this.state.detectedRegions.map((r) => {
+           return <li>{r.toString()}</li>
+        })
+        return resultLis;
+    }
+
     renderContent() {
         let image = this.state.imageTaken
                         ? <img src={this.state.imagePath}/>
@@ -634,14 +645,9 @@ class FaceFinder extends LivelitWindow {
                        Faces Found
                    </div>
                    <ul className="face-list">
-                       <li>Face 1</li>
-                       <li>Face 2</li>
-                       <li>Face 3</li>
+                        { this.renderResults() }
                    </ul>
-                   <div onClick={this.unblockExecution.bind(this)}
-                        className="button" id="accept-faces">
-                       Accept
-                   </div>
+                   { this.acceptButton }
                </div>;
     }
 }
