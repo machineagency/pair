@@ -569,12 +569,18 @@ class FaceFinder extends LivelitWindow {
                             </div>
     }
 
-    takePhoto() {
-        this.setState((prev: FaceFinderProps) => {
-            return {
-                imageTaken: true
-            };
-        }, this.detectRegions);
+    async takePhoto() {
+        let imageRes = await fetch('/camera/takePhoto');
+        if (imageRes.ok) {
+            let blob = await imageRes.blob();
+            let url = URL.createObjectURL(blob);
+            this.setState((prev: FaceFinderProps) => {
+                return {
+                    imageTaken: true,
+                    imagePath: url
+                };
+            }, this.detectRegions);
+        }
     }
 
     expand() : string {
