@@ -12,6 +12,7 @@ class Camera:
         self.CM_TO_PX = 37.7952755906
         self.MIN_CONTOUR_LEN = 100
         self.static_image_path = './client/img/seattle-times.jpg'
+        self.camera_image_path = './volatile/camera-photo.jpg'
         self.contours = []
         self.work_env_contour = None
         self.preview_open = False
@@ -90,7 +91,7 @@ class Camera:
         """
         face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
         # TODO: generalize choice of image
-        img = cv2.imread(self.static_image_path)
+        img = cv2.imread(self.camera_image_path)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         faces = face_cascade.detectMultiScale(gray, 1.1, 4)
         if display_on_preview:
