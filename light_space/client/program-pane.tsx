@@ -677,6 +677,40 @@ class FaceFinder extends LivelitWindow {
     }
 }
 
+class ToolpathDirectManipulator extends LivelitWindow {
+    constructor(props: LivelitProps) {
+        super(props);
+    }
+
+    TODO_directManipulation() {
+        console.warn('Not yet implemented.');
+
+        /**
+        // Check hit for each preview (box + mini toolpath)
+        Object.values(this.toolpathCollection.thumbnailCollection)
+        .forEach((thumbnail) => {
+            let hitResult = thumbnail.hitTest(event.point, hitOptions);
+            if (hitResult) {
+                this.loadToolpathByName(thumbnail.pairName);
+            }
+        });
+        // Able to manipulate toolpaths
+        Object.values(this.toolpathCollection.collection)
+        .forEach((toolpath) => {
+            let hitResult = toolpath.hitTest(event.point, hitOptions);
+            // if (hitResult) {
+            if (toolpath.bounds.contains(event.point)) {
+                toolpath.selected = true;
+                this.activeToolpath = toolpath;
+            }
+            else {
+                toolpath.selected = false;
+            }
+        });
+        */
+    }
+}
+
 const inflateProgramPane = () => {
     const blankDom = document.querySelector('#program-container');
     const programPane = <ProgramPane></ProgramPane>;
