@@ -465,7 +465,8 @@ class PointPicker extends LivelitWindow {
     }
 
     renderContent() {
-        return <div className="point-picker">
+        return <div className="point-picker"
+                    key={this.contentKey.toString()}>
                    <div className="table-thumbnail">
                        <div className="crosshair"></div>
                    </div>
@@ -499,7 +500,8 @@ class TabletopCalibrator extends LivelitWindow {
             tabletop: undefined,
             windowOpen: false
         };
-        this.applyButton = <div className="button" id="apply-tabletop-homography">
+        this.applyButton = <div className="button"
+                                id="apply-tabletop-homography">
                                 Apply
                             </div>
     }
@@ -537,7 +539,8 @@ class TabletopCalibrator extends LivelitWindow {
     }
 
     renderContent() {
-        return <div className="tabletop-calibrator">
+        return <div className="tabletop-calibrator"
+                    key={this.contentKey.toString()}>
                    <div className="help-text">
                        1. Draw a border around the work envelope with the
                        machine.
@@ -653,8 +656,9 @@ class FaceFinder extends LivelitWindow {
     }
 
     renderResults() {
-        let resultLis : JSX.Element[] = this.state.detectedRegions.map((r) => {
-           return <li>{r.toString()}</li>
+        let resultLis : JSX.Element[] = this.state.detectedRegions
+            .map((r, idx) => {
+           return <li key={idx}>{r.toString()}</li>
         })
         return resultLis;
     }
@@ -663,7 +667,8 @@ class FaceFinder extends LivelitWindow {
         let image = this.state.imageTaken
                         ? <img src={this.state.imagePath}/>
                         : <div></div>;
-        return <div className="face-finder">
+        return <div className="face-finder"
+                    key={this.contentKey.toString()}>
                    { this.photoButton }
                    <div className="image-thumbnail face-finder-thumbnail">
                        { image }
