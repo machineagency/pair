@@ -57,7 +57,10 @@ class Machine:
 
     def plot_svg(self, filepath):
         if not self.dry:
-            self.ad.plot_setup(filepath)
-            self.ad.plot_run()
+            try:
+                self.ad.plot_setup(filepath)
+                self.ad.plot_run()
+            except Exception as e:
+                print(e)
         return f'plotted {filepath}'
 

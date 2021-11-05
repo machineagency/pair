@@ -101,7 +101,7 @@ export class Tabletop {
             .forEach((thumbnail) => {
                 let hitResult = thumbnail.hitTest(event.point, hitOptions);
                 if (hitResult) {
-                    this.loadToolpathToCanvas(thumbnail.pairName);
+                    this.loadToolpathByName(thumbnail.pairName);
                 }
             });
             // Able to manipulate toolpaths
@@ -194,7 +194,11 @@ export class Tabletop {
         this.workEnvelope.homography = h;
     }
 
-    loadToolpathToCanvas(toolpathName: String) {
+    loadToolpath(toolpath: Toolpath) {
+        toolpath.visible = true;
+    }
+
+    loadToolpathByName(toolpathName: String) {
         let toolpath = this.toolpathCollection.collection[toolpathName.toString()];
         toolpath.visible = true;
         toolpath.position = this.workEnvelope.center;
@@ -376,9 +380,10 @@ export class Toolpath {
         this.group.strokeWidth = 2;
         this.originalGroup = this.group.clone({ insert: true, deep: true });
         this._visible = false;
-        this.group.visible = false;
+        this.group.visible = true;
         // Original group is never visible
         this.originalGroup.visible = false;
+        this.tabletop.project.activeLayer.addChild(this.group);
     }
 
     /* Wrapper getters, setters, and methods for paper.Group below. */
@@ -642,19 +647,23 @@ export class Geometry {
         this.filepath = filepath;
     }
 
-    placeAt(placementPoint: Point, tabletop: Tabletop) {
-        return tabletop.project.importSVG(this.filepath, {
-            expandShapes: true,
-            insert: false,
-            onError: () => {
-                console.warn('Could not load an SVG');
-            },
-            onLoad: (item: paper.Group, svgString: string) => {
-                tabletop.workEnvelope.applyHomographyToGroup(item);
-                item.strokeColor = new paper.Color(0xffffff);
-                item.position = placementPoint.paperPoint;
-                tabletop.project.activeLayer.addChild(item);
-            }
+    async placeAt(placementPoint: Point, tabletop: Tabletop) : Promise<Toolpath> {
+        return new Promise<Toolpath>((resolve) => {
+            tabletop.project.importSVG(this.filepath, {
+                expandShapes: true,
+                insert: false,
+                onError: () => {
+                    console.warn('Could not load an SVG');
+                },
+                onLoad: (item: paper.Group, svgString: string) => {
+                    tabletop.workEnvelope.applyHomographyToGroup(item);
+                    item.strokeColor = new paper.Color(0xffffff);
+                    item.position = placementPoint.paperPoint;
+
+                    let tp = new Toolpath(this.filepath, item, tabletop);
+                    resolve(tp);
+                }
+            });
         });
     }
 }
@@ -682,8 +691,14 @@ export class Machine {
         // TODO
     }
 
-    plot(toolpath: Toolpath) {
-        // TODO:
+    plotToolpathOnTabletop(toolpath: Toolpath, tabletop: Tabletop) {
+        let tpGroupCopy = toolpath.group.clone({
+            deep: true,
+            insert: false
+        });
+        tabletop.workEnvelope.applyInverseHomography(tpGroupCopy);
+        // TODO: move logic to Machine class
+        tabletop.sendPaperItemToMachine(tpGroupCopy);
     }
 }
 

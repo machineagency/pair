@@ -128,8 +128,11 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'let mustache = await $geometryGallery(machine);',
         'let faceRegions = await $faceFinder(camera);',
         'let faceCentroids = faceRegions.map(r => r.centroid);',
-        'let toolpaths = faceCentroids.map(c => mustache.placeAt(c, tabletop));',
-        'toolpaths.forEach(toolpath => machine.plot(toolpath));'
+        'let toolpaths = await Promise.all(faceCentroids.map(c => mustache.placeAt(c, tabletop)));',
+        // TODO: combine toolpaths into one object which will become one svg. in fact,
+        // maybe we should just place geometries, and then only form a single toolpath
+        // at the very end.
+        'toolpaths.forEach(toolpath => machine.plotToolpathOnTabletop(toolpath, tabletop));'
     ];
 
     constructor(props: Props) {

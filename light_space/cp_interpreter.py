@@ -192,7 +192,6 @@ class Interpreter(cmd.Cmd):
         f.write(svg_string)
         f.close()
         self.machine.plot_svg(svg_filepath)
-        pass
 
     def do_take_photo(self, arg):
         img = self.camera.capture_video_frame()
