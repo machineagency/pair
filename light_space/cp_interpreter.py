@@ -123,7 +123,7 @@ class Interpreter(cmd.Cmd):
         else:
             Interpreter.prompt = ""
 
-        self.camera = Camera(dry=False)
+        self.camera = Camera(dry=True)
         self.machine = Machine(dry=True)
 
     def do_image(self, arg):

@@ -13,25 +13,22 @@
 /// <reference path="lib/perspective-transform.d.ts" />
 import * as pair from './pair.js';
 
-interface ExecutionBlockedStatus {
-    executionBlocked: boolean;
-}
 interface Props {};
 interface LivelitProps {
     ref: React.Ref<LivelitWindow>;
-    executionBlockedStatus: ExecutionBlockedStatus;
+    windowOpen: boolean;
 
 };
 interface ProgramLineProps {
     lineNumber: number;
     lineText: string;
     refForLivelit: React.Ref<LivelitWindow>;
-    executionBlockedStatus: ExecutionBlockedStatus;
 };
 interface TabletopCalibratorProps extends LivelitProps {
     machine: pair.Machine | undefined;
     tabletop: pair.Tabletop | undefined;
     ref: React.Ref<TabletopCalibrator>;
+    windowOpen: boolean;
 };
 
 interface State {}
@@ -41,13 +38,11 @@ interface ProgramPaneState {
 interface ProgramLineState {
     lineText: string;
     expandedLineText: string;
-    windowOpen: boolean;
     highlight: boolean;
 };
 
 class ProgramUtil {
     static parseTextForLivelit(text: string,
-                               executionBlockedStatus: ExecutionBlockedStatus,
                                livelitRef: React.Ref<LivelitWindow>)
                                : JSX.Element | null {
         const re = /\$\w+/;
@@ -60,15 +55,15 @@ class ProgramUtil {
         switch (livelitName) {
             case 'geometryGallery':
                 const ggProps: GeometryGalleryProps = {
-                    executionBlockedStatus: executionBlockedStatus,
-                    ref: livelitRef as React.Ref<GeometryGallery>
+                    ref: livelitRef as React.Ref<GeometryGallery>,
+                    windowOpen: false
                 };
                 return <GeometryGallery {...ggProps}>
                        </GeometryGallery>;
             case 'pointPicker':
                 const ppProps: PointPickerProps = {
-                    executionBlockedStatus: executionBlockedStatus,
-                    ref: livelitRef as React.Ref<PointPicker>
+                    ref: livelitRef as React.Ref<PointPicker>,
+                    windowOpen: false
                 };
                 return <PointPicker {...ppProps}>
                        </PointPicker>;
@@ -76,16 +71,16 @@ class ProgramUtil {
                 const tcProps: TabletopCalibratorProps = {
                     machine: undefined,
                     tabletop: undefined,
-                    executionBlockedStatus: executionBlockedStatus,
-                    ref: livelitRef as React.Ref<TabletopCalibrator>
+                    ref: livelitRef as React.Ref<TabletopCalibrator>,
+                    windowOpen: false
                 };
                 return <TabletopCalibrator {...tcProps}>
                        </TabletopCalibrator>;
             case 'faceFinder':
                 const ffProps: FaceFinderProps = {
                     camera: undefined,
-                    executionBlockedStatus: executionBlockedStatus,
-                    ref: livelitRef as React.Ref<FaceFinder>
+                    ref: livelitRef as React.Ref<FaceFinder>,
+                    windowOpen: false
                 };
                 return <FaceFinder {...ffProps}>
                        </FaceFinder>;
@@ -98,7 +93,6 @@ class ProgramUtil {
 
 class ProgramPane extends React.Component<Props, ProgramPaneState> {
     livelitRefs: React.Ref<LivelitWindow>[];
-    executionBlockedStatus: ExecutionBlockedStatus;
 
     defaultLinesSignature = [
         'let signature = $geometryGallery;',
@@ -141,9 +135,6 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
             defaultLines: this.defaultLinesMustacheLiveLits
         };
         this.livelitRefs = [];
-        this.executionBlockedStatus = {
-            executionBlocked: false
-        };
     }
 
     renderTextLines(textLines: string[]) {
@@ -154,32 +145,10 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
             this.livelitRefs.push(currLineRef);
             return <ProgramLine lineNumber={lineNumber}
                                 key={index}
-                                executionBlockedStatus={this.executionBlockedStatus}
                                 refForLivelit={currLineRef}
                                 lineText={line}></ProgramLine>
         }).flat();
         return lines;
-    }
-
-    blockExecution() {
-        console.log('blocking!');
-        this.executionBlockedStatus.executionBlocked = true;
-        const delay = 500;
-        return new Promise<void>((resolve) => {
-            const stall = () => {
-                if (this.executionBlockedStatus.executionBlocked) {
-                    console.log('stalling');
-                }
-                else {
-                    return resolve();
-                }
-            };
-            setInterval(stall, delay)
-        });
-    }
-
-    unblockExecution() {
-        this.executionBlockedStatus.executionBlocked = false;
     }
 
     __getLivelitRefs() {
@@ -256,7 +225,6 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
         this.state = {
             lineText: props.lineText,
             expandedLineText: '',
-            windowOpen: false,
             highlight: false
         };
     }
@@ -267,10 +235,10 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
 
     toggleLivelitWindow() {
         this.setState((prevState) => {
+            // TODO: set livelit state.windowOpen
             let newState: ProgramLineState = {
                 lineText: prevState.lineText,
                 expandedLineText: prevState.lineText,
-                windowOpen: !prevState.windowOpen,
                 highlight: prevState.highlight
             };
             return newState;
@@ -282,7 +250,6 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
         const lineNumber = this.props.lineNumber || 0;
         const livelitWindow = ProgramUtil.parseTextForLivelit(
                                 this.state.lineText,
-                                this.props.executionBlockedStatus,
                                 this.props.refForLivelit);
         return <div className={`program-line ${highlightClass}`}
                     id={`line-${lineNumber - 1}`}
@@ -295,6 +262,10 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
     }
 }
 
+interface LivelitState {
+    windowOpen: boolean;
+}
+
 class LivelitWindow extends React.Component {
     titleText: string;
     functionName: string;
@@ -302,6 +273,7 @@ class LivelitWindow extends React.Component {
     titleKey: number;
     contentKey: number;
     props: LivelitProps;
+    state: LivelitState;
 
     constructor(props: LivelitProps) {
         super(props);
@@ -311,15 +283,30 @@ class LivelitWindow extends React.Component {
         this.livelitClassName = 'livelit-window';
         this.titleKey = 0;
         this.contentKey = 1;
-    }
-
-    unblockExecution() {
-        this.props.executionBlockedStatus.executionBlocked = false;
+        this.state = {
+            windowOpen: props.windowOpen
+        }
     }
 
     expand() : string {
         return 'function livelitExpansion() { };';
     }
+
+    async openWindow() {
+        return this._setWindowOpenState(true);
+    }
+
+    async closeWindow() {
+        return this._setWindowOpenState(false);
+    }
+
+    async _setWindowOpenState(open: boolean) {
+        return new Promise<void>((resolve) => {
+            this.setState((prev: LivelitState) => {
+                return { windowOpen: open };
+            }, resolve);
+        });
+    };
 
     renderTitle() {
         return <div className="title"
@@ -335,6 +322,9 @@ class LivelitWindow extends React.Component {
     }
 
     render() {
+        if (!this.state.windowOpen) {
+            return <div className="hidden"></div>
+        }
         return <div className={this.livelitClassName}>
                     {[ this.renderTitle(), this.renderContent() ]}
                </div>
@@ -342,10 +332,11 @@ class LivelitWindow extends React.Component {
 };
 
 interface GeometryGalleryProps extends LivelitProps {
-    ref: React.Ref<GeometryGallery>
+    ref: React.Ref<GeometryGallery>,
+    windowOpen: boolean;
 };
 
-interface GeometryGalleryState {
+interface GeometryGalleryState extends LivelitState {
     selectedUrl: string;
     imageNameUrlPairs: [string, string][];
 };
@@ -359,7 +350,8 @@ class GeometryGallery extends LivelitWindow {
         this.functionName = '$geometryGallery';
         this.state = {
             selectedUrl: '',
-            imageNameUrlPairs: []
+            imageNameUrlPairs: [],
+            windowOpen: false
         };
         this.fetchGeometryNames();
         this.chooseButton = <div className="button" id="choose-geometry">
@@ -375,7 +367,9 @@ class GeometryGallery extends LivelitWindow {
         let s = `async function ${this.functionName}(machine) {`;
         // TODO: filter geometries by machine
         s += `let gg = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `await gg.openWindow();`
         s += `let geomUrl = await gg.waitForGeometryChosen();`;
+        s += `await gg.closeWindow();`
         s += `return new pair.Geometry(geomUrl);`;
         s += `}`;
         return s;
@@ -456,7 +450,8 @@ class GeometryGallery extends LivelitWindow {
 }
 
 interface PointPickerProps extends LivelitProps {
-    ref: React.Ref<PointPicker>
+    ref: React.Ref<PointPicker>;
+    windowOpen: boolean;
 };
 
 class PointPicker extends LivelitWindow {
@@ -484,7 +479,7 @@ class PointPicker extends LivelitWindow {
     }
 }
 
-interface TabletopCalibratorState {
+interface TabletopCalibratorState extends LivelitState {
     tabletop?: pair.Tabletop;
 };
 
@@ -501,7 +496,8 @@ class TabletopCalibrator extends LivelitWindow {
         this.tabletop = undefined;
         this.props = props;
         this.state = {
-            tabletop: undefined
+            tabletop: undefined,
+            windowOpen: false
         };
         this.applyButton = <div className="button" id="apply-tabletop-homography">
                                 Apply
@@ -512,7 +508,9 @@ class TabletopCalibrator extends LivelitWindow {
         let s = `async function ${this.functionName}(machine) {`;
         s += `let tc = PROGRAM_PANE.getLivelitWithName(\'$tabletopCalibrator\');`;
         s += `tc.tabletop = new pair.Tabletop(machine);`;
+        s += 'await tc.openWindow();';
         s += `await tc.applyTabletopHomography();`;
+        s += 'await tc.closeWindow();';
         s += `return tc.tabletop;`;
         s += `}`;
         return s;
@@ -567,9 +565,10 @@ class TabletopCalibrator extends LivelitWindow {
 interface FaceFinderProps extends LivelitProps {
     camera?: pair.Camera;
     ref: React.Ref<FaceFinder>;
+    windowOpen: boolean;
 }
 
-interface FaceFinderState {
+interface FaceFinderState extends LivelitState {
     imageTaken: boolean;
     imagePath: string;
     detectedRegions: pair.Region[];
@@ -590,7 +589,8 @@ class FaceFinder extends LivelitWindow {
         this.state = {
             imageTaken: false,
             imagePath: './img/seattle-times.jpg',
-            detectedRegions: []
+            detectedRegions: [],
+            windowOpen: false
         }
         this.photoButton = <div onClick={this.takePhoto.bind(this)}
                                 className="button" id="take-photo">
@@ -617,7 +617,9 @@ class FaceFinder extends LivelitWindow {
         let s = `async function ${this.functionName}(camera) {`;
         s += `let ff = PROGRAM_PANE.getLivelitWithName(\'$faceFinder\');`;
         s += `ff.camera = camera;`;
+        s += `await ff.openWindow();`;
         s += `let regions = await ff.acceptDetectedRegions();`;
+        s += `await ff.closeWindow();`;
         s += `return regions;`;
         s += `}`;
         return s;
