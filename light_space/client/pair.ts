@@ -422,7 +422,7 @@ export class Point {
 export class Region {
     name: string;
     corners: Point[];
-    _paperObj?: paper.Path;
+    _paperObj?: paper.Group;
 
     constructor(name: string, corners: Point[]) {
         this.name = name;
@@ -439,10 +439,13 @@ export class Region {
         let from: paper.Point = this.corners[0].paperPoint;
         let to: paper.Point = this.corners[3].paperPoint;
         let rectPath = new paper.Path.Rectangle(from, to);
-        rectPath.strokeColor = new paper.Color(0x00ff00);
-        rectPath.strokeWidth = 1;
-        tabletop.project.activeLayer.addChild(rectPath);
-        this._paperObj = rectPath;
+        let paperGroup = new paper.Group([rectPath]);
+        tabletop.workEnvelope.applyHomographyToGroup(paperGroup);
+        paperGroup.position.set(this.centroid.paperPoint);
+        paperGroup.strokeColor = new paper.Color(0x00ff00);
+        paperGroup.strokeWidth = 1;
+        tabletop.project.activeLayer.addChild(paperGroup);
+        this._paperObj = paperGroup;
     }
 
     clearFromTabletop() {
@@ -537,6 +540,7 @@ export class Geometry {
 
 export class Machine {
     machineName: string;
+    tabletop?: Tabletop;
 
     constructor(machineName: string) {
         this.machineName = machineName;
@@ -555,7 +559,17 @@ export class Machine {
     }
 
     drawBorder() {
-        // TODO
+        // FIXME: doesn't work yet, just use b keypress
+        if (this.tabletop) {
+            let wePathCopy = this.tabletop.workEnvelope.path.clone({
+                deep: true,
+                insert: false
+            });
+            let wePathGroup = new paper.Group([ wePathCopy ]);
+            this.tabletop.workEnvelope.applyInverseHomography(wePathGroup);
+            this.tabletop.sendPaperItemToMachine(wePathGroup);
+            wePathGroup.remove();
+        }
     }
 
     plotToolpathOnTabletop(toolpath: Toolpath, tabletop: Tabletop) {

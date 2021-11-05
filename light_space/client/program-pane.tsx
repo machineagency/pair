@@ -513,6 +513,7 @@ class TabletopCalibrator extends LivelitWindow {
         s += 'await tc.openWindow();';
         s += `await tc.applyTabletopHomography();`;
         s += 'await tc.closeWindow();';
+        s += `machine.tabletop = tc;`;
         s += `return tc.tabletop;`;
         s += `}`;
         return s;
