@@ -4,11 +4,12 @@ import numpy as np
 from pyaxidraw import axidraw
 from machine import Machine
 import sys
+import pickle
 
 class Camera:
     def __init__(self, dry=False):
         self.dry_mode = dry
-        self.PROJ_SCREEN_SIZE_HW = (720, 1280)
+        self.PROJ_SCREEN_SIZE_HW = (900, 1440)
         self.CM_TO_PX = 37.7952755906
         self.MIN_CONTOUR_LEN = 100
         self.static_image_path = './client/img/seattle-times.jpg'
@@ -16,8 +17,23 @@ class Camera:
         self.contours = []
         self.work_env_contour = None
         self.preview_open = False
+        self.fiducial_homography = self.load_fiducial_homography()
         if not self.dry_mode:
-            self.video_capture = cv2.VideoCapture(0)
+            self.video_capture = cv2.VideoCapture(1)
+
+    def load_fiducial_homography(self):
+        try:
+            f = open('./volatile/homography.pckl', 'rb')
+            homog_with_dims = pickle.load(f)
+            homog = homog_with_dims[0]
+        except (IOError, OSError) as e:
+            print('Error trying to initialize fiducial homography for camera');
+            print(e)
+            f.close()
+            homog = np.zeros()
+        finally:
+            f.close()
+            return homog
 
     def _process_image(self, img):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -31,6 +47,12 @@ class Camera:
 
     def _read_video_image(self):
         ret, frame = self.video_capture.read()
+        proj_h = self.PROJ_SCREEN_SIZE_HW[0]
+        proj_w = self.PROJ_SCREEN_SIZE_HW[1]
+        if self.fiducial_homography.any():
+        # if False:
+            frame = cv2.warpPerspective(frame, self.fiducial_homography, \
+                    (proj_w, proj_h))
         return frame
 
     def capture_video_frame(self):
