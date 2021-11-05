@@ -34,20 +34,25 @@ shell.on('message', (message) => {
         shell.currRpcName = '';
     }
     else if (shell.currRpcName === 'detectFaceBoxes') {
-        let arrayOfArrays = JSON.parse(message);
-        let boxes = arrayOfArrays.map(box => {
-            return {
-                x: box[0],
-                y: box[1],
-                width: box[2],
-                height: box[3]
-            }
-        });
-        shell.currRpcResponse.status(200).json({
-            results: boxes
-        });
-        shell.currRpcResponse = undefined;
-        shell.currRpcName = '';
+        try {
+            let arrayOfArrays = JSON.parse(message);
+            let boxes = arrayOfArrays.map(box => {
+                return {
+                    x: box[0],
+                    y: box[1],
+                    width: box[2],
+                    height: box[3]
+                }
+            });
+            shell.currRpcResponse.status(200).json({
+                results: boxes
+            });
+            shell.currRpcResponse = undefined;
+            shell.currRpcName = '';
+        }
+        catch (e) {
+            console.log(`PC --> Could not parse faces.`);
+        }
     }
     else if (shell.currRpcName === 'takePhoto') {
         shell.currRpcResponse.sendFile(__dirname + '/volatile/camera-photo.jpg');
