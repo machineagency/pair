@@ -609,10 +609,6 @@ class CameraCalibrator extends LivelitWindow {
                             </div>
     }
 
-    componentDidMount() {
-        this.takePhoto();
-    }
-
     async acceptCameraWarp() : Promise<pair.Camera> {
         return new Promise<pair.Camera>((resolve) => {
             const applyButton = document.getElementById(this.applyButtonId);
@@ -628,6 +624,7 @@ class CameraCalibrator extends LivelitWindow {
         let s = `async function ${this.functionName}(tabletop) {`;
         s += `let cc = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `cc.tabletop = tabletop;`;
+        s += `await cc.takePhoto();`;
         s += `await cc.openWindow();`;
         s += `let camera = await cc.acceptCameraWarp();`;
         s += `await cc.closeWindow();`;
