@@ -25,6 +25,9 @@ const MM_TO_PX = 3.7795275591;
 const PX_TO_MM = 0.2645833333;
 const BASE_URL = 'http://localhost:3000';
 
+const __idenPts = [0, 0, 0, 0, 0, 0, 0, 0];
+export const Identity = PerspT(__idenPts, __idenPts);
+
 export class Tabletop {
     machine: Machine;
     project: paper.Project;
@@ -462,9 +465,11 @@ export class Region {
 export class Camera {
     // TODO: camera calibration to machine space with fiducial
     tabletop?: Tabletop;
+    extrinsicTransform: Homography;
 
     constructor(tabletop?: Tabletop) {
         this.tabletop = tabletop;
+        this.extrinsicTransform = Identity;
     }
 
     async takePhoto() : Promise<string> {
