@@ -76,6 +76,12 @@ class ProgramUtil {
                 };
                 return <TabletopCalibrator {...tcProps}>
                        </TabletopCalibrator>;
+            case 'cameraCalibrator':
+                const ccProps: CameraCalibratorProps = {
+                    ref: livelitRef as React.Ref<CameraCalibrator>,
+                    windowOpen: false
+                }
+                return <CameraCalibrator {...ccProps}></CameraCalibrator>;
             case 'faceFinder':
                 const ffProps: FaceFinderProps = {
                     camera: undefined,
@@ -118,7 +124,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     defaultLinesMustacheLiveLits = [
         'let machine = new pair.Machine(\'axidraw\');',
         'let tabletop = await $tabletopCalibrator(machine);',
-        'let camera = new pair.Camera(tabletop);',
+        'let camera = await $cameraCalibrator(tabletop);',
         'let mustache = await $geometryGallery(machine);',
         'let faceRegions = await $faceFinder(camera);',
         'let faceCentroids = faceRegions.map(r => r.centroid);',
@@ -560,6 +566,115 @@ class TabletopCalibrator extends LivelitWindow {
                    </div>
                    <div className="help-text">
                        3. Press 'Apply' when you are satisfied.
+                   </div>
+                   { this.applyButton }
+               </div>;
+    }
+}
+
+interface CameraCalibratorProps extends LivelitProps {
+    ref: React.Ref<CameraCalibrator>;
+    windowOpen: boolean;
+}
+
+interface CameraCalibratorState extends LivelitState {
+    unwarpedImageUrl: string;
+    warpedImageUrl: string;
+    extrinsicTransform: Homography;
+};
+
+class CameraCalibrator extends LivelitWindow {
+    props: LivelitProps;
+    state: CameraCalibratorState;
+    tabletop?: pair.Tabletop;
+    camera: pair.Camera;
+    applyButtonId: string;
+    applyButton: JSX.Element;
+
+    constructor(props: CameraCalibratorProps) {
+        super(props);
+        this.props = props;
+        this.state = {
+            unwarpedImageUrl: '',
+            warpedImageUrl: '',
+            extrinsicTransform: pair.Identity,
+            windowOpen: this.props.windowOpen
+        };
+        this.camera = new pair.Camera();
+        this.functionName = '$cameraCalibrator';
+        this.applyButtonId = 'apply-camera-homography';
+        this.applyButton = <div className="button"
+                                id={this.applyButtonId}>
+                                Apply
+                            </div>
+    }
+
+    componentDidMount() {
+        this.takePhoto();
+    }
+
+    async acceptCameraWarp() : Promise<pair.Camera> {
+        return new Promise<pair.Camera>((resolve) => {
+            const applyButton = document.getElementById(this.applyButtonId);
+            if (applyButton) {
+                applyButton.addEventListener('click', (event) => {
+                    resolve(this.camera);
+                });
+            }
+        });
+    }
+
+    expand() : string {
+        let s = `async function ${this.functionName}(tabletop) {`;
+        s += `let cc = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `cc.tabletop = tabletop;`;
+        s += `await cc.openWindow();`;
+        s += `let camera = await cc.acceptCameraWarp();`;
+        s += `await cc.closeWindow();`;
+        s += `return camera;`;
+        s += `}`;
+        return s;
+    }
+
+    drawBorder() {
+        this.tabletop?.machine.drawBorder();
+    }
+
+    async takePhoto() {
+        let imageUrl = await this.camera?.takePhoto();
+        if (imageUrl) {
+            this.setState((prev: CameraCalibratorState) => {
+                return {
+                    unwarpedImageUrl: imageUrl
+                };
+            });
+        }
+    }
+
+    renderContent() {
+        return <div className="camera-calibrator"
+                    key={this.contentKey.toString()}>
+                   <div className="help-text">
+                       1. Draw a border around the work envelope with the
+                       machine (skip if it's already there).
+                   </div>
+                   <div onClick={this.drawBorder.bind(this)}
+                        className="button" id="draw-border">
+                       Draw Border
+                   </div>
+                   <div className="help-text">
+                       2. Make sure the camera is stationary, then click on the
+                       four corners of the drawn border within the camera feed.
+                   </div>
+                   <div className="image-thumbnail face-finder-thumbnail">
+                       <img src={this.state.unwarpedImageUrl} alt="unwarped camera Feed"/>
+                   </div>
+                   <div className="help-text">
+                       3. Check the preview below and press 'Apply' when you
+                       are satisfied.
+                   </div>
+                   <div className="image-thumbnail face-finder-thumbnail">
+                       <img src={this.state.unwarpedImageUrl} alt="unwarped camera Feed"/>
                    </div>
                    { this.applyButton }
                </div>;
