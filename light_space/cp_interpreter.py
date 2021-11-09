@@ -17,10 +17,9 @@ class Camera:
         self.contours = []
         self.work_env_contour = None
         self.preview_open = False
-        self.fiducial_homography = self.load_fiducial_homography()
+        self.fiducial_homography = np.zeros((3, 3))
         if not self.dry_mode:
             self.video_capture = self.find_video_capture()
-            self.fiducial_homography = self.load_fiducial_homography()
 
     def find_video_capture(self):
         for i in range(3):
@@ -29,7 +28,7 @@ class Camera:
                 return maybe_capture
         print('Could not find working camera for video capture.')
 
-    def load_fiducial_homography(self):
+    def load_fiducial_homography_from_file(self):
         try:
             f = open('./volatile/homography.pckl', 'rb')
             homog_with_dims = pickle.load(f)
@@ -42,6 +41,10 @@ class Camera:
         finally:
             f.close()
             return homog
+
+    def set_homography(self, h):
+        # TODO
+        pass
 
     def _process_image(self, img):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
