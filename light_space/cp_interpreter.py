@@ -19,7 +19,15 @@ class Camera:
         self.preview_open = False
         self.fiducial_homography = self.load_fiducial_homography()
         if not self.dry_mode:
-            self.video_capture = cv2.VideoCapture(1)
+            self.video_capture = self.find_video_capture()
+            self.fiducial_homography = self.load_fiducial_homography()
+
+    def find_video_capture(self):
+        for i in range(3):
+            maybe_capture = cv2.VideoCapture(i)
+            if maybe_capture.isOpened():
+                return maybe_capture
+        print('Could not find working camera for video capture.')
 
     def load_fiducial_homography(self):
         try:
