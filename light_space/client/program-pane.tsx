@@ -581,6 +581,7 @@ interface CameraCalibratorState extends LivelitState {
     unwarpedImageUrl: string;
     warpedImageUrl: string;
     extrinsicTransform: Homography;
+    selectedPoints: pair.Point[];
 };
 
 class CameraCalibrator extends LivelitWindow {
@@ -590,6 +591,8 @@ class CameraCalibrator extends LivelitWindow {
     camera: pair.Camera;
     applyButtonId: string;
     applyButton: JSX.Element;
+    photoButtonId: string;
+    photoButton: JSX.Element;
 
     constructor(props: CameraCalibratorProps) {
         super(props);
@@ -598,7 +601,8 @@ class CameraCalibrator extends LivelitWindow {
             unwarpedImageUrl: '',
             warpedImageUrl: '',
             extrinsicTransform: pair.Identity,
-            windowOpen: this.props.windowOpen
+            windowOpen: this.props.windowOpen,
+            selectedPoints: []
         };
         this.camera = new pair.Camera();
         this.functionName = '$cameraCalibrator';
@@ -607,6 +611,11 @@ class CameraCalibrator extends LivelitWindow {
                                 id={this.applyButtonId}>
                                 Apply
                             </div>
+        this.photoButtonId = 'cc-take-photo';
+        this.photoButton = <div onClick={this.takePhoto.bind(this)}
+                                className="button" id={this.photoButtonId}>
+                               Take Photo
+                           </div>
     }
 
     async acceptCameraWarp() : Promise<pair.Camera> {
@@ -624,7 +633,6 @@ class CameraCalibrator extends LivelitWindow {
         let s = `async function ${this.functionName}(tabletop) {`;
         s += `let cc = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `cc.tabletop = tabletop;`;
-        s += `await cc.takePhoto();`;
         s += `await cc.openWindow();`;
         s += `let camera = await cc.acceptCameraWarp();`;
         s += `await cc.closeWindow();`;
@@ -663,15 +671,20 @@ class CameraCalibrator extends LivelitWindow {
                        2. Make sure the camera is stationary, then click on the
                        four corners of the drawn border within the camera feed.
                    </div>
-                   <div className="image-thumbnail face-finder-thumbnail">
-                       <img src={this.state.unwarpedImageUrl} alt="unwarped camera Feed"/>
+                   { this.photoButton }
+                   <div className="image-thumbnail">
+                       <img src={this.state.unwarpedImageUrl}
+                            onClick={this.selectPoint.bind(this)}
+                            id="cc-unwarped-feed"
+                            alt="unwarped camera Feed"/>
                    </div>
                    <div className="help-text">
                        3. Check the preview below and press 'Apply' when you
                        are satisfied.
                    </div>
-                   <div className="image-thumbnail face-finder-thumbnail">
-                       <img src={this.state.unwarpedImageUrl} alt="unwarped camera Feed"/>
+                   <div className="image-thumbnail">
+                       <img src={this.state.warpedImageUrl}
+                            alt="unwarped camera Feed"/>
                    </div>
                    { this.applyButton }
                </div>;
