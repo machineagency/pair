@@ -142,7 +142,12 @@ body {
 .face-finder-thumbnail img {
     max-height: 100%;
     max-width: 100%;
+}
 
+#cc-unwarped-feed {
+    cursor: crosshair;
+    max-height: 100%;
+    max-width: 100%;
 }
 
 .program-controls {
