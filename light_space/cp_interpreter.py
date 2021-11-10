@@ -18,6 +18,7 @@ class Camera:
         self.work_env_contour = None
         self.preview_open = False
         self.fiducial_homography = np.zeros((3, 3))
+        self.most_recent_img = np.zeros(0);
         if not self.dry_mode:
             self.video_capture = self.find_video_capture()
 
@@ -228,8 +229,16 @@ class Interpreter(cmd.Cmd):
 
     def do_take_photo(self, arg):
         img = self.camera.capture_video_frame()
+        self.camera.most_recent_img = img
         cv2.imwrite('volatile/camera-photo.jpg', img)
         print('Image written.')
+
+    def do_warp_photo(self, arg):
+        if self.camera.most_recent_img.any():
+            # TODO: parse args (somehow) and use opencv to warp
+            # then save to volatile/camera-photo-warped
+            pass
+        pass
 
     def do_bye(self, arg):
         print("Bye!")

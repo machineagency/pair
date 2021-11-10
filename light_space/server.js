@@ -59,6 +59,11 @@ shell.on('message', (message) => {
         shell.currRpcResponse = undefined;
         shell.currRpcName = '';
     }
+    else if (shell.currRpcResponse === 'warpLastPhoto') {
+        shell.currRpcResponse.sendFile(__dirname + '/volatile/camera-photo-warped.jpg');
+        shell.currRpcResponse = undefined;
+        shell.currRpcName = '';
+    }
     else {
         console.log(`PC --> ${message}`);
     }
@@ -83,6 +88,12 @@ let attachRoutesAndStart = () => {
         shell.currRpcResponse = res;
         shell.currRpcName = 'takePhoto';
         shell.send('take_photo');
+    });
+
+    app.get('/camera/warpLastPhoto', (req, res) => {
+        shell.currRpcResponse = res;
+        shell.currRpcName = 'warpLastPhoto';
+        shell.send('warp_last_photo');
     });
 
     // TODO: pass in photo as parameter
