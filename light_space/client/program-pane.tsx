@@ -656,6 +656,57 @@ class CameraCalibrator extends LivelitWindow {
         }
     }
 
+    selectPoint(event: React.MouseEvent<HTMLImageElement>) {
+        const target = event.target as HTMLImageElement;
+        if (target) {
+            const maybeInitiateWarp = async () => {
+                if (this.state.selectedPoints.length === 4) {
+                    // UL, UR, LR, LL
+                    let cameraPointsUnrolled = [
+                       [0, 0],
+                       [target.naturalWidth, 0],
+                       [target.naturalWidth, target.naturalHeight],
+                       [0, target.naturalHeight]
+                    ].flat();
+                    let selectedPointsUnrolled = [
+                        this.state.selectedPoints[0].flatten(),
+                        this.state.selectedPoints[1].flatten(),
+                        this.state.selectedPoints[2].flatten(),
+                        this.state.selectedPoints[3].flatten()
+                    ].flat();
+                    let h = PerspT(cameraPointsUnrolled,
+                                   selectedPointsUnrolled);
+                    let url = `/camera/warpLastPhoto?coeffs=${h.coeffs}`
+                    let res = await fetch(url);
+                    if (res.ok) {
+                        let blob = await res.blob();
+                        let url = URL.createObjectURL(blob);
+                        this.setState((prev: CameraCalibratorState) => {
+                            return {
+                                warpedImageUrl: url
+                            };
+                        });
+                    }
+                }
+            };
+            const cameraHeight = target.naturalHeight;
+            const cameraWidth = target.naturalWidth;
+            const scaledDownHeight = target.height;
+            const scaledDownWidth = target.width;
+            const domBoundingRect = target.getBoundingClientRect();
+            const scaledX = event.clientX - domBoundingRect.left;
+            const scaledY = event.clientY - domBoundingRect.top;
+            const x = scaledX * (cameraWidth / scaledDownWidth);
+            const y = scaledY * (cameraHeight / scaledDownHeight);
+            const pt = new pair.Point(x, y);
+            this.setState((prev: CameraCalibratorState) => {
+                return {
+                    selectedPoints: prev.selectedPoints.concat(pt)
+                };
+            }, maybeInitiateWarp)
+        }
+    }
+
     renderContent() {
         return <div className="camera-calibrator"
                     key={this.contentKey.toString()}>
