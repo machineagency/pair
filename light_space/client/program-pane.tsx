@@ -627,6 +627,7 @@ class CameraCalibrator extends LivelitWindow {
             if (applyButton) {
                 applyButton.addEventListener('click', (event) => {
                     this.camera.extrinsicTransform = this.state.extrinsicTransform;
+                    this.camera.tabletop = this.tabletop;
                     resolve(this.camera);
                 });
             }
@@ -825,6 +826,11 @@ class FaceFinder extends LivelitWindow {
         }
         let regions = await this.camera.findFaceRegions();
         return new Promise<void>((resolve) => {
+            regions.forEach(r => {
+                if (this.camera && this.camera.tabletop) {
+                    r.drawOnTabletop(this.camera.tabletop);
+                }
+            });
             let prevRegions : pair.Region[];
             this.setState((prevState: FaceFinderState) => {
                 prevRegions = prevState.detectedRegions;
