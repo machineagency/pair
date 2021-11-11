@@ -621,6 +621,24 @@ class CameraCalibrator extends LivelitWindow {
                            </div>
     }
 
+    setImageToTableScaling(camera: pair.Camera) {
+        let feedDom = document.getElementById('cc-unwarped-feed') as HTMLImageElement;
+        if (feedDom && this.tabletop) {
+            if (feedDom.naturalWidth === 0 || feedDom.naturalHeight === 0) {
+                console.warn('Camera Calibrator: window to table scaling'
+                    + 'is incorrect because there is no image yet.');
+            }
+            camera.imageToTabletopScale.x = this.tabletop.workEnvelope.width
+                / feedDom.naturalWidth
+            camera.imageToTabletopScale.y = this.tabletop.workEnvelope.height
+                / feedDom.naturalHeight
+            console.log(camera.imageToTabletopScale);
+        }
+        else {
+            console.warn('Camera Calibrator: could not set window to table scaling.');
+        }
+    }
+
     async acceptCameraWarp() : Promise<pair.Camera> {
         return new Promise<pair.Camera>((resolve) => {
             const applyButton = document.getElementById(this.applyButtonId);
@@ -628,6 +646,7 @@ class CameraCalibrator extends LivelitWindow {
                 applyButton.addEventListener('click', (event) => {
                     this.camera.extrinsicTransform = this.state.extrinsicTransform;
                     this.camera.tabletop = this.tabletop;
+                    this.setImageToTableScaling(this.camera);
                     resolve(this.camera);
                 });
             }
@@ -639,6 +658,7 @@ class CameraCalibrator extends LivelitWindow {
         s += `let cc = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `cc.tabletop = tabletop;`;
         s += `await cc.openWindow();`;
+        s += `await cc.takePhoto();`;
         s += `let camera = await cc.acceptCameraWarp();`;
         s += `await cc.closeWindow();`;
         s += `return camera;`;
@@ -657,7 +677,7 @@ class CameraCalibrator extends LivelitWindow {
                 return {
                     unwarpedImageUrl: imageUrl
                 };
-            });
+            })
         }
     }
 
@@ -750,7 +770,7 @@ class CameraCalibrator extends LivelitWindow {
                    <div className="image-thumbnail">
                        <img src={this.state.warpedImageUrl}
                             id="cc-warped-feed"
-                            alt="unwarped camera Feed"/>
+                            alt="warped camera Feed"/>
                    </div>
                    { this.applyButton }
                </div>;
@@ -837,7 +857,9 @@ class FaceFinder extends LivelitWindow {
                 return {
                     detectedRegions: regions
                 }
-            }, () => prevRegions.forEach(r => r.clearFromTabletop()));
+            }, () => prevRegions.forEach(r => {
+                r.clearFromTabletop();
+            }));
         });
     }
 

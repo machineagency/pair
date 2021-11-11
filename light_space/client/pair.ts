@@ -471,9 +471,11 @@ export class Region {
 export class Camera {
     tabletop?: Tabletop;
     extrinsicTransform?: Homography;
+    imageToTabletopScale: { x: number, y: number };
 
     constructor(tabletop?: Tabletop) {
         this.tabletop = tabletop;
+        this.imageToTabletopScale = { x: 1, y: 1 };
     }
 
     async takePhoto() : Promise<string> {
@@ -491,8 +493,8 @@ export class Camera {
 
     async findFaceRegions() : Promise<Region[]> {
         interface BoxResponseObj {
-            x: number,
-            y: number,
+            topLeftX: number,
+            topLeftY: number,
             width: number,
             height: number
         };
@@ -502,14 +504,15 @@ export class Camera {
         if (response.ok) {
             let resJson = await response.json();
             regions = resJson.results.map((obj: BoxResponseObj, idx: number) => {
-                let tl = new Point(obj.x - 0.5 * obj.width, obj.y - 0.5 * obj.height);
-                let bl = new Point(obj.x - 0.5 * obj.width, obj.y + 0.5 * obj.height);
-                let tr = new Point(obj.x + 0.5 * obj.width, obj.y - 0.5 * obj.height);
-                let br = new Point(obj.x + 0.5 * obj.width, obj.y + 0.5 * obj.height);
+                let tl = new Point(obj.topLeftX * this.imageToTabletopScale.x,
+                                   obj.topLeftY * this.imageToTabletopScale.y);
+                let tr = new Point((obj.topLeftX + obj.width) * this.imageToTabletopScale.x,
+                                   obj.topLeftY * this.imageToTabletopScale.y);
+                let bl = new Point(obj.topLeftX * this.imageToTabletopScale.x,
+                                   (obj.topLeftY + obj.height) * this.imageToTabletopScale.y);
+                let br = new Point((obj.topLeftX + obj.width) * this.imageToTabletopScale.x,
+                                   (obj.topLeftY + obj.height) * this.imageToTabletopScale.y);
                 let region = new Region(`face ${idx}`, [tl, bl, tr, br]);
-                if (this.tabletop) {
-                    region.drawOnTabletop(this.tabletop);
-                }
                 return region;
             });
         }

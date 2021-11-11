@@ -40,8 +40,8 @@ shell.on('message', (message) => {
             let arrayOfArrays = JSON.parse(message);
             let boxes = arrayOfArrays.map(box => {
                 return {
-                    x: box[0],
-                    y: box[1],
+                    topLeftX: box[0],
+                    topLeftY: box[1],
                     width: box[2],
                     height: box[3]
                 }
