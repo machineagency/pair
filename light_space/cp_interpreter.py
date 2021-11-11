@@ -245,6 +245,7 @@ class Interpreter(cmd.Cmd):
                 img_height, img_width = img.shape[0], img.shape[1]
                 img_warped = cv2.warpPerspective(img, h_expand, (img_width, img_height))
                 cv2.imwrite('volatile/camera-photo-warped.jpg', img_warped)
+                print('Image written.')
             except Exception as e:
                 print('Could not warp photo')
                 print(e)

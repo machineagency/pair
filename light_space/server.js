@@ -59,7 +59,7 @@ shell.on('message', (message) => {
         shell.currRpcResponse = undefined;
         shell.currRpcName = '';
     }
-    else if (shell.currRpcResponse === 'warpLastPhoto') {
+    else if (shell.currRpcName === 'warpLastPhoto') {
         shell.currRpcResponse.sendFile(__dirname + '/volatile/camera-photo-warped.jpg');
         shell.currRpcResponse = undefined;
         shell.currRpcName = '';
