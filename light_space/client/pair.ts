@@ -456,7 +456,10 @@ export class Region {
 
     clearFromTabletop() {
         if (this._paperObj) {
-            this._paperObj.remove();
+            let result = this._paperObj.remove();
+            if (!result) {
+                console.warn(`Could not remove region ${this}`);
+            }
         }
     }
 
