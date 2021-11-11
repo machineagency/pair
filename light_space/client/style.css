@@ -150,6 +150,12 @@ body {
     max-width: 100%;
 }
 
+#cc-warped-feed {
+    cursor: crosshair;
+    max-height: 100%;
+    max-width: 100%;
+}
+
 .program-controls {
     margin-top: 20px;
     height: 75px;

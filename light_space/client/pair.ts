@@ -26,7 +26,6 @@ const PX_TO_MM = 0.2645833333;
 const BASE_URL = 'http://localhost:3000';
 
 const __idenPts = [0, 0, 0, 0, 0, 0, 0, 0];
-export const Identity = PerspT(__idenPts, __idenPts);
 
 export class Tabletop {
     machine: Machine;
@@ -467,17 +466,16 @@ export class Region {
 }
 
 export class Camera {
-    // TODO: camera calibration to machine space with fiducial
     tabletop?: Tabletop;
-    extrinsicTransform: Homography;
+    extrinsicTransform?: Homography;
 
     constructor(tabletop?: Tabletop) {
         this.tabletop = tabletop;
-        this.extrinsicTransform = Identity;
     }
 
     async takePhoto() : Promise<string> {
-        let imageRes = await fetch('/camera/takePhoto');
+        let coeffs = this.extrinsicTransform?.coeffs.toString() || '';
+        let imageRes = await fetch(`/camera/takePhoto?coeffs=${coeffs}`);
         if (imageRes.ok) {
             let blob = await imageRes.blob();
             let url = URL.createObjectURL(blob);

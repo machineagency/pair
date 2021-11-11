@@ -581,7 +581,9 @@ interface CameraCalibratorProps extends LivelitProps {
 interface CameraCalibratorState extends LivelitState {
     unwarpedImageUrl: string;
     warpedImageUrl: string;
-    extrinsicTransform: Homography;
+    /* Make this H optional rather than initializing it as an identity
+     * because we are having a lot of problems producing an identity. */
+    extrinsicTransform?: Homography;
     selectedPoints: pair.Point[];
 };
 
@@ -601,7 +603,7 @@ class CameraCalibrator extends LivelitWindow {
         this.state = {
             unwarpedImageUrl: '',
             warpedImageUrl: '',
-            extrinsicTransform: pair.Identity,
+            extrinsicTransform: undefined,
             windowOpen: this.props.windowOpen,
             selectedPoints: []
         };
@@ -624,6 +626,7 @@ class CameraCalibrator extends LivelitWindow {
             const applyButton = document.getElementById(this.applyButtonId);
             if (applyButton) {
                 applyButton.addEventListener('click', (event) => {
+                    this.camera.extrinsicTransform = this.state.extrinsicTransform;
                     resolve(this.camera);
                 });
             }
@@ -685,7 +688,8 @@ class CameraCalibrator extends LivelitWindow {
                         this.setState((prev: CameraCalibratorState) => {
                             return {
                                 selectedPoints: [],
-                                warpedImageUrl: url
+                                warpedImageUrl: url,
+                                extrinsicTransform: h
                             };
                         });
                     }
@@ -744,6 +748,7 @@ class CameraCalibrator extends LivelitWindow {
                    </div>
                    <div className="image-thumbnail">
                        <img src={this.state.warpedImageUrl}
+                            id="cc-warped-feed"
                             alt="unwarped camera Feed"/>
                    </div>
                    { this.applyButton }

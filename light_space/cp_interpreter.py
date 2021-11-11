@@ -157,8 +157,8 @@ class Interpreter(cmd.Cmd):
         else:
             Interpreter.prompt = ""
 
-        self.camera = Camera(dry=True)
-        self.machine = Machine(dry=True)
+        self.camera = Camera(dry=False)
+        self.machine = Machine(dry=False)
 
     def do_image(self, arg):
         if self.camera.dry_mode:
@@ -228,15 +228,22 @@ class Interpreter(cmd.Cmd):
         self.machine.plot_svg(svg_filepath)
 
     def do_take_photo(self, arg):
-        img = self.camera.capture_video_frame()
-        self.camera.most_recent_img = img
-        cv2.imwrite('volatile/camera-photo.jpg', img)
-        print('Image written.')
+        try:
+            img = self.camera.capture_video_frame()
+            h_flat = np.fromstring(arg, dtype='float', sep=',')
+            h_shrink = h_flat.reshape((3, 3))
+            h_expand = np.linalg.inv(h_shrink)
+            img_height, img_width = img.shape[0], img.shape[1]
+            img_adjusted = cv2.warpPerspective(img, h_expand, (img_width, img_height))
+            self.camera.most_recent_img = img_adjusted
+            cv2.imwrite('volatile/camera-photo.jpg', img_adjusted)
+            print('Image written.')
+        except Exception as e:
+            print('Could not warp photo')
+            print(e)
 
     def do_warp_last_photo(self, arg):
         if self.camera.most_recent_img.any():
-            # TODO: parse args (somehow) and use opencv to warp
-            # then save to volatile/camera-photo-warped
             try:
                 img = self.camera.most_recent_img
                 h_flat = np.fromstring(arg, dtype='float', sep=',')

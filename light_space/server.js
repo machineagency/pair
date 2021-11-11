@@ -1,5 +1,7 @@
 'use strict';
 
+const IDENTITY_COEFFS = '1,0,0,0,1,0,0,0,1';
+
 // modules =================================================
 const express        = require('express');
 const app            = express();
@@ -85,9 +87,11 @@ let attachRoutesAndStart = () => {
     });
 
     app.get('/camera/takePhoto', (req, res) => {
+        /* Format: 'c0,c1,...,c8' */
+        let coeffs = req.query['coeffs'] || IDENTITY_COEFFS;
         shell.currRpcResponse = res;
         shell.currRpcName = 'takePhoto';
-        shell.send('take_photo');
+        shell.send(`take_photo ${coeffs}`);
     });
 
     app.get('/camera/warpLastPhoto', (req, res) => {
