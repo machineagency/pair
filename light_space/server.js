@@ -91,9 +91,11 @@ let attachRoutesAndStart = () => {
     });
 
     app.get('/camera/warpLastPhoto', (req, res) => {
+        /* Format: 'c0,c1,...,c8' */
+        let coeffs = req.query['coeffs']
         shell.currRpcResponse = res;
         shell.currRpcName = 'warpLastPhoto';
-        shell.send('warp_last_photo');
+        shell.send(`warp_last_photo ${coeffs}`);
     });
 
     // TODO: pass in photo as parameter

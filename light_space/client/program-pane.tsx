@@ -125,6 +125,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'let machine = new pair.Machine(\'axidraw\');',
         'let tabletop = await $tabletopCalibrator(machine);',
         'let camera = await $cameraCalibrator(tabletop);',
+        // 'let camera = new pair.Camera();',
         'let mustache = await $geometryGallery(machine);',
         'let faceRegions = await $faceFinder(camera);',
         'let faceCentroids = faceRegions.map(r => r.centroid);',
@@ -683,6 +684,7 @@ class CameraCalibrator extends LivelitWindow {
                         let url = URL.createObjectURL(blob);
                         this.setState((prev: CameraCalibratorState) => {
                             return {
+                                selectedPoints: [],
                                 warpedImageUrl: url
                             };
                         });
@@ -728,6 +730,9 @@ class CameraCalibrator extends LivelitWindow {
                             onClick={this.selectPoint.bind(this)}
                             id="cc-unwarped-feed"
                             alt="unwarped camera Feed"/>
+                   </div>
+                   <div className="help-text">
+                       <strong>{ this.state.selectedPoints.length }</strong> points selected.
                    </div>
                    <div className="help-text">
                        3. Check the preview below and press 'Apply' when you

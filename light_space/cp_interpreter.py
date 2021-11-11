@@ -233,12 +233,23 @@ class Interpreter(cmd.Cmd):
         cv2.imwrite('volatile/camera-photo.jpg', img)
         print('Image written.')
 
-    def do_warp_photo(self, arg):
+    def do_warp_last_photo(self, arg):
         if self.camera.most_recent_img.any():
             # TODO: parse args (somehow) and use opencv to warp
             # then save to volatile/camera-photo-warped
-            pass
-        pass
+            try:
+                img = self.camera.most_recent_img
+                h_flat = np.fromstring(arg, dtype='float', sep=',')
+                h = h_flat.reshape((3, 3))
+                print(h_flat)
+                print(h)
+                print(img.shape)
+                img_height, img_width = img.shape[0], img.shape[1]
+                img_warped = cv2.warpPerspective(img, h, (img_width, img_height))
+                cv2.imwrite('volatile/camera-photo-warped.jpg', img_warped)
+            except Exception as e:
+                print('Could not warp photo')
+                print(e)
 
     def do_bye(self, arg):
         print("Bye!")
