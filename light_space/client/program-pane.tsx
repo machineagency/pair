@@ -723,6 +723,10 @@ class CameraCalibrator extends LivelitWindow {
                    <div className="help-text">
                        2. Make sure the camera is stationary, then click on the
                        four corners of the drawn border within the camera feed.
+                       Click the points in the following order:
+                   </div>
+                   <div className="help-text">
+                       <strong>upper left, upper right, lower right, lower left.</strong>
                    </div>
                    { this.photoButton }
                    <div className="image-thumbnail">
