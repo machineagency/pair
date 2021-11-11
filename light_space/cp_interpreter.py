@@ -240,12 +240,10 @@ class Interpreter(cmd.Cmd):
             try:
                 img = self.camera.most_recent_img
                 h_flat = np.fromstring(arg, dtype='float', sep=',')
-                h = h_flat.reshape((3, 3))
-                print(h_flat)
-                print(h)
-                print(img.shape)
+                h_shrink = h_flat.reshape((3, 3))
+                h_expand = np.linalg.inv(h_shrink)
                 img_height, img_width = img.shape[0], img.shape[1]
-                img_warped = cv2.warpPerspective(img, h, (img_width, img_height))
+                img_warped = cv2.warpPerspective(img, h_expand, (img_width, img_height))
                 cv2.imwrite('volatile/camera-photo-warped.jpg', img_warped)
             except Exception as e:
                 print('Could not warp photo')
