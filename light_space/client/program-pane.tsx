@@ -125,11 +125,10 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'let machine = new pair.Machine(\'axidraw\');',
         'let tabletop = await $tabletopCalibrator(machine);',
         'let camera = await $cameraCalibrator(tabletop);',
-        // 'let camera = new pair.Camera();',
         'let mustache = await $geometryGallery(machine);',
         'let faceRegions = await $faceFinder(camera);',
-        'let faceCentroids = faceRegions.map(r => r.centroid);',
-        'let toolpaths = await Promise.all(faceCentroids.map(c => mustache.placeAt(c, tabletop)));',
+        'let mustachePoints = faceRegions.map(r => r.centroid.add(0, 0.25 * r.height));',
+        'let toolpaths = await Promise.all(mustachePoints.map(pt => mustache.placeAt(pt, tabletop)));',
         // TODO: combine toolpaths into one object which will become one svg. in fact,
         // maybe we should just place geometries, and then only form a single toolpath
         // at the very end.
@@ -632,7 +631,6 @@ class CameraCalibrator extends LivelitWindow {
                 / feedDom.naturalWidth
             camera.imageToTabletopScale.y = this.tabletop.workEnvelope.height
                 / feedDom.naturalHeight
-            console.log(camera.imageToTabletopScale);
         }
         else {
             console.warn('Camera Calibrator: could not set window to table scaling.');

@@ -416,6 +416,14 @@ export class Point {
         return this.paperPoint.y;
     }
 
+    // NOTE: for some reason, a non-modifying version of this seems to cause
+    // problems.
+    add(x: number, y: number) {
+        this.paperPoint.x += x;
+        this.paperPoint.y += y;
+        return this;
+    }
+
     toString() {
         return `(${this.x}, ${this.y})`;
     }
@@ -433,6 +441,26 @@ export class Region {
     constructor(name: string, corners: Point[]) {
         this.name = name;
         this.corners = corners;
+    }
+
+    get width() {
+        let minX = this.corners.reduce((soFar, pt) => {
+            return pt.x < soFar ? pt.x : soFar;
+        }, Infinity);
+        let maxX = this.corners.reduce((soFar, pt) => {
+            return pt.x > soFar ? pt.x : soFar;
+        }, -Infinity);
+        return maxX - minX;
+    }
+
+    get height() {
+        let minY = this.corners.reduce((soFar, pt) => {
+            return pt.y < soFar ? pt.y : soFar;
+        }, Infinity);
+        let maxY = this.corners.reduce((soFar, pt) => {
+            return pt.y > soFar ? pt.y : soFar;
+        }, -Infinity);
+        return maxY - minY;
     }
 
     get centroid() : Point {
