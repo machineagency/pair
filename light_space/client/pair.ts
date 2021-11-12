@@ -504,14 +504,22 @@ export class Camera {
         if (response.ok) {
             let resJson = await response.json();
             regions = resJson.results.map((obj: BoxResponseObj, idx: number) => {
-                let tl = new Point(obj.topLeftX * this.imageToTabletopScale.x,
-                                   obj.topLeftY * this.imageToTabletopScale.y);
-                let tr = new Point((obj.topLeftX + obj.width) * this.imageToTabletopScale.x,
-                                   obj.topLeftY * this.imageToTabletopScale.y);
-                let bl = new Point(obj.topLeftX * this.imageToTabletopScale.x,
-                                   (obj.topLeftY + obj.height) * this.imageToTabletopScale.y);
-                let br = new Point((obj.topLeftX + obj.width) * this.imageToTabletopScale.x,
-                                   (obj.topLeftY + obj.height) * this.imageToTabletopScale.y);
+                let tl = new Point(
+                    Math.round(obj.topLeftX * this.imageToTabletopScale.x),
+                    Math.round(obj.topLeftY * this.imageToTabletopScale.y)
+                );
+                let tr = new Point(
+                    Math.round((obj.topLeftX + obj.width) * this.imageToTabletopScale.x),
+                    Math.round(obj.topLeftY * this.imageToTabletopScale.y)
+                );
+                let bl = new Point(
+                    Math.round(obj.topLeftX * this.imageToTabletopScale.x),
+                    Math.round((obj.topLeftY + obj.height) * this.imageToTabletopScale.y)
+                );
+                let br = new Point(
+                    Math.round((obj.topLeftX + obj.width) * this.imageToTabletopScale.x),
+                    Math.round((obj.topLeftY + obj.height) * this.imageToTabletopScale.y)
+                );
                 let region = new Region(`face ${idx}`, [tl, bl, tr, br]);
                 return region;
             });
