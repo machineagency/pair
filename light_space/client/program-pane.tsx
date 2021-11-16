@@ -94,7 +94,6 @@ class ProgramUtil {
                 return null;
         }
     }
-
 }
 
 class ProgramPane extends React.Component<Props, ProgramPaneState> {
@@ -210,11 +209,14 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     }
 
     render() {
-        return <div className="program-pane">
+        return <div id="program-pane" className="program-pane">
             <div className="program-lines">
                 { this.renderTextLines(this.state.defaultLines) }
             </div>
             <div className="program-controls">
+                <div className="pc-btn">
+                    Compile
+                </div>
                 <div className="pc-btn pc-run"
                      onClick={this.runAllLines.bind(this)}>Run</div>
             </div>
@@ -970,10 +972,4 @@ class ToolpathDeployer extends LivelitWindow {
     }
 }
 
-const inflateProgramPane = () => {
-    const blankDom = document.querySelector('#program-container');
-    const programPane = <ProgramPane></ProgramPane>;
-    ReactDOM.render(programPane, blankDom);
-};
-
-export { inflateProgramPane };
+export { ProgramPane };
