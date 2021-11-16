@@ -935,6 +935,41 @@ class ToolpathDirectManipulator extends LivelitWindow {
     }
 }
 
+interface ToolpathDeployerState extends LivelitState {
+}
+
+class ToolpathDeployer extends LivelitWindow {
+    constructor(props: LivelitProps) {
+        super(props);
+        this.titleText = 'Toolpath Deployer';
+        this.functionName = '$toolpathDeployer';
+    }
+
+    expand() : string {
+        let s = `async function ${this.functionName}(machine, toolpaths) {`;
+        s += `}`;
+        return s;
+    }
+
+    renderToolpathThumbnails() {
+    }
+
+    renderContent() {
+        return <div className="toolpath-deployer"
+                    key={this.contentKey.toString()}>
+               <ul>
+                   <li>
+                        <div></div>
+                        <div>
+                            <div></div>
+                            <div></div>
+                        </div>
+                   </li>
+               </ul>
+               </div>;
+    }
+}
+
 const inflateProgramPane = () => {
     const blankDom = document.querySelector('#program-container');
     const programPane = <ProgramPane></ProgramPane>;
