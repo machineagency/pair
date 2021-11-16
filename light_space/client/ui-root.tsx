@@ -8,19 +8,29 @@ class UIRoot extends React.Component<Props, State> {
         super(props);
     }
 
-    componentDidMount() {
-        (paper as any).setup('main-canvas');
-    }
-
     render() {
         return <div id="main-container">
             <div id="canvas-container">
-                <canvas id="main-canvas"></canvas>
+                <PaperCanvas></PaperCanvas>
             </div>
             <div id="program-container">
                 <ProgramPane></ProgramPane>
             </div>
         </div>
+    }
+}
+
+class PaperCanvas extends React.Component<Props, State> {
+    constructor(props: Props) {
+        super(props);
+    }
+
+    componentDidMount() {
+        (paper as any).setup('main-canvas');
+    }
+
+    render() {
+        return <canvas id="main-canvas"></canvas>
     }
 }
 
