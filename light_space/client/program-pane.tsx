@@ -42,6 +42,13 @@ interface ProgramLineState {
 };
 
 class ProgramUtil {
+    // FIXME: use this version for now, eventually remove version that requires
+    // refs
+    static parseTextForLivelitNew(text: string) {
+        let dummyRef = React.createRef<LivelitWindow>();
+        return ProgramUtil.parseTextForLivelit(text, dummyRef);
+    }
+
     static parseTextForLivelit(text: string,
                                livelitRef: React.Ref<LivelitWindow>)
                                : JSX.Element | null {
@@ -56,14 +63,14 @@ class ProgramUtil {
             case 'geometryGallery':
                 const ggProps: GeometryGalleryProps = {
                     ref: livelitRef as React.Ref<GeometryGallery>,
-                    windowOpen: false
+                    windowOpen: true
                 };
                 return <GeometryGallery {...ggProps}>
                        </GeometryGallery>;
             case 'pointPicker':
                 const ppProps: PointPickerProps = {
                     ref: livelitRef as React.Ref<PointPicker>,
-                    windowOpen: false
+                    windowOpen: true
                 };
                 return <PointPicker {...ppProps}>
                        </PointPicker>;
@@ -72,21 +79,21 @@ class ProgramUtil {
                     machine: undefined,
                     tabletop: undefined,
                     ref: livelitRef as React.Ref<TabletopCalibrator>,
-                    windowOpen: false
+                    windowOpen: true
                 };
                 return <TabletopCalibrator {...tcProps}>
                        </TabletopCalibrator>;
             case 'cameraCalibrator':
                 const ccProps: CameraCalibratorProps = {
                     ref: livelitRef as React.Ref<CameraCalibrator>,
-                    windowOpen: false
+                    windowOpen: true
                 }
                 return <CameraCalibrator {...ccProps}></CameraCalibrator>;
             case 'faceFinder':
                 const ffProps: FaceFinderProps = {
                     camera: undefined,
                     ref: livelitRef as React.Ref<FaceFinder>,
-                    windowOpen: false
+                    windowOpen: true
                 };
                 return <FaceFinder {...ffProps}>
                        </FaceFinder>;
@@ -208,19 +215,70 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         eval(progText);
     }
 
+    compile() {
+        this.typeCheck();
+        this.inflateModulePane();
+    }
+
+    typeCheck() {
+        console.log('Looks good to me @_@');
+    }
+
+    inflateModulePane() {
+        let livelitRefs = this.__getLivelitRefs();
+        return livelitRefs;
+    }
+
     render() {
         return <div id="program-pane" className="program-pane">
+            <ModulePane lines={this.state.defaultLines}></ModulePane>
             <div className="program-lines">
                 { this.renderTextLines(this.state.defaultLines) }
             </div>
             <div className="program-controls">
-                <div className="pc-btn">
+                <div className="pc-btn pc-compile"
+                     onClick={this.compile.bind(this)}>
                     Compile
                 </div>
                 <div className="pc-btn pc-run"
                      onClick={this.runAllLines.bind(this)}>Run</div>
             </div>
         </div>
+    }
+}
+
+interface ModulePaneProps extends Props {
+    lines: string[];
+}
+
+interface ModulePaneState extends State {
+    lines: string[];
+}
+
+class ModulePane extends React.Component<ModulePaneProps, ModulePaneState> {
+    constructor(props: ModulePaneProps) {
+        super(props);
+        this.state = {
+            lines: props.lines
+        };
+    }
+
+    mapLinesToLivelits() : JSX.Element[] {
+        let livelits = this.state.lines.map((line) => {
+            return ProgramUtil.parseTextForLivelitNew(line);
+        });
+        let nonNullLiveLits = livelits.filter((ll): ll is JSX.Element => {
+            return ll !== null;
+        });
+        return nonNullLiveLits;
+    }
+
+    render() {
+        return (
+            <div id="module-pane">
+                { this.mapLinesToLivelits() }
+            </div>
+        );
     }
 }
 
