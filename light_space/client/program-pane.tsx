@@ -149,6 +149,12 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         this.livelitRefs = [];
     }
 
+    componentDidMount() {
+        document.querySelectorAll('pre code').forEach((el) => {
+            hljs.highlightElement(el);
+        });
+    }
+
     renderTextLines(textLines: string[]) {
         this.livelitRefs = [];
         const lines = textLines.map((line, index) => {
@@ -230,18 +236,20 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     }
 
     render() {
-        return <div id="program-pane" className="program-pane">
+        return <div id="program-pane">
             <ModulePane lines={this.state.defaultLines}></ModulePane>
-            <div className="program-lines">
-                { this.renderTextLines(this.state.defaultLines) }
-            </div>
-            <div className="program-controls">
-                <div className="pc-btn pc-compile"
-                     onClick={this.compile.bind(this)}>
-                    Compile
+            <div id="program-lines-and-controls">
+                <div id="program-lines">
+                    { this.renderTextLines(this.state.defaultLines) }
                 </div>
-                <div className="pc-btn pc-run"
-                     onClick={this.runAllLines.bind(this)}>Run</div>
+                <div id="program-controls">
+                    <div className="pc-btn pc-compile"
+                         onClick={this.compile.bind(this)}>
+                        Compile
+                    </div>
+                    <div className="pc-btn pc-run"
+                         onClick={this.runAllLines.bind(this)}>Run</div>
+                </div>
             </div>
         </div>
     }
@@ -320,10 +328,9 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
         return <div className={`program-line ${highlightClass}`}
                     id={`line-${lineNumber - 1}`}
                     onClick={this.toggleLivelitWindow.bind(this)}>
-                    <div className="program-line-text">
+                    <pre className="program-line-text language-typescript"><code>
                         {this.state.lineText}
-                    </div>
-                    { livelitWindow }
+                    </code></pre>
                </div>
     }
 }
@@ -417,7 +424,7 @@ class GeometryGallery extends LivelitWindow {
         this.state = {
             selectedUrl: '',
             imageNameUrlPairs: [],
-            windowOpen: false
+            windowOpen: props.windowOpen
         };
         this.fetchGeometryNames();
         this.chooseButton = <div className="button" id="choose-geometry">
@@ -564,7 +571,7 @@ class TabletopCalibrator extends LivelitWindow {
         this.props = props;
         this.state = {
             tabletop: undefined,
-            windowOpen: false
+            windowOpen: props.windowOpen
         };
         this.applyButton = <div className="button"
                                 id="apply-tabletop-homography">
@@ -667,6 +674,7 @@ class CameraCalibrator extends LivelitWindow {
             selectedPoints: []
         };
         this.camera = new pair.Camera();
+        this.titleText = 'Camera Calibrator';
         this.functionName = '$cameraCalibrator';
         this.applyButtonId = 'apply-camera-homography';
         this.applyButton = <div className="button"
@@ -863,7 +871,7 @@ class FaceFinder extends LivelitWindow {
             imageTaken: false,
             imagePath: './img/seattle-times.jpg',
             detectedRegions: [],
-            windowOpen: false
+            windowOpen: props.windowOpen
         }
         this.photoButton = <div onClick={this.takePhoto.bind(this)}
                                 className="button" id="take-photo">
