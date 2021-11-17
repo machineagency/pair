@@ -9,17 +9,21 @@ class UIRoot extends React.Component<Props, State> {
     }
 
     render() {
-        return <div id="main-container">
-            <div id="canvas-container">
-                <PaperCanvas></PaperCanvas>
+        return (
+            <div id="main-container">
+                <div id="program-container">
+                    <ProgramPane></ProgramPane>
+                </div>
+                <div id="canvas-container">
+                    <PaperCanvas></PaperCanvas>
+                </div>
             </div>
-            <div id="program-container">
-                <ProgramPane></ProgramPane>
-            </div>
-        </div>
+        )
     }
 }
 
+// NOTE: this will eventually be moved elsewhere probably as it will need
+// to be loaded remotely.
 class PaperCanvas extends React.Component<Props, State> {
     constructor(props: Props) {
         super(props);
@@ -30,7 +34,7 @@ class PaperCanvas extends React.Component<Props, State> {
     }
 
     render() {
-        return <canvas id="main-canvas"></canvas>
+        return <canvas id="main-canvas" className="hidden"></canvas>
     }
 }
 
