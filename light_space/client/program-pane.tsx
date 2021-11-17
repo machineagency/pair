@@ -105,6 +105,7 @@ class ProgramUtil {
 
 class ProgramPane extends React.Component<Props, ProgramPaneState> {
     livelitRefs: React.Ref<LivelitWindow>[];
+    modulePaneRef: React.RefObject<ModulePane>;
 
     defaultLinesSignature = [
         'let signature = $geometryGallery;',
@@ -147,6 +148,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
             defaultLines: this.defaultLinesMustacheLiveLits
         };
         this.livelitRefs = [];
+        this.modulePaneRef = React.createRef<ModulePane>();
     }
 
     componentDidMount() {
@@ -169,26 +171,26 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         return lines;
     }
 
-    __getLivelitRefs() {
-        let livelitRefs = this.livelitRefs as React.RefObject<LivelitWindow>[];
-        let nonNullRefs = livelitRefs.filter((ref) => {
-            return ref.current !== null;
-        });
-        return nonNullRefs;
+    __getModules() : LivelitWindow[] {
+        let modules : LivelitWindow[] = [];
+        if (this.modulePaneRef.current) {
+            let maybeNullMods = this.modulePaneRef.current.getModules();
+            let nonNullMods = maybeNullMods.filter((mod) : mod is LivelitWindow => {
+                return mod !== null;
+            });
+            return nonNullMods;
+        }
+        else {
+            return [];
+        }
     }
 
     getLivelitWithName(functionName: string) : State {
-        let refs = this.__getLivelitRefs();
-        let ref = refs.find((ref) => {
-            return ref && ref.current
-                   && ref.current.functionName === functionName;
+        let modules = this.__getModules();
+        let moduleWindow = modules.find((mod) => {
+            return mod.functionName === functionName;
         });
-        if (ref && ref.current) {
-            return ref.current;
-        }
-        else {
-            return {};
-        }
+        return moduleWindow ? moduleWindow : {};
     }
 
     gatherLivelitsAsFunctionDeclarations() : string {
@@ -196,11 +198,11 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
             functionName: string;
             state: State;
         };
-        let refs = this.__getLivelitRefs();
+        let mods = this.__getModules();
         let expandedFunctionStrings : string[] = [];
-        refs.forEach((ref) => {
-            if (ref !== null && ref.current !== null) {
-                expandedFunctionStrings.push(ref.current.expand());
+        mods.forEach((mod) => {
+            if (mod) {
+                expandedFunctionStrings.push(mod.expand());
             }
         });
         let allExpandedFunctions = expandedFunctionStrings.join('\n');
@@ -223,21 +225,18 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
 
     compile() {
         this.typeCheck();
-        this.inflateModulePane();
+        // TODO: ideally module inflation would start here, perhaps just
+        // set the state of the module pane
     }
 
     typeCheck() {
         console.log('Looks good to me @_@');
     }
 
-    inflateModulePane() {
-        let livelitRefs = this.__getLivelitRefs();
-        return livelitRefs;
-    }
-
     render() {
         return <div id="program-pane">
-            <ModulePane lines={this.state.defaultLines}></ModulePane>
+            <ModulePane lines={this.state.defaultLines}
+                        ref={this.modulePaneRef}></ModulePane>
             <div id="program-lines-and-controls">
                 <div id="program-lines">
                     { this.renderTextLines(this.state.defaultLines) }
@@ -264,16 +263,29 @@ interface ModulePaneState extends State {
 }
 
 class ModulePane extends React.Component<ModulePaneProps, ModulePaneState> {
+    moduleRefs: React.RefObject<LivelitWindow>[];
+
     constructor(props: ModulePaneProps) {
         super(props);
+        this.moduleRefs = [];
         this.state = {
             lines: props.lines
         };
     }
 
+    getModules() {
+        let modules = this.moduleRefs.map(ref => {
+            return ref ? ref.current : null;
+        });
+        let nonNullModules = modules.filter(maybeModule => maybeModule !== null);
+        return nonNullModules;
+    }
+
     mapLinesToLivelits() : JSX.Element[] {
         let livelits = this.state.lines.map((line) => {
-            return ProgramUtil.parseTextForLivelitNew(line);
+            let moduleRef = React.createRef<LivelitWindow>();
+            this.moduleRefs.push(moduleRef);
+            return ProgramUtil.parseTextForLivelit(line, moduleRef);
         });
         let nonNullLiveLits = livelits.filter((ll): ll is JSX.Element => {
             return ll !== null;
