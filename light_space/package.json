@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/jhaazpr/machine-o-matic#readme",
   "dependencies": {
+    "@types/highlightjs": "^9.12.2",
     "@types/react": "^17.0.30",
     "@types/react-dom": "^17.0.9",
     "body-parser": "^1.18.3",
