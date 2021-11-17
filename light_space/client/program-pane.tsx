@@ -63,14 +63,14 @@ class ProgramUtil {
             case 'geometryGallery':
                 const ggProps: GeometryGalleryProps = {
                     ref: livelitRef as React.Ref<GeometryGallery>,
-                    windowOpen: true
+                    windowOpen: false
                 };
                 return <GeometryGallery {...ggProps}>
                        </GeometryGallery>;
             case 'pointPicker':
                 const ppProps: PointPickerProps = {
                     ref: livelitRef as React.Ref<PointPicker>,
-                    windowOpen: true
+                    windowOpen: false
                 };
                 return <PointPicker {...ppProps}>
                        </PointPicker>;
@@ -79,21 +79,21 @@ class ProgramUtil {
                     machine: undefined,
                     tabletop: undefined,
                     ref: livelitRef as React.Ref<TabletopCalibrator>,
-                    windowOpen: true
+                    windowOpen: false
                 };
                 return <TabletopCalibrator {...tcProps}>
                        </TabletopCalibrator>;
             case 'cameraCalibrator':
                 const ccProps: CameraCalibratorProps = {
                     ref: livelitRef as React.Ref<CameraCalibrator>,
-                    windowOpen: true
+                    windowOpen: false
                 }
                 return <CameraCalibrator {...ccProps}></CameraCalibrator>;
             case 'faceFinder':
                 const ffProps: FaceFinderProps = {
                     camera: undefined,
                     ref: livelitRef as React.Ref<FaceFinder>,
-                    windowOpen: true
+                    windowOpen: false
                 };
                 return <FaceFinder {...ffProps}>
                        </FaceFinder>;
@@ -406,15 +406,13 @@ class LivelitWindow extends React.Component {
     }
 
     renderContent() {
-        return <div className="content"
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return <div className={`content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
                </div>;
     }
 
     render() {
-        if (!this.state.windowOpen) {
-            return <div className="hidden"></div>
-        }
         return <div className={this.livelitClassName}>
                     {[ this.renderTitle(), this.renderContent() ]}
                </div>
@@ -505,7 +503,8 @@ class GeometryGallery extends LivelitWindow {
             let url = nameUrlPair[1];
             return this.renderGalleryItem(name, url, idx);
         });
-        return <div className="content"
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return <div className={`content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
                     <div className="geometry-gallery">
                         { galleryItems }
@@ -555,7 +554,8 @@ class PointPicker extends LivelitWindow {
     }
 
     renderContent() {
-        return <div className="point-picker"
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return <div className={`point-picker content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
                    <div className="table-thumbnail">
                        <div className="crosshair"></div>
@@ -630,7 +630,8 @@ class TabletopCalibrator extends LivelitWindow {
     }
 
     renderContent() {
-        return <div className="tabletop-calibrator"
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return <div className={`tabletop-calibrator content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
                    <div className="help-text">
                        1. Draw a border around the work envelope with the
@@ -818,7 +819,8 @@ class CameraCalibrator extends LivelitWindow {
     }
 
     renderContent() {
-        return <div className="camera-calibrator"
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return <div className={`camera-calibrator content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
                    <div className="help-text">
                        1. Draw a border around the work envelope with the
@@ -969,7 +971,8 @@ class FaceFinder extends LivelitWindow {
         let image = this.state.imageTaken
                         ? <img src={this.state.imagePath}/>
                         : <div></div>;
-        return <div className="face-finder"
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return <div className={`face-finder content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
                    { this.photoButton }
                    <div className="image-thumbnail face-finder-thumbnail">
@@ -1040,7 +1043,8 @@ class ToolpathDeployer extends LivelitWindow {
     }
 
     renderContent() {
-        return <div className="toolpath-deployer"
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return <div className={`toolpath-deployer content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
                <ul>
                    <li>

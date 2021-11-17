@@ -47,6 +47,7 @@ pre code.hljs {
 
 #program-pane {
     display: flex;
+    width: 100%;
 }
 
 #module-pane {
