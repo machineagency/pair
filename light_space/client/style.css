@@ -4,7 +4,17 @@ html, body {
 }
 
 body {
-    background-color: black;
+    background-color: #23241f;
+}
+
+/* Bypass default Highlight.js padding. */
+pre code.hljs {
+    padding: 0px !important;
+}
+
+::selection {
+    color: #23241f;
+    background-color: white;
 }
 
 .hidden {
@@ -17,32 +27,53 @@ body {
 }
 
 #main-container {
-    display: flex;
-    flex-direction: row;
     height: 100%;
 }
 
 #program-container {
     font-size: 8pt;
-    width: 30%;
+    height: 100%;
+    width: 90%;
     color: whitesmoke;
     font-family: 'JetBrains Mono', monospace;
     padding-top: 10px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     margin-top: 20px;
     /* TODO: figure out how to scroll without overflow-y: scroll because
      * this seems to causing the ::before pseudoelement not to show.
      */
 }
 
+#program-pane {
+    display: flex;
+}
+
+#module-pane {
+    height: 100%;
+    width: 25%;
+    overflow-y: scroll;
+}
+
+#program-lines-and-controls {
+    height: 100%;
+    width: 70%;
+    margin-left: 20px;
+    font-size: 14px;
+}
+
+#program-lines {
+    border: 1px dashed white;
+    padding: 20px;
+}
+
 .program-line {
-    max-width: 95%;
     counter-increment: line;
 }
 
 .program-line-text {
     display: inline-block;
+    margin: 0px;
 }
 
 .program-line::before {
@@ -60,10 +91,9 @@ body {
 
 .livelit-window {
     max-width: 90%;
-    margin-top: 5px;
-    margin-bottom: 5px;
+    margin-bottom: 10px;
     border: 1px solid whitesmoke;
-    padding: 5px 10px 5px 10px;
+    padding: 10px;
     display: flex;
     flex-direction: column;
 }
@@ -165,14 +195,14 @@ body {
     max-width: 100%;
 }
 
-.program-controls {
+#program-controls {
     margin-top: 20px;
     height: 75px;
     display: flex;
     flex-direction: row;
 }
 
-.program-controls .pc-btn {
+.pc-btn {
     height: 36px;
     width: 100px;
     background-color: whitesmoke;
