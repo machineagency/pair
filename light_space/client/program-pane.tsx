@@ -224,9 +224,14 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     }
 
     compile() {
+        // We will probably want to promise chain off of this, rejecting if
+        // we fail type check.
         this.typeCheck();
-        // TODO: ideally module inflation would start here, perhaps just
-        // set the state of the module pane
+        if (this.modulePaneRef.current) {
+            this.modulePaneRef.current.setState((prevState: ModulePaneState) => {
+                return { lines: this.defaultLinesMustacheLiveLits }
+            });
+        }
     }
 
     typeCheck() {
@@ -235,7 +240,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
 
     render() {
         return <div id="program-pane">
-            <ModulePane lines={this.state.defaultLines}
+            <ModulePane lines={[]}
                         ref={this.modulePaneRef}></ModulePane>
             <div id="program-lines-and-controls">
                 <div id="program-lines">
