@@ -21,6 +21,11 @@ pre code.hljs {
     display: none;
 }
 
+.grayed {
+    color: #888888;
+    font-style: italic;
+}
+
 #root {
     height: 100%;
     width: 100%;

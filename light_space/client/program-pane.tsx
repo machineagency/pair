@@ -17,6 +17,7 @@ interface Props {};
 interface LivelitProps {
     ref: React.Ref<LivelitWindow>;
     windowOpen: boolean;
+    valueSet: boolean;
 
 };
 interface ProgramLineProps {
@@ -63,6 +64,7 @@ class ProgramUtil {
             case 'geometryGallery':
                 const ggProps: GeometryGalleryProps = {
                     ref: livelitRef as React.Ref<GeometryGallery>,
+                    valueSet: false,
                     windowOpen: false
                 };
                 return <GeometryGallery {...ggProps}>
@@ -70,6 +72,7 @@ class ProgramUtil {
             case 'pointPicker':
                 const ppProps: PointPickerProps = {
                     ref: livelitRef as React.Ref<PointPicker>,
+                    valueSet: false,
                     windowOpen: false
                 };
                 return <PointPicker {...ppProps}>
@@ -79,6 +82,7 @@ class ProgramUtil {
                     machine: undefined,
                     tabletop: undefined,
                     ref: livelitRef as React.Ref<TabletopCalibrator>,
+                    valueSet: false,
                     windowOpen: false
                 };
                 return <TabletopCalibrator {...tcProps}>
@@ -86,6 +90,7 @@ class ProgramUtil {
             case 'cameraCalibrator':
                 const ccProps: CameraCalibratorProps = {
                     ref: livelitRef as React.Ref<CameraCalibrator>,
+                    valueSet: false,
                     windowOpen: false
                 }
                 return <CameraCalibrator {...ccProps}></CameraCalibrator>;
@@ -93,6 +98,7 @@ class ProgramUtil {
                 const ffProps: FaceFinderProps = {
                     camera: undefined,
                     ref: livelitRef as React.Ref<FaceFinder>,
+                    valueSet: false,
                     windowOpen: false
                 };
                 return <FaceFinder {...ffProps}>
@@ -300,7 +306,7 @@ class ModulePane extends React.Component<ModulePaneProps, ModulePaneState> {
 
     render() {
         return (
-            <div id="module-pane">
+            <div id="module-pane" key="module-pane">
                 { this.mapLinesToLivelits() }
             </div>
         );
@@ -354,6 +360,7 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
 
 interface LivelitState {
     windowOpen: boolean;
+    valueSet: boolean;
 }
 
 class LivelitWindow extends React.Component {
@@ -374,7 +381,8 @@ class LivelitWindow extends React.Component {
         this.titleKey = 0;
         this.contentKey = 1;
         this.state = {
-            windowOpen: props.windowOpen
+            windowOpen: props.windowOpen,
+            valueSet: props.valueSet,
         }
     }
 
@@ -405,6 +413,16 @@ class LivelitWindow extends React.Component {
                </div>;
     }
 
+    renderValue() {
+        let maybeGrayed = this.state.valueSet ? '' : 'grayed';
+        return (
+            <div className={`module-value ${maybeGrayed}`}
+                 key={`${this.titleKey}-value`}>
+                 I am the value.
+            </div>
+        );
+    }
+
     renderContent() {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return <div className={`content ${maybeHidden}`}
@@ -413,8 +431,11 @@ class LivelitWindow extends React.Component {
     }
 
     render() {
-        return <div className={this.livelitClassName}>
-                    {[ this.renderTitle(), this.renderContent() ]}
+        return <div className={this.livelitClassName}
+                    key={this.livelitClassName}>
+                    {[ this.renderTitle(),
+                       this.renderValue(),
+                       this.renderContent() ]}
                </div>
     }
 };
@@ -439,7 +460,8 @@ class GeometryGallery extends LivelitWindow {
         this.state = {
             selectedUrl: '',
             imageNameUrlPairs: [],
-            windowOpen: props.windowOpen
+            windowOpen: props.windowOpen,
+            valueSet: props.valueSet
         };
         this.fetchGeometryNames();
         this.chooseButton = <div className="button" id="choose-geometry">
@@ -588,7 +610,8 @@ class TabletopCalibrator extends LivelitWindow {
         this.props = props;
         this.state = {
             tabletop: undefined,
-            windowOpen: props.windowOpen
+            windowOpen: props.windowOpen,
+            valueSet: props.valueSet
         };
         this.applyButton = <div className="button"
                                 id="apply-tabletop-homography">
@@ -689,6 +712,7 @@ class CameraCalibrator extends LivelitWindow {
             warpedImageUrl: '',
             extrinsicTransform: undefined,
             windowOpen: this.props.windowOpen,
+            valueSet: props.valueSet,
             selectedPoints: []
         };
         this.camera = new pair.Camera();
@@ -890,7 +914,8 @@ class FaceFinder extends LivelitWindow {
             imageTaken: false,
             imagePath: './img/seattle-times.jpg',
             detectedRegions: [],
-            windowOpen: props.windowOpen
+            windowOpen: props.windowOpen,
+            valueSet: props.valueSet
         }
         this.photoButton = <div onClick={this.takePhoto.bind(this)}
                                 className="button" id="take-photo">
