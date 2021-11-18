@@ -395,6 +395,7 @@ class LivelitWindow extends React.Component {
     }
 
     async closeWindow() {
+        await this.setState((prev: LivelitState) => { valueSet: true });
         return this._setWindowOpenState(false);
     }
 
@@ -650,6 +651,17 @@ class TabletopCalibrator extends LivelitWindow {
                 });
             }
         });
+    }
+
+    renderValue() {
+        let maybeGrayed = this.state.valueSet ? '' : 'grayed';
+        let value = this.tabletop ? this.tabletop.toString() : 'undefined';
+        return (
+            <div className={`module-value ${maybeGrayed}`}
+                 key={`${this.titleKey}-value`}>
+                 { value }
+            </div>
+        );
     }
 
     renderContent() {

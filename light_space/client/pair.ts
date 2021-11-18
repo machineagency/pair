@@ -49,6 +49,10 @@ export class Tabletop {
         this.initMouseHandlers();
     }
 
+    toString() {
+        return `Tabletop<${this.workEnvelope}>`;
+    }
+
     initMouseHandlers() {
         const hitOptions = {
             segments: true,
@@ -218,6 +222,14 @@ export class WorkEnvelope {
         this.sizeLabel = this._drawSizeLabel();
         this.originalCornerPoints = this.getCornerPoints();
         this.homography = this.calculateHomography();
+    }
+
+    toString() {
+        return `WorkEnvelope<\n`
+             + `\twidth (px): ${this.width},\n`
+             + `\theight (px) ${this.height},\n`
+             + `\tpixelToPhysical: ${this.homography.coeffs}\n`
+             + `>`;
     }
 
     _drawPath() : paper.Path {
