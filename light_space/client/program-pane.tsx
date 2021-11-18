@@ -395,7 +395,9 @@ class LivelitWindow extends React.Component {
     }
 
     async closeWindow() {
-        await this.setState((prev: LivelitState) => { valueSet: true });
+        await this.setState((prev: LivelitState) => {
+            return { valueSet: true };
+        });
         return this._setWindowOpenState(false);
     }
 
@@ -518,6 +520,22 @@ class GeometryGallery extends LivelitWindow {
                     <img src={url}
                          className="gallery-image"/>
                </div>;
+    }
+
+    renderValue() {
+        let maybeGrayed = this.state.valueSet ? '' : 'grayed';
+        let pairWithSelectedUrl = this.state.imageNameUrlPairs.find((pair) => {
+            let geomName = pair[0];
+            let geomUrl = pair[1];
+            return geomUrl === this.state.selectedUrl;
+        });
+        let geomName = pairWithSelectedUrl ? pairWithSelectedUrl[0] : '?'
+        return (
+            <div className={`module-value ${maybeGrayed}`}
+                 key={`${this.titleKey}-value`}>
+                 { geomName }
+            </div>
+        );
     }
 
     renderContent() {
@@ -655,7 +673,7 @@ class TabletopCalibrator extends LivelitWindow {
 
     renderValue() {
         let maybeGrayed = this.state.valueSet ? '' : 'grayed';
-        let value = this.tabletop ? this.tabletop.toString() : 'undefined';
+        let value = this.tabletop ? this.tabletop.toString() : '?';
         return (
             <div className={`module-value ${maybeGrayed}`}
                  key={`${this.titleKey}-value`}>
@@ -854,6 +872,17 @@ class CameraCalibrator extends LivelitWindow {
         }
     }
 
+    renderValue() {
+        let maybeGrayed = this.state.valueSet ? '' : 'grayed';
+        let value = this.camera ? this.camera.toString() : '?';
+        return (
+            <div className={`module-value ${maybeGrayed}`}
+                 key={`${this.titleKey}-value`}>
+                 { value }
+            </div>
+        );
+    }
+
     renderContent() {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return <div className={`camera-calibrator content ${maybeHidden}`}
@@ -1002,6 +1031,19 @@ class FaceFinder extends LivelitWindow {
            return <li key={idx}>{r.toString()}</li>
         })
         return resultLis;
+    }
+
+    renderValue() {
+        let maybeGrayed = this.state.valueSet ? '' : 'grayed';
+        let value = this.state.detectedRegions.length > 0
+                        ? `Region[]([${this.state.detectedRegions}])`
+                        : '?';
+        return (
+            <div className={`module-value ${maybeGrayed}`}
+                 key={`${this.titleKey}-value`}>
+                 { value }
+            </div>
+        );
     }
 
     renderContent() {
