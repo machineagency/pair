@@ -734,16 +734,24 @@ class TabletopCalibrator extends LivelitWindow {
     }
 
     renderValue() {
-        let maybeGrayed = this.state.valueSet ? '' : 'grayed';
+        let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
+        let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
         let value = this.state.pixelToPhysical
                         ? this.state.pixelToPhysical.coeffs.toString()
                         : '?';
         let display = `Tabletop(WorkEnvelope(pixelToPhysical: `
                       + `[${value}]))`;
         return (
-            <div className={`module-value ${maybeGrayed}`}
-                 key={`${this.titleKey}-value`}>
-                 { display }
+            <div>
+                <div className={`module-value ${grayedIffUnset}`}
+                     key={`${this.titleKey}-value`}>
+                     { display }
+                </div>
+                <div className={`clear-btn ${hiddenIffUnset}`}
+                     onClick={this.clearSavedTabletopHomography.bind(this)}
+                     key={`${this.titleKey}-clear-value`}>
+                    Clear
+                </div>
             </div>
         );
     }

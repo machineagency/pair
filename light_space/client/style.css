@@ -114,6 +114,13 @@ pre code.hljs {
     margin-bottom: 10px;
 }
 
+.clear-btn {
+    background-color: white;
+    color: #23241f;
+    width: fit-content;
+    cursor: pointer;
+}
+
 .livelit-window .content {
     margin-bottom: 10px;
 }
