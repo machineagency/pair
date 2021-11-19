@@ -396,7 +396,10 @@ class LivelitWindow extends React.Component {
 
     async closeWindow() {
         await this.setState((prev: LivelitState) => {
-            return { valueSet: true };
+            // FIXME: we should not be setting valueSet here,
+            // delete this comment once it's fixed in expand() everywhere.
+            // return { valueSet: true };
+            return {}
         });
         return this._setWindowOpenState(false);
     }
@@ -613,6 +616,7 @@ class PointPicker extends LivelitWindow {
 
 interface TabletopCalibratorState extends LivelitState {
     tabletop?: pair.Tabletop;
+    pixelToPhysical?: Homography;
 };
 
 class TabletopCalibrator extends LivelitWindow {
@@ -627,10 +631,12 @@ class TabletopCalibrator extends LivelitWindow {
         this.functionName = '$tabletopCalibrator';
         this.tabletop = undefined;
         this.props = props;
+        let maybeSavedHomography = this.loadSavedTabletopHomography();
         this.state = {
             tabletop: undefined,
             windowOpen: props.windowOpen,
-            valueSet: props.valueSet
+            pixelToPhysical: maybeSavedHomography,
+            valueSet: !!maybeSavedHomography
         };
         this.applyButton = <div className="button"
                                 id="apply-tabletop-homography">
@@ -642,10 +648,16 @@ class TabletopCalibrator extends LivelitWindow {
         let s = `async function ${this.functionName}(machine) {`;
         s += `let tc = PROGRAM_PANE.getLivelitWithName(\'$tabletopCalibrator\');`;
         s += `tc.tabletop = new pair.Tabletop(machine);`;
+        s += 'if (!tc.state.valueSet) {';
         s += 'await tc.openWindow();';
         s += `await tc.applyTabletopHomography();`;
+        s += `await tc.saveTabletopHomography();`;
         s += 'await tc.closeWindow();';
-        s += `machine.tabletop = tc;`;
+        s += '}';
+        s += 'else {';
+        s += 'tc.tabletop.homography = tc.state.valueSet;';
+        s += '}';
+        s += `machine.tabletop = tc.tabletop;`;
         s += `return tc.tabletop;`;
         s += `}`;
         return s;
@@ -671,13 +683,67 @@ class TabletopCalibrator extends LivelitWindow {
         });
     }
 
+    saveTabletopHomography() {
+        return new Promise<void>((resolve) => {
+            if (this.tabletop) {
+                let h = this.tabletop.workEnvelope.homography;
+                let hSerialized = JSON.stringify(h);
+                localStorage.setItem(this.functionName, hSerialized);
+                this.setState(_ => {
+                    return {
+                        pixelToPhysical: h,
+                        valueSet: true
+                    }
+                }, resolve);
+            }
+            else {
+                console.warn('TabletopCalibrator: Could not save homography.');
+            }
+        });
+    }
+
+    loadSavedTabletopHomography() {
+        interface RevivedHomography {
+            srcPts: number[];
+            dstPts: number[];
+            coeffs: number[];
+            coeffsInv: number[];
+        }
+        let coeffsStr = localStorage.getItem(this.functionName);
+        if (coeffsStr) {
+            let revivedH = JSON.parse(coeffsStr) as RevivedHomography;
+            // Hopefully no numerical errors here.
+            let h = PerspT(revivedH.srcPts, revivedH.dstPts);
+            return h;
+        }
+        else {
+            return undefined;
+        }
+    }
+
+    clearSavedTabletopHomography() {
+        return new Promise<void>((resolve) => {
+            localStorage.removeItem(this.functionName);
+            this.setState(_ => {
+                return {
+                    pixelToPhysical: undefined,
+                    valueSet: false
+                }
+            }, resolve);
+        });
+    }
+
     renderValue() {
         let maybeGrayed = this.state.valueSet ? '' : 'grayed';
-        let value = this.tabletop ? this.tabletop.toString() : '?';
+        let value = this.state.pixelToPhysical
+                        ? this.state.pixelToPhysical.coeffs.toString()
+                        : '?';
+        let display = `Tabletop(WorkEnvelope(pixelToPhysical: `
+                      + `[${value}]))`;
         return (
             <div className={`module-value ${maybeGrayed}`}
                  key={`${this.titleKey}-value`}>
-                 { value }
+                 { display }
             </div>
         );
     }
