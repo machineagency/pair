@@ -653,7 +653,7 @@ class TabletopCalibrator extends LivelitWindow {
         this.functionName = '$tabletopCalibrator';
         this.tabletop = undefined;
         this.props = props;
-        let maybeSavedHomography = this.loadSavedTabletopHomography();
+        let maybeSavedHomography = this.loadSavedValue();
         this.state = {
             tabletop: undefined,
             windowOpen: props.windowOpen,
@@ -673,11 +673,11 @@ class TabletopCalibrator extends LivelitWindow {
         s += 'if (!tc.state.valueSet) {';
         s += 'await tc.openWindow();';
         s += `await tc.applyTabletopHomography();`;
-        s += `await tc.saveTabletopHomography();`;
+        s += `await tc.saveValue();`;
         s += 'await tc.closeWindow();';
         s += '}';
         s += 'else {';
-        s += 'tc.tabletop.homography = tc.state.valueSet;';
+        s += 'tc.tabletop.homography = tc.state.pixelToPhysical;';
         s += '}';
         s += `machine.tabletop = tc.tabletop;`;
         s += `return tc.tabletop;`;
@@ -705,7 +705,7 @@ class TabletopCalibrator extends LivelitWindow {
         });
     }
 
-    saveTabletopHomography() {
+    saveValue() {
         return new Promise<void>((resolve) => {
             if (this.tabletop) {
                 let h = this.tabletop.workEnvelope.homography;
@@ -724,7 +724,7 @@ class TabletopCalibrator extends LivelitWindow {
         });
     }
 
-    loadSavedTabletopHomography() {
+    loadSavedValue() {
         interface RevivedHomography {
             srcPts: number[];
             dstPts: number[];
@@ -743,7 +743,7 @@ class TabletopCalibrator extends LivelitWindow {
         }
     }
 
-    clearSavedTabletopHomography() {
+    clearSavedValue() {
         return new Promise<void>((resolve) => {
             localStorage.removeItem(this.functionName);
             this.setState(_ => {
@@ -764,16 +764,9 @@ class TabletopCalibrator extends LivelitWindow {
         let display = `Tabletop(WorkEnvelope(pixelToPhysical: `
                       + `[${value}]))`;
         return (
-            <div>
-                <div className={`module-value ${grayedIffUnset}`}
-                     key={`${this.titleKey}-value`}>
-                     { display }
-                </div>
-                <div className={`clear-btn ${hiddenIffUnset}`}
-                     onClick={this.clearSavedTabletopHomography.bind(this)}
-                     key={`${this.titleKey}-clear-value`}>
-                    Clear
-                </div>
+            <div className={`module-value ${grayedIffUnset}`}
+                 key={`${this.titleKey}-value`}>
+                 { display }
             </div>
         );
     }
