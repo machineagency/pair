@@ -826,14 +826,6 @@ class CameraCalibrator extends LivelitWindow {
     constructor(props: CameraCalibratorProps) {
         super(props);
         this.props = props;
-        this.state = {
-            unwarpedImageUrl: '',
-            warpedImageUrl: '',
-            extrinsicTransform: undefined,
-            windowOpen: this.props.windowOpen,
-            valueSet: props.valueSet,
-            selectedPoints: []
-        };
         this.camera = new pair.Camera();
         this.titleText = 'Camera Calibrator';
         this.functionName = '$cameraCalibrator';
@@ -847,6 +839,15 @@ class CameraCalibrator extends LivelitWindow {
                                 className="button" id={this.photoButtonId}>
                                Take Photo
                            </div>
+        let maybeSavedExtrinsicTransform = this.loadSavedValue();
+        this.state = {
+            unwarpedImageUrl: '',
+            warpedImageUrl: '',
+            extrinsicTransform: maybeSavedExtrinsicTransform,
+            windowOpen: this.props.windowOpen,
+            valueSet: !!maybeSavedExtrinsicTransform,
+            selectedPoints: []
+        };
     }
 
     setImageToTableScaling(camera: pair.Camera) {
@@ -872,7 +873,6 @@ class CameraCalibrator extends LivelitWindow {
             if (applyButton) {
                 applyButton.addEventListener('click', (event) => {
                     this.camera.extrinsicTransform = this.state.extrinsicTransform;
-                    this.camera.tabletop = this.tabletop;
                     this.setImageToTableScaling(this.camera);
                     resolve(this.camera);
                 });
@@ -880,15 +880,74 @@ class CameraCalibrator extends LivelitWindow {
         });
     }
 
+    saveValue() {
+        return new Promise<void>((resolve) => {
+            if (this.camera.extrinsicTransform) {
+                let h = this.camera.extrinsicTransform;
+                let hSerialized = JSON.stringify(h);
+                localStorage.setItem(this.functionName, hSerialized);
+                this.setState(_ => {
+                    return {
+                        extrinsicTransform: h,
+                        valueSet: true
+                    }
+                }, resolve);
+            }
+            else {
+                console.warn('CameraCalibrator: Could not save homography.');
+            }
+        });
+    }
+
+    loadSavedValue() {
+        interface RevivedHomography {
+            srcPts: number[];
+            dstPts: number[];
+            coeffs: number[];
+            coeffsInv: number[];
+        }
+        let coeffsStr = localStorage.getItem(this.functionName);
+        if (coeffsStr) {
+            let revivedH = JSON.parse(coeffsStr) as RevivedHomography;
+            // Hopefully no numerical errors here.
+            let h = PerspT(revivedH.srcPts, revivedH.dstPts);
+            return h;
+        }
+        else {
+            return undefined;
+        }
+    }
+
+    clearSavedValue() {
+        return new Promise<void>((resolve) => {
+            localStorage.removeItem(this.functionName);
+            this.setState(_ => {
+                return {
+                    extrinsicTransform: undefined,
+                    valueSet: false
+                }
+            }, resolve);
+        });
+    }
+
     expand() : string {
         let s = `async function ${this.functionName}(tabletop) {`;
         s += `let cc = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `cc.tabletop = tabletop;`;
+        s += `cc.camera.tabletop = cc.tabletop;`;
+        s += `if (!cc.state.valueSet) {`;
         s += `await cc.openWindow();`;
         s += `await cc.takePhoto();`;
-        s += `let camera = await cc.acceptCameraWarp();`;
+        s += `await cc.acceptCameraWarp();`;
+        s += `await cc.saveValue();`;
         s += `await cc.closeWindow();`;
-        s += `return camera;`;
+        s += `}`;
+        s += `else {`;
+        s += `let extrinsicTransform = cc.loadSavedValue();`;
+        s += `cc.camera.extrinsicTransform = extrinsicTransform;`;
+        s += `cc.setImageToTableScaling(cc.camera);`;
+        s += `}`;
+        s += `return cc.camera;`;
         s += `}`;
         return s;
     }
@@ -963,11 +1022,13 @@ class CameraCalibrator extends LivelitWindow {
 
     renderValue() {
         let maybeGrayed = this.state.valueSet ? '' : 'grayed';
-        let value = this.camera ? this.camera.toString() : '?';
+        let value = this.state.extrinsicTransform
+                    ? this.state.extrinsicTransform.coeffs.toString()
+                    : '?';
         return (
             <div className={`module-value ${maybeGrayed}`}
                  key={`${this.titleKey}-value`}>
-                 { value }
+                 { `Camera(extrinsicTransform: [${value}], ...)` }
             </div>
         );
     }
