@@ -412,6 +412,16 @@ class LivelitWindow extends React.Component {
         });
     };
 
+    saveValue() : any {
+        return undefined;
+    }
+
+    clearSavedValue() : Promise<void> {
+        return new Promise<void>((resolve) => {
+            resolve();
+        });
+    }
+
     renderTitle() {
         return <div className="title"
                     key={this.titleKey.toString()}>
@@ -436,11 +446,23 @@ class LivelitWindow extends React.Component {
                </div>;
     }
 
+    renderClearButton() {
+        let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
+        return (
+            <div className={`clear-btn ${hiddenIffUnset}`}
+                 onClick={this.clearSavedValue.bind(this)}
+                 key={`${this.titleKey}-clear-value`}>
+                Clear
+            </div>
+        );
+    }
+
     render() {
         return <div className={this.livelitClassName}
                     key={this.livelitClassName}>
                     {[ this.renderTitle(),
                        this.renderValue(),
+                       this.renderClearButton(),
                        this.renderContent() ]}
                </div>
     }
