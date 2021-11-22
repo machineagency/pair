@@ -38,13 +38,14 @@ pre code.hljs {
 #program-container {
     font-size: 8pt;
     height: 100%;
-    width: 90%;
+    width: 960pt;
     color: whitesmoke;
     font-family: 'JetBrains Mono', monospace;
     padding-top: 10px;
     display: flex;
     flex-direction: row;
     margin-top: 20px;
+    margin-left: 20px;
     /* TODO: figure out how to scroll without overflow-y: scroll because
      * this seems to causing the ::before pseudoelement not to show.
      */
@@ -57,14 +58,14 @@ pre code.hljs {
 
 #module-pane {
     height: 100%;
-    width: 25%;
+    width: 360pt;
     overflow-y: scroll;
 }
 
 #program-lines-and-controls {
     height: 100%;
     width: 70%;
-    margin-left: 20px;
+    margin-right: 20px;
     font-size: 14px;
 }
 

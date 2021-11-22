@@ -245,23 +245,25 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     }
 
     render() {
-        return <div id="program-pane">
-            <ModulePane lines={[]}
-                        ref={this.modulePaneRef}></ModulePane>
-            <div id="program-lines-and-controls">
-                <div id="program-lines">
-                    { this.renderTextLines(this.state.defaultLines) }
-                </div>
-                <div id="program-controls">
-                    <div className="pc-btn pc-compile"
-                         onClick={this.compile.bind(this)}>
-                        Compile
+        return (
+            <div id="program-pane">
+                <div id="program-lines-and-controls">
+                    <div id="program-lines">
+                        { this.renderTextLines(this.state.defaultLines) }
                     </div>
-                    <div className="pc-btn pc-run"
-                         onClick={this.runAllLines.bind(this)}>Run</div>
+                    <div id="program-controls">
+                        <div className="pc-btn pc-compile"
+                             onClick={this.compile.bind(this)}>
+                            Generate
+                        </div>
+                        <div className="pc-btn pc-run"
+                             onClick={this.runAllLines.bind(this)}>Run</div>
+                    </div>
                 </div>
+                <ModulePane lines={[]}
+                            ref={this.modulePaneRef}></ModulePane>
             </div>
-        </div>
+        )
     }
 }
 
