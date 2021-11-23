@@ -18,8 +18,8 @@ interface LivelitProps {
     /* Ref created in the parent that is a React "special" prop included here
      * such that the parent (e.g. ModulePane) has a reference to the component
      * to which this Ref has been passed as "ref." */
-    ref: React.Ref<LivelitWindow>;
-    plRef: React.Ref<ProgramLine>;
+    ref: React.RefObject<LivelitWindow>;
+    plRef: React.RefObject<ProgramLine>;
     windowOpen: boolean;
     valueSet: boolean;
 
@@ -41,8 +41,8 @@ interface ProgramLineState {
 
 class ProgramUtil {
     static parseTextForLivelit(text: string,
-                               plRef: React.Ref<ProgramLine>,
-                               livelitRef: React.Ref<LivelitWindow>)
+                               plRef: React.RefObject<ProgramLine>,
+                               livelitRef: React.RefObject<LivelitWindow>)
                                : JSX.Element | null {
         const re = /\$\w+/;
         const maybeMatch = text.match(re);
@@ -54,7 +54,7 @@ class ProgramUtil {
         switch (livelitName) {
             case 'geometryGallery':
                 const ggProps: GeometryGalleryProps = {
-                    ref: livelitRef as React.Ref<GeometryGallery>,
+                    ref: livelitRef as React.RefObject<GeometryGallery>,
                     plRef: plRef,
                     valueSet: false,
                     windowOpen: false
@@ -63,7 +63,7 @@ class ProgramUtil {
                        </GeometryGallery>;
             case 'pointPicker':
                 const ppProps: PointPickerProps = {
-                    ref: livelitRef as React.Ref<PointPicker>,
+                    ref: livelitRef as React.RefObject<PointPicker>,
                     plRef: plRef,
                     valueSet: false,
                     windowOpen: false
@@ -74,7 +74,7 @@ class ProgramUtil {
                 const tcProps: TabletopCalibratorProps = {
                     machine: undefined,
                     tabletop: undefined,
-                    ref: livelitRef as React.Ref<TabletopCalibrator>,
+                    ref: livelitRef as React.RefObject<TabletopCalibrator>,
                     plRef: plRef,
                     valueSet: false,
                     windowOpen: false
@@ -83,7 +83,7 @@ class ProgramUtil {
                        </TabletopCalibrator>;
             case 'cameraCalibrator':
                 const ccProps: CameraCalibratorProps = {
-                    ref: livelitRef as React.Ref<CameraCalibrator>,
+                    ref: livelitRef as React.RefObject<CameraCalibrator>,
                     plRef: plRef,
                     valueSet: false,
                     windowOpen: false
@@ -92,7 +92,7 @@ class ProgramUtil {
             case 'faceFinder':
                 const ffProps: FaceFinderProps = {
                     camera: undefined,
-                    ref: livelitRef as React.Ref<FaceFinder>,
+                    ref: livelitRef as React.RefObject<FaceFinder>,
                     plRef: plRef,
                     valueSet: false,
                     windowOpen: false
@@ -106,8 +106,8 @@ class ProgramUtil {
 }
 
 class ProgramPane extends React.Component<Props, ProgramPaneState> {
-    livelitRefs: React.Ref<LivelitWindow>[];
-    plRefs: React.Ref<ProgramLine>[];
+    livelitRefs: React.RefObject<LivelitWindow>[];
+    plRefs: React.RefObject<ProgramLine>[];
     modulePaneRef: React.RefObject<ModulePane>;
 
     defaultLinesSignature = [
@@ -272,7 +272,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
 
 interface ModulePaneProps extends Props {
     lines: string[];
-    plRefs: React.Ref<ProgramLine>[];
+    plRefs: React.RefObject<ProgramLine>[];
 }
 
 interface ModulePaneState extends State {
@@ -281,7 +281,7 @@ interface ModulePaneState extends State {
 
 class ModulePane extends React.Component<ModulePaneProps, ModulePaneState> {
     moduleRefs: React.RefObject<LivelitWindow>[];
-    plRefs: React.Ref<ProgramLine>[];
+    plRefs: React.RefObject<ProgramLine>[];
 
     constructor(props: ModulePaneProps) {
         super(props);
@@ -475,7 +475,7 @@ class LivelitWindow extends React.Component {
 };
 
 interface GeometryGalleryProps extends LivelitProps {
-    ref: React.Ref<GeometryGallery>;
+    ref: React.RefObject<GeometryGallery>;
     windowOpen: boolean;
 };
 
@@ -611,7 +611,7 @@ class GeometryGallery extends LivelitWindow {
 }
 
 interface PointPickerProps extends LivelitProps {
-    ref: React.Ref<PointPicker>;
+    ref: React.RefObject<PointPicker>;
     windowOpen: boolean;
 };
 
@@ -645,7 +645,7 @@ class PointPicker extends LivelitWindow {
 interface TabletopCalibratorProps extends LivelitProps {
     machine: pair.Machine | undefined;
     tabletop: pair.Tabletop | undefined;
-    ref: React.Ref<TabletopCalibrator>;
+    ref: React.RefObject<TabletopCalibrator>;
     windowOpen: boolean;
 };
 
@@ -813,7 +813,7 @@ class TabletopCalibrator extends LivelitWindow {
 }
 
 interface CameraCalibratorProps extends LivelitProps {
-    ref: React.Ref<CameraCalibrator>;
+    ref: React.RefObject<CameraCalibrator>;
     windowOpen: boolean;
 }
 
@@ -1092,7 +1092,7 @@ class CameraCalibrator extends LivelitWindow {
 
 interface FaceFinderProps extends LivelitProps {
     camera?: pair.Camera;
-    ref: React.Ref<FaceFinder>;
+    ref: React.RefObject<FaceFinder>;
     windowOpen: boolean;
 }
 
