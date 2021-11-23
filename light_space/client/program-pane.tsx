@@ -19,7 +19,7 @@ interface LivelitProps {
      * such that the parent (e.g. ModulePane) has a reference to the component
      * to which this Ref has been passed as "ref." */
     ref: React.Ref<LivelitWindow>;
-    lineNumber: number;
+    plRef: React.Ref<ProgramLine>;
     windowOpen: boolean;
     valueSet: boolean;
 
@@ -41,7 +41,7 @@ interface ProgramLineState {
 
 class ProgramUtil {
     static parseTextForLivelit(text: string,
-                               lineNumber: number,
+                               plRef: React.Ref<ProgramLine>,
                                livelitRef: React.Ref<LivelitWindow>)
                                : JSX.Element | null {
         const re = /\$\w+/;
@@ -55,7 +55,7 @@ class ProgramUtil {
             case 'geometryGallery':
                 const ggProps: GeometryGalleryProps = {
                     ref: livelitRef as React.Ref<GeometryGallery>,
-                    lineNumber: lineNumber,
+                    plRef: plRef,
                     valueSet: false,
                     windowOpen: false
                 };
@@ -64,7 +64,7 @@ class ProgramUtil {
             case 'pointPicker':
                 const ppProps: PointPickerProps = {
                     ref: livelitRef as React.Ref<PointPicker>,
-                    lineNumber: lineNumber,
+                    plRef: plRef,
                     valueSet: false,
                     windowOpen: false
                 };
@@ -75,7 +75,7 @@ class ProgramUtil {
                     machine: undefined,
                     tabletop: undefined,
                     ref: livelitRef as React.Ref<TabletopCalibrator>,
-                    lineNumber: lineNumber,
+                    plRef: plRef,
                     valueSet: false,
                     windowOpen: false
                 };
@@ -84,7 +84,7 @@ class ProgramUtil {
             case 'cameraCalibrator':
                 const ccProps: CameraCalibratorProps = {
                     ref: livelitRef as React.Ref<CameraCalibrator>,
-                    lineNumber: lineNumber,
+                    plRef: plRef,
                     valueSet: false,
                     windowOpen: false
                 }
@@ -93,7 +93,7 @@ class ProgramUtil {
                 const ffProps: FaceFinderProps = {
                     camera: undefined,
                     ref: livelitRef as React.Ref<FaceFinder>,
-                    lineNumber: lineNumber,
+                    plRef: plRef,
                     valueSet: false,
                     windowOpen: false
                 };
@@ -107,6 +107,7 @@ class ProgramUtil {
 
 class ProgramPane extends React.Component<Props, ProgramPaneState> {
     livelitRefs: React.Ref<LivelitWindow>[];
+    plRefs: React.Ref<ProgramLine>[];
     modulePaneRef: React.RefObject<ModulePane>;
 
     defaultLinesSignature = [
@@ -150,6 +151,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
             defaultLines: this.defaultLinesMustacheLiveLits
         };
         this.livelitRefs = [];
+        this.plRefs = [];
         this.modulePaneRef = React.createRef<ModulePane>();
     }
 
@@ -161,13 +163,17 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
 
     renderTextLines(textLines: string[]) {
         this.livelitRefs = [];
+        this.plRefs = [];
         const lines = textLines.map((line, index) => {
             const lineNumber = index + 1;
-            const currLineRef = React.createRef<LivelitWindow>();
-            this.livelitRefs.push(currLineRef);
+            const livelitRef = React.createRef<LivelitWindow>();
+            const plRef = React.createRef<ProgramLine>();
+            this.plRefs.push(plRef);
+            this.livelitRefs.push(livelitRef);
             return <ProgramLine lineNumber={lineNumber}
                                 key={index}
-                                refForLivelit={currLineRef}
+                                refForLivelit={livelitRef}
+                                ref={plRef}
                                 lineText={line}></ProgramLine>
         }).flat();
         return lines;
@@ -257,14 +263,16 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
                     </div>
                 </div>
                 <ModulePane lines={[]}
+                            plRefs={this.plRefs}
                             ref={this.modulePaneRef}></ModulePane>
             </div>
-        )
+        );
     }
 }
 
 interface ModulePaneProps extends Props {
     lines: string[];
+    plRefs: React.Ref<ProgramLine>[];
 }
 
 interface ModulePaneState extends State {
@@ -273,10 +281,12 @@ interface ModulePaneState extends State {
 
 class ModulePane extends React.Component<ModulePaneProps, ModulePaneState> {
     moduleRefs: React.RefObject<LivelitWindow>[];
+    plRefs: React.Ref<ProgramLine>[];
 
     constructor(props: ModulePaneProps) {
         super(props);
         this.moduleRefs = [];
+        this.plRefs = props.plRefs;
         this.state = {
             lines: props.lines
         };
@@ -292,10 +302,10 @@ class ModulePane extends React.Component<ModulePaneProps, ModulePaneState> {
 
     mapLinesToLivelits() : JSX.Element[] {
         let livelits = this.state.lines.map((lineText, lineIndex) => {
-            let lineNumber = lineIndex + 1;
+            let plRef = this.plRefs[lineIndex];
             let moduleRef = React.createRef<LivelitWindow>();
             this.moduleRefs.push(moduleRef);
-            return ProgramUtil.parseTextForLivelit(lineText, lineNumber, moduleRef);
+            return ProgramUtil.parseTextForLivelit(lineText, plRef, moduleRef);
         });
         let nonNullLiveLits = livelits.filter((ll): ll is JSX.Element => {
             return ll !== null;
