@@ -15,7 +15,11 @@ import * as pair from './pair.js';
 
 interface Props {};
 interface LivelitProps {
+    /* Ref created in the parent that is a React "special" prop included here
+     * such that the parent (e.g. ModulePane) has a reference to the component
+     * to which this Ref has been passed as "ref." */
     ref: React.Ref<LivelitWindow>;
+    lineNumber: number;
     windowOpen: boolean;
     valueSet: boolean;
 
@@ -25,13 +29,6 @@ interface ProgramLineProps {
     lineText: string;
     refForLivelit: React.Ref<LivelitWindow>;
 };
-interface TabletopCalibratorProps extends LivelitProps {
-    machine: pair.Machine | undefined;
-    tabletop: pair.Tabletop | undefined;
-    ref: React.Ref<TabletopCalibrator>;
-    windowOpen: boolean;
-};
-
 interface State {}
 interface ProgramPaneState {
     defaultLines: string[]
@@ -43,14 +40,8 @@ interface ProgramLineState {
 };
 
 class ProgramUtil {
-    // FIXME: use this version for now, eventually remove version that requires
-    // refs
-    static parseTextForLivelitNew(text: string) {
-        let dummyRef = React.createRef<LivelitWindow>();
-        return ProgramUtil.parseTextForLivelit(text, dummyRef);
-    }
-
     static parseTextForLivelit(text: string,
+                               lineNumber: number,
                                livelitRef: React.Ref<LivelitWindow>)
                                : JSX.Element | null {
         const re = /\$\w+/;
@@ -64,6 +55,7 @@ class ProgramUtil {
             case 'geometryGallery':
                 const ggProps: GeometryGalleryProps = {
                     ref: livelitRef as React.Ref<GeometryGallery>,
+                    lineNumber: lineNumber,
                     valueSet: false,
                     windowOpen: false
                 };
@@ -72,6 +64,7 @@ class ProgramUtil {
             case 'pointPicker':
                 const ppProps: PointPickerProps = {
                     ref: livelitRef as React.Ref<PointPicker>,
+                    lineNumber: lineNumber,
                     valueSet: false,
                     windowOpen: false
                 };
@@ -82,6 +75,7 @@ class ProgramUtil {
                     machine: undefined,
                     tabletop: undefined,
                     ref: livelitRef as React.Ref<TabletopCalibrator>,
+                    lineNumber: lineNumber,
                     valueSet: false,
                     windowOpen: false
                 };
@@ -90,6 +84,7 @@ class ProgramUtil {
             case 'cameraCalibrator':
                 const ccProps: CameraCalibratorProps = {
                     ref: livelitRef as React.Ref<CameraCalibrator>,
+                    lineNumber: lineNumber,
                     valueSet: false,
                     windowOpen: false
                 }
@@ -98,6 +93,7 @@ class ProgramUtil {
                 const ffProps: FaceFinderProps = {
                     camera: undefined,
                     ref: livelitRef as React.Ref<FaceFinder>,
+                    lineNumber: lineNumber,
                     valueSet: false,
                     windowOpen: false
                 };
@@ -295,10 +291,11 @@ class ModulePane extends React.Component<ModulePaneProps, ModulePaneState> {
     }
 
     mapLinesToLivelits() : JSX.Element[] {
-        let livelits = this.state.lines.map((line) => {
+        let livelits = this.state.lines.map((lineText, lineIndex) => {
+            let lineNumber = lineIndex + 1;
             let moduleRef = React.createRef<LivelitWindow>();
             this.moduleRefs.push(moduleRef);
-            return ProgramUtil.parseTextForLivelit(line, moduleRef);
+            return ProgramUtil.parseTextForLivelit(lineText, lineNumber, moduleRef);
         });
         let nonNullLiveLits = livelits.filter((ll): ll is JSX.Element => {
             return ll !== null;
@@ -347,9 +344,6 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
     render() {
         const highlightClass = this.state.highlight ? 'pl-highlight' : '';
         const lineNumber = this.props.lineNumber || 0;
-        const livelitWindow = ProgramUtil.parseTextForLivelit(
-                                this.state.lineText,
-                                this.props.refForLivelit);
         return <div className={`program-line ${highlightClass}`}
                     id={`line-${lineNumber - 1}`}
                     onClick={this.toggleLivelitWindow.bind(this)}>
@@ -471,7 +465,7 @@ class LivelitWindow extends React.Component {
 };
 
 interface GeometryGalleryProps extends LivelitProps {
-    ref: React.Ref<GeometryGallery>,
+    ref: React.Ref<GeometryGallery>;
     windowOpen: boolean;
 };
 
@@ -637,6 +631,13 @@ class PointPicker extends LivelitWindow {
                </div>;
     }
 }
+
+interface TabletopCalibratorProps extends LivelitProps {
+    machine: pair.Machine | undefined;
+    tabletop: pair.Tabletop | undefined;
+    ref: React.Ref<TabletopCalibrator>;
+    windowOpen: boolean;
+};
 
 interface TabletopCalibratorState extends LivelitState {
     tabletop?: pair.Tabletop;
