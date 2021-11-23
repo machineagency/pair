@@ -239,6 +239,11 @@ pre code.hljs {
     color: black;
 }
 
+.pl-highlight pre code.hljs {
+    background-color: whitesmoke;
+    color: black;
+}
+
 #canvas-container {
     width: 100%;
 }

@@ -397,6 +397,11 @@ class LivelitWindow extends React.Component {
     }
 
     async openWindow() {
+        if (this.props.plRef.current) {
+            await this.props.plRef.current.setState(_ => {
+                return { highlight: true };
+            });
+        }
         return this._setWindowOpenState(true);
     }
 
@@ -407,6 +412,11 @@ class LivelitWindow extends React.Component {
             // return { valueSet: true };
             return {}
         });
+        if (this.props.plRef.current) {
+            await this.props.plRef.current.setState(_ => {
+                return { highlight: false };
+            });
+        }
         return this._setWindowOpenState(false);
     }
 
