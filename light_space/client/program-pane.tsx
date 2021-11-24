@@ -31,7 +31,8 @@ interface ProgramLineProps {
 };
 interface State {}
 interface ProgramPaneState {
-    defaultLines: string[]
+    defaultLines: string[];
+    running: boolean;
 };
 interface ProgramLineState {
     lineText: string;
@@ -148,7 +149,8 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     constructor(props: Props) {
         super(props);
         this.state = {
-            defaultLines: this.defaultLinesMustacheLiveLits
+            defaultLines: this.defaultLinesMustacheLiveLits,
+            running: false
         };
         this.livelitRefs = [];
         this.plRefs = [];
@@ -176,6 +178,9 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
                                 ref={plRef}
                                 lineText={line}></ProgramLine>
         }).flat();
+        if (this.modulePaneRef.current) {
+            this.modulePaneRef.current.updateProgramLineRefs(this.plRefs);
+        }
         return lines;
     }
 
@@ -218,20 +223,28 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     }
 
     runAllLines() {
+        if (this.state.running) {
+            return;
+        }
         const extractProgramText = () => {
             const programLines = Array.from(document
                                       .getElementsByClassName('program-line-text'));
             return programLines.map(el => (el as HTMLElement).innerText).join('\n');
         };
-        let progText = extractProgramText();
-        let livelitFunctionDeclarations = this.gatherLivelitsAsFunctionDeclarations();
-        progText  = `${livelitFunctionDeclarations}\n(async function() { ${progText} })();`;
-        console.log(progText);
         const PROGRAM_PANE = this;
-        eval(progText);
+        this.setState(_ => ({ running: true }), () => {
+            let progText = extractProgramText();
+            let livelitFunctionDeclarations = this.gatherLivelitsAsFunctionDeclarations();
+            progText  = `${livelitFunctionDeclarations}\n(async function() { ${progText} })();`;
+            console.log(progText);
+            eval(progText);
+        });
     }
 
     compile() {
+        if (this.state.running) {
+            return;
+        }
         // We will probably want to promise chain off of this, rejecting if
         // we fail type check.
         this.typeCheck();
@@ -247,6 +260,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     }
 
     render() {
+        let maybeGrayed = this.state.running ? 'grayed' : '';
         return (
             <div id="program-pane">
                 <div id="program-lines-and-controls">
@@ -254,16 +268,17 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
                         { this.renderTextLines(this.state.defaultLines) }
                     </div>
                     <div id="program-controls">
-                        <div className="pc-btn pc-compile"
+                        <div className={`pc-btn pc-compile ${maybeGrayed}`}
                              onClick={this.compile.bind(this)}>
                             Generate
                         </div>
-                        <div className="pc-btn pc-run"
-                             onClick={this.runAllLines.bind(this)}>Run</div>
+                        <div className={`pc-btn pc-run ${maybeGrayed}`}
+                             onClick={this.runAllLines.bind(this)}>
+                             Run
+                        </div>
                     </div>
                 </div>
-                <ModulePane lines={[]}
-                            plRefs={this.plRefs}
+                <ModulePane plRefs={this.plRefs}
                             ref={this.modulePaneRef}></ModulePane>
             </div>
         );
@@ -271,7 +286,6 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
 }
 
 interface ModulePaneProps extends Props {
-    lines: string[];
     plRefs: React.RefObject<ProgramLine>[];
 }
 
@@ -288,7 +302,7 @@ class ModulePane extends React.Component<ModulePaneProps, ModulePaneState> {
         this.moduleRefs = [];
         this.plRefs = props.plRefs;
         this.state = {
-            lines: props.lines
+            lines: []
         };
     }
 
@@ -311,6 +325,19 @@ class ModulePane extends React.Component<ModulePaneProps, ModulePaneState> {
             return ll !== null;
         });
         return nonNullLiveLits;
+    }
+
+    updateProgramLineRefs(plRefs: React.RefObject<ProgramLine>[]) {
+        this.plRefs = plRefs;
+        this.moduleRefs.forEach((ref, refIndex) => {
+            if (!ref.current) {
+                return;
+            }
+            let moduleWindow = ref.current;
+            let moduleLineNumber = refIndex;
+            let correspondingPlRef = this.plRefs[moduleLineNumber];
+            moduleWindow.plRef = correspondingPlRef;
+        });
     }
 
     render() {
@@ -375,6 +402,7 @@ class LivelitWindow extends React.Component {
     livelitClassName: string;
     titleKey: number;
     contentKey: number;
+    plRef: React.RefObject<ProgramLine>;
     props: LivelitProps;
     state: LivelitState;
 
@@ -386,6 +414,7 @@ class LivelitWindow extends React.Component {
         this.livelitClassName = 'livelit-window';
         this.titleKey = 0;
         this.contentKey = 1;
+        this.plRef = props.plRef;
         this.state = {
             windowOpen: props.windowOpen,
             valueSet: props.valueSet,

@@ -26,6 +26,13 @@ pre code.hljs {
     font-style: italic;
 }
 
+.pc-btn.grayed {
+    background-color: #888888;
+    color: #222222;
+    cursor: not-allowed;
+    font-style: normal;
+}
+
 #root {
     height: 100%;
     width: 100%;
