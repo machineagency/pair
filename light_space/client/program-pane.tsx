@@ -232,13 +232,28 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
             return programLines.map(el => (el as HTMLElement).innerText).join('\n');
         };
         const PROGRAM_PANE = this;
-        this.setState(_ => ({ running: true }), () => {
-            let progText = extractProgramText();
+        this.setRunning(true, () => {
+            let innerProgText = extractProgramText();
             let livelitFunctionDeclarations = this.gatherLivelitsAsFunctionDeclarations();
-            progText  = `${livelitFunctionDeclarations}\n(async function() { ${progText} })();`;
+            let progText  = `${livelitFunctionDeclarations}`;
+            progText += `\n(async function() {`;
+            progText += `try {`;
+            progText += `${innerProgText}`;
+            progText += `} catch (e) { console.log('Execution reset.');`;
+            progText += `} finally { PROGRAM_PANE.setRunning(false); }`;
+            progText += `})();`;
             console.log(progText);
             eval(progText);
         });
+    }
+
+    setRunning(running: boolean, callback: () => void | undefined) {
+        this.setState(_ => {
+            return { running: running };
+        }, callback);
+    }
+
+    resetExecution() {
     }
 
     compile() {
@@ -261,6 +276,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
 
     render() {
         let maybeGrayed = this.state.running ? 'grayed' : '';
+        let hiddenIffNotRunning = this.state.running ? '' : 'hidden';
         return (
             <div id="program-pane">
                 <div id="program-lines-and-controls">
@@ -275,6 +291,10 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
                         <div className={`pc-btn pc-run ${maybeGrayed}`}
                              onClick={this.runAllLines.bind(this)}>
                              Run
+                        </div>
+                        <div className={`pc-btn pc-reset ${hiddenIffNotRunning}`}
+                             onClick={this.resetExecution.bind(this)}>
+                             Reset
                         </div>
                     </div>
                 </div>
@@ -394,6 +414,7 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
 interface LivelitState {
     windowOpen: boolean;
     valueSet: boolean;
+    abortOnResumingExecution: boolean;
 }
 
 class LivelitWindow extends React.Component {
@@ -417,6 +438,7 @@ class LivelitWindow extends React.Component {
         this.plRef = props.plRef;
         this.state = {
             windowOpen: props.windowOpen,
+            abortOnResumingExecution: false,
             valueSet: props.valueSet,
         }
     }
@@ -435,18 +457,20 @@ class LivelitWindow extends React.Component {
     }
 
     async closeWindow() {
+        let abortBeforeFunctionReturn = this.state.abortOnResumingExecution;
         await this.setState((prev: LivelitState) => {
-            // FIXME: we should not be setting valueSet here,
-            // delete this comment once it's fixed in expand() everywhere.
-            // return { valueSet: true };
-            return {}
+            return { abortOnResumingExecution: false };
         });
         if (this.props.plRef.current) {
             await this.props.plRef.current.setState(_ => {
                 return { highlight: false };
             });
         }
-        return this._setWindowOpenState(false);
+        let windowToClose = await this._setWindowOpenState(false);
+        if (abortBeforeFunctionReturn) {
+            this.handleAbortExecution();
+        }
+        return windowToClose;
     }
 
     async _setWindowOpenState(open: boolean) {
@@ -456,6 +480,11 @@ class LivelitWindow extends React.Component {
             }, resolve);
         });
     };
+
+
+    handleAbortExecution() : never {
+        throw new Error('Resetting execution.');
+    }
 
     saveValue() : any {
         return undefined;
@@ -534,6 +563,7 @@ class GeometryGallery extends LivelitWindow {
             selectedUrl: '',
             imageNameUrlPairs: [],
             windowOpen: props.windowOpen,
+            abortOnResumingExecution: false,
             valueSet: props.valueSet
         };
         this.fetchGeometryNames();
@@ -709,6 +739,7 @@ class TabletopCalibrator extends LivelitWindow {
         this.state = {
             tabletop: undefined,
             windowOpen: props.windowOpen,
+            abortOnResumingExecution: false,
             pixelToPhysical: maybeSavedHomography,
             valueSet: !!maybeSavedHomography
         };
@@ -897,6 +928,7 @@ class CameraCalibrator extends LivelitWindow {
             warpedImageUrl: '',
             extrinsicTransform: maybeSavedExtrinsicTransform,
             windowOpen: this.props.windowOpen,
+            abortOnResumingExecution: false,
             valueSet: !!maybeSavedExtrinsicTransform,
             selectedPoints: []
         };
@@ -1158,6 +1190,7 @@ class FaceFinder extends LivelitWindow {
             imagePath: './img/seattle-times.jpg',
             detectedRegions: [],
             windowOpen: props.windowOpen,
+            abortOnResumingExecution: false,
             valueSet: props.valueSet
         }
         this.photoButton = <div onClick={this.takePhoto.bind(this)}
