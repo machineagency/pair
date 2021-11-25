@@ -254,6 +254,35 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     }
 
     resetExecution() {
+        let modulePane = this.modulePaneRef.current;
+        if (!modulePane) {
+            return;
+        }
+        let openModuleRef = modulePane.moduleRefs.find((moduleRef) => {
+            let currModule = moduleRef.current;
+            if (!currModule) {
+                return;
+            }
+            return currModule.state.windowOpen;
+        });
+        if (openModuleRef) {
+            let openModule = openModuleRef.current;
+            if (!openModule) {
+                return;
+            }
+            openModule.setState(_ => {
+                return { abortOnResumingExecution: true };
+            }, () => {
+                if (openModule && openModule.applyButton) {
+                    // This is a hack... I am aware.
+                    let applyButton = document
+                        .querySelector(':not(.hidden) > .apply-btn') as HTMLElement;
+                    if (applyButton) {
+                        applyButton.click();
+                    }
+                }
+            });
+        }
     }
 
     compile() {
@@ -424,6 +453,7 @@ class LivelitWindow extends React.Component {
     titleKey: number;
     contentKey: number;
     plRef: React.RefObject<ProgramLine>;
+    applyButton?: JSX.Element;
     props: LivelitProps;
     state: LivelitState;
 
@@ -553,7 +583,7 @@ interface GeometryGalleryState extends LivelitState {
 };
 class GeometryGallery extends LivelitWindow {
     state: GeometryGalleryState;
-    chooseButton: JSX.Element;
+    applyButton: JSX.Element;
 
     constructor(props: GeometryGalleryProps) {
         super(props);
@@ -567,7 +597,7 @@ class GeometryGallery extends LivelitWindow {
             valueSet: props.valueSet
         };
         this.fetchGeometryNames();
-        this.chooseButton = <div className="button" id="choose-geometry">
+        this.applyButton = <div className="button apply-btn" id="choose-geometry">
                                 Choose
                             </div>
     }
@@ -650,7 +680,7 @@ class GeometryGallery extends LivelitWindow {
                     <div className="geometry-gallery">
                         { galleryItems }
                     </div>
-                    { this.chooseButton }
+                    { this.applyButton }
                </div>
     }
 
@@ -743,7 +773,7 @@ class TabletopCalibrator extends LivelitWindow {
             pixelToPhysical: maybeSavedHomography,
             valueSet: !!maybeSavedHomography
         };
-        this.applyButton = <div className="button"
+        this.applyButton = <div className="button apply-btn"
                                 id="apply-tabletop-homography">
                                 Apply
                             </div>
@@ -913,7 +943,7 @@ class CameraCalibrator extends LivelitWindow {
         this.titleText = 'Camera Calibrator';
         this.functionName = '$cameraCalibrator';
         this.applyButtonId = 'apply-camera-homography';
-        this.applyButton = <div className="button"
+        this.applyButton = <div className="button apply-btn"
                                 id={this.applyButtonId}>
                                 Apply
                             </div>
@@ -938,7 +968,7 @@ class CameraCalibrator extends LivelitWindow {
         let feedDom = document.getElementById('cc-unwarped-feed') as HTMLImageElement;
         if (feedDom && this.tabletop) {
             if (feedDom.naturalWidth === 0 || feedDom.naturalHeight === 0) {
-                console.warn('Camera Calibrator: window to table scaling'
+                console.warn('Camera Calibrator: window to table scaling '
                     + 'is incorrect because there is no image yet.');
             }
             camera.imageToTabletopScale.x = this.tabletop.workEnvelope.width
@@ -965,7 +995,7 @@ class CameraCalibrator extends LivelitWindow {
     }
 
     saveValue() {
-        return new Promise<void>((resolve) => {
+        return new Promise<void>((resolve, reject) => {
             if (this.camera.extrinsicTransform) {
                 let h = this.camera.extrinsicTransform;
                 let hSerialized = JSON.stringify(h);
@@ -979,6 +1009,7 @@ class CameraCalibrator extends LivelitWindow {
             }
             else {
                 console.warn('CameraCalibrator: Could not save homography.');
+                resolve();
             }
         });
     }
@@ -1197,7 +1228,7 @@ class FaceFinder extends LivelitWindow {
                                 className="button" id="take-photo">
                                Take Photo
                            </div>
-        this.acceptButton = <div className="button" id="accept-faces">
+        this.acceptButton = <div className="button apply-btn" id="accept-faces">
                                 Accept
                             </div>
     }
@@ -1256,6 +1287,10 @@ class FaceFinder extends LivelitWindow {
                 acceptDom.addEventListener('click', () => {
                     resolve(this.state.detectedRegions);
                 });
+            }
+            else {
+                console.warn('FaceFinder: accepting no faces.');
+                resolve([]);
             }
         });
     }
