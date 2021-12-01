@@ -811,7 +811,9 @@ class TabletopCalibrator extends LivelitWindow {
             const applyButtonDom = document.getElementById('apply-tabletop-homography');
             if (applyButtonDom) {
                 applyButtonDom.addEventListener('click', (event) => {
-                    this.tabletop?.setHomographyFromCalibration();
+                    if (!this.state.abortOnResumingExecution) {
+                        this.tabletop?.setHomographyFromCalibration();
+                    }
                     resolve();
                 });
             }
@@ -819,6 +821,9 @@ class TabletopCalibrator extends LivelitWindow {
     }
 
     saveValue() {
+        if (this.state.abortOnResumingExecution) {
+            return;
+        }
         return new Promise<void>((resolve) => {
             if (this.tabletop) {
                 let h = this.tabletop.workEnvelope.homography;
