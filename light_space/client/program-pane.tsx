@@ -40,6 +40,13 @@ interface ProgramLineState {
     highlight: boolean;
 };
 
+class ResetExecution extends Error {
+    constructor() {
+        let message = 'Resetting execution.';
+        super(message);
+    }
+}
+
 class ProgramUtil {
     static parseTextForLivelit(text: string,
                                plRef: React.RefObject<ProgramLine>,
@@ -258,7 +265,9 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
             progText += `\n(async function() {`;
             progText += `try {`;
             progText += `${innerProgText}`;
-            progText += `} catch (e) { console.log('Execution reset.');`;
+            progText += `} catch (e) {`;
+            progText += `if (e.name === 'ResetExecution') { console.log(e.message) }`;
+            progText += `else { throw e; }`;
             progText += `} finally { PROGRAM_PANE.setRunning(false); }`;
             progText += `})();`;
             console.log(progText);
@@ -532,7 +541,7 @@ class LivelitWindow extends React.Component {
 
 
     handleAbortExecution() : never {
-        throw new Error('Resetting execution.');
+        throw new ResetExecution();
     }
 
     saveValue() : any {
