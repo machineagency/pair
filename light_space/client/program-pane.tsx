@@ -167,9 +167,9 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'let camera = await $cameraCalibrator(tabletop);',
         'let mustache = await $geometryGallery(machine);',
         'let point = new pair.Point(50, 50);',
-        '// TODO: use eiter camera or toolpath direct manipulator',
+        '// TODO: use either camera or toolpath direct manipulator',
         'let toolpath = await mustache.placeAt(point, tabletop);',
-        'let deployer = await $toolpathDeployer(machine, toolpath);'
+        'let deployer = await $toolpathDeployer(machine, [toolpath]);'
     ];
 
     constructor(props: Props) {
