@@ -4,36 +4,90 @@ html, body {
 }
 
 body {
-    background-color: black;
+    background-color: #23241f;
+}
+
+/* Bypass default Highlight.js padding. */
+pre code.hljs {
+    padding: 0px !important;
+}
+
+::selection {
+    color: #23241f;
+    background-color: white;
+}
+
+.hidden {
+    display: none;
+}
+
+.grayed {
+    color: #888888;
+    font-style: italic;
+}
+
+.pc-btn.grayed {
+    background-color: #888888;
+    color: #222222;
+    cursor: not-allowed;
+    font-style: normal;
+}
+
+#root {
+    height: 100%;
+    width: 100%;
 }
 
 #main-container {
-    display: flex;
-    flex-direction: row;
     height: 100%;
 }
 
 #program-container {
     font-size: 8pt;
-    width: 30%;
+    height: 100%;
+    width: 960pt;
     color: whitesmoke;
     font-family: 'JetBrains Mono', monospace;
     padding-top: 10px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     margin-top: 20px;
+    margin-left: 20px;
     /* TODO: figure out how to scroll without overflow-y: scroll because
      * this seems to causing the ::before pseudoelement not to show.
      */
 }
 
+#program-pane {
+    display: flex;
+    width: 100%;
+}
+
+#module-pane {
+    height: 100%;
+    width: 360pt;
+    overflow-y: scroll;
+}
+
+#program-lines-and-controls {
+    height: 100%;
+    width: 70%;
+    margin-right: 20px;
+    font-size: 14px;
+}
+
+#program-lines {
+    border: 1px dashed white;
+    padding: 20px;
+}
+
 .program-line {
-    max-width: 95%;
     counter-increment: line;
 }
 
 .program-line-text {
     display: inline-block;
+    margin: 0px;
 }
 
 .program-line::before {
@@ -51,17 +105,28 @@ body {
 
 .livelit-window {
     max-width: 90%;
-    margin-top: 5px;
-    margin-bottom: 5px;
+    margin-bottom: 10px;
     border: 1px solid whitesmoke;
-    padding: 5px 10px 5px 10px;
+    padding: 10px;
     display: flex;
     flex-direction: column;
 }
 
 .livelit-window .title {
     font-weight: bold;
+    font-size: 10pt;
     margin-bottom: 10px;
+}
+
+.module-value {
+    margin-bottom: 10px;
+}
+
+.clear-btn {
+    background-color: white;
+    color: #23241f;
+    width: fit-content;
+    cursor: pointer;
 }
 
 .livelit-window .content {
@@ -156,14 +221,14 @@ body {
     max-width: 100%;
 }
 
-.program-controls {
+#program-controls {
     margin-top: 20px;
     height: 75px;
     display: flex;
     flex-direction: row;
 }
 
-.program-controls .pc-btn {
+.pc-btn {
     height: 36px;
     width: 100px;
     background-color: whitesmoke;
@@ -177,6 +242,11 @@ body {
 }
 
 .pl-highlight {
+    background-color: whitesmoke;
+    color: black;
+}
+
+.pl-highlight pre code.hljs {
     background-color: whitesmoke;
     color: black;
 }

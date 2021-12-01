@@ -11,6 +11,6 @@
     "allowUmdGlobalAccess": true
   },
   "files": [
-      "main.ts", "pair.ts", "program-pane.tsx"
+      "main.ts", "pair.ts", "ui-root.tsx", "program-pane.tsx"
   ]
 }

@@ -49,6 +49,10 @@ export class Tabletop {
         this.initMouseHandlers();
     }
 
+    toString() {
+        return `Tabletop(machine: ${this.machine}, workEnvelope: ${this.workEnvelope})`;
+    }
+
     initMouseHandlers() {
         const hitOptions = {
             segments: true,
@@ -218,6 +222,14 @@ export class WorkEnvelope {
         this.sizeLabel = this._drawSizeLabel();
         this.originalCornerPoints = this.getCornerPoints();
         this.homography = this.calculateHomography();
+    }
+
+    toString() {
+        return `WorkEnvelope(`
+             + `width (px): ${this.width}, `
+             + `height (px) ${this.height}, `
+             + `pixelToPhysical: [${this.homography.coeffs}]`
+             + `)`;
     }
 
     _drawPath() : paper.Path {
@@ -504,6 +516,18 @@ export class Camera {
     constructor(tabletop?: Tabletop) {
         this.tabletop = tabletop;
         this.imageToTabletopScale = { x: 1, y: 1 };
+    }
+
+    toString() {
+        let transformCoeffs = this.extrinsicTransform
+                                ? this.extrinsicTransform.coeffs.toString()
+                                : '?';
+        let xScale = this.imageToTabletopScale.x;
+        let yScale = this.imageToTabletopScale.y;
+        return `Camera(`
+             + `extrinsicTransform: [${transformCoeffs}],`
+             + `imageToTabletopScale: { x: ${xScale}, y: ${yScale} }`
+             + `)`;
     }
 
     async takePhoto() : Promise<string> {

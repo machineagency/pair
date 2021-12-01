@@ -17,10 +17,12 @@
   },
   "homepage": "https://github.com/jhaazpr/machine-o-matic#readme",
   "dependencies": {
+    "@types/highlightjs": "^9.12.2",
     "@types/react": "^17.0.30",
     "@types/react-dom": "^17.0.9",
     "body-parser": "^1.18.3",
     "express": "^4.16.4",
+    "nodemon": "^2.0.15",
     "paper": "^0.12.15",
     "path": "^0.12.7",
     "perspective-transform": "^1.1.3",

@@ -15,8 +15,13 @@ import * as pair from './pair.js';
 
 interface Props {};
 interface LivelitProps {
-    ref: React.Ref<LivelitWindow>;
+    /* Ref created in the parent that is a React "special" prop included here
+     * such that the parent (e.g. ModulePane) has a reference to the component
+     * to which this Ref has been passed as "ref." */
+    ref: React.RefObject<LivelitWindow>;
+    plRef: React.RefObject<ProgramLine>;
     windowOpen: boolean;
+    valueSet: boolean;
 
 };
 interface ProgramLineProps {
@@ -24,16 +29,10 @@ interface ProgramLineProps {
     lineText: string;
     refForLivelit: React.Ref<LivelitWindow>;
 };
-interface TabletopCalibratorProps extends LivelitProps {
-    machine: pair.Machine | undefined;
-    tabletop: pair.Tabletop | undefined;
-    ref: React.Ref<TabletopCalibrator>;
-    windowOpen: boolean;
-};
-
 interface State {}
 interface ProgramPaneState {
-    defaultLines: string[]
+    currentWorkflow: string[];
+    running: boolean;
 };
 interface ProgramLineState {
     lineText: string;
@@ -43,7 +42,8 @@ interface ProgramLineState {
 
 class ProgramUtil {
     static parseTextForLivelit(text: string,
-                               livelitRef: React.Ref<LivelitWindow>)
+                               plRef: React.RefObject<ProgramLine>,
+                               livelitRef: React.RefObject<LivelitWindow>)
                                : JSX.Element | null {
         const re = /\$\w+/;
         const maybeMatch = text.match(re);
@@ -55,14 +55,18 @@ class ProgramUtil {
         switch (livelitName) {
             case 'geometryGallery':
                 const ggProps: GeometryGalleryProps = {
-                    ref: livelitRef as React.Ref<GeometryGallery>,
+                    ref: livelitRef as React.RefObject<GeometryGallery>,
+                    plRef: plRef,
+                    valueSet: false,
                     windowOpen: false
                 };
                 return <GeometryGallery {...ggProps}>
                        </GeometryGallery>;
             case 'pointPicker':
                 const ppProps: PointPickerProps = {
-                    ref: livelitRef as React.Ref<PointPicker>,
+                    ref: livelitRef as React.RefObject<PointPicker>,
+                    plRef: plRef,
+                    valueSet: false,
                     windowOpen: false
                 };
                 return <PointPicker {...ppProps}>
@@ -71,21 +75,27 @@ class ProgramUtil {
                 const tcProps: TabletopCalibratorProps = {
                     machine: undefined,
                     tabletop: undefined,
-                    ref: livelitRef as React.Ref<TabletopCalibrator>,
+                    ref: livelitRef as React.RefObject<TabletopCalibrator>,
+                    plRef: plRef,
+                    valueSet: false,
                     windowOpen: false
                 };
                 return <TabletopCalibrator {...tcProps}>
                        </TabletopCalibrator>;
             case 'cameraCalibrator':
                 const ccProps: CameraCalibratorProps = {
-                    ref: livelitRef as React.Ref<CameraCalibrator>,
+                    ref: livelitRef as React.RefObject<CameraCalibrator>,
+                    plRef: plRef,
+                    valueSet: false,
                     windowOpen: false
                 }
                 return <CameraCalibrator {...ccProps}></CameraCalibrator>;
             case 'faceFinder':
                 const ffProps: FaceFinderProps = {
                     camera: undefined,
-                    ref: livelitRef as React.Ref<FaceFinder>,
+                    ref: livelitRef as React.RefObject<FaceFinder>,
+                    plRef: plRef,
+                    valueSet: false,
                     windowOpen: false
                 };
                 return <FaceFinder {...ffProps}>
@@ -94,11 +104,12 @@ class ProgramUtil {
                 return null;
         }
     }
-
 }
 
 class ProgramPane extends React.Component<Props, ProgramPaneState> {
-    livelitRefs: React.Ref<LivelitWindow>[];
+    livelitRefs: React.RefObject<LivelitWindow>[];
+    plRefs: React.RefObject<ProgramLine>[];
+    modulePaneRef: React.RefObject<ModulePane>;
 
     defaultLinesSignature = [
         'let signature = $geometryGallery;',
@@ -138,45 +149,61 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     constructor(props: Props) {
         super(props);
         this.state = {
-            defaultLines: this.defaultLinesMustacheLiveLits
+            defaultLines: this.defaultLinesMustacheLiveLits,
+            running: false
         };
         this.livelitRefs = [];
+        this.plRefs = [];
+        this.modulePaneRef = React.createRef<ModulePane>();
+    }
+
+    componentDidMount() {
+        document.querySelectorAll('pre code').forEach((el) => {
+            hljs.highlightElement(el);
+        });
     }
 
     renderTextLines(textLines: string[]) {
         this.livelitRefs = [];
+        this.plRefs = [];
         const lines = textLines.map((line, index) => {
             const lineNumber = index + 1;
-            const currLineRef = React.createRef<LivelitWindow>();
-            this.livelitRefs.push(currLineRef);
+            const livelitRef = React.createRef<LivelitWindow>();
+            const plRef = React.createRef<ProgramLine>();
+            this.plRefs.push(plRef);
+            this.livelitRefs.push(livelitRef);
             return <ProgramLine lineNumber={lineNumber}
                                 key={index}
-                                refForLivelit={currLineRef}
+                                refForLivelit={livelitRef}
+                                ref={plRef}
                                 lineText={line}></ProgramLine>
         }).flat();
+        if (this.modulePaneRef.current) {
+            this.modulePaneRef.current.updateProgramLineRefs(this.plRefs);
+        }
         return lines;
     }
 
-    __getLivelitRefs() {
-        let livelitRefs = this.livelitRefs as React.RefObject<LivelitWindow>[];
-        let nonNullRefs = livelitRefs.filter((ref) => {
-            return ref.current !== null;
-        });
-        return nonNullRefs;
+    __getModules() : LivelitWindow[] {
+        let modules : LivelitWindow[] = [];
+        if (this.modulePaneRef.current) {
+            let maybeNullMods = this.modulePaneRef.current.getModules();
+            let nonNullMods = maybeNullMods.filter((mod) : mod is LivelitWindow => {
+                return mod !== null;
+            });
+            return nonNullMods;
+        }
+        else {
+            return [];
+        }
     }
 
     getLivelitWithName(functionName: string) : State {
-        let refs = this.__getLivelitRefs();
-        let ref = refs.find((ref) => {
-            return ref && ref.current
-                   && ref.current.functionName === functionName;
+        let modules = this.__getModules();
+        let moduleWindow = modules.find((mod) => {
+            return mod.functionName === functionName;
         });
-        if (ref && ref.current) {
-            return ref.current;
-        }
-        else {
-            return {};
-        }
+        return moduleWindow ? moduleWindow : {};
     }
 
     gatherLivelitsAsFunctionDeclarations() : string {
@@ -184,11 +211,11 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
             functionName: string;
             state: State;
         };
-        let refs = this.__getLivelitRefs();
+        let mods = this.__getModules();
         let expandedFunctionStrings : string[] = [];
-        refs.forEach((ref) => {
-            if (ref !== null && ref.current !== null) {
-                expandedFunctionStrings.push(ref.current.expand());
+        mods.forEach((mod) => {
+            if (mod) {
+                expandedFunctionStrings.push(mod.expand());
             }
         });
         let allExpandedFunctions = expandedFunctionStrings.join('\n');
@@ -196,29 +223,178 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     }
 
     runAllLines() {
+        if (this.state.running) {
+            return;
+        }
         const extractProgramText = () => {
             const programLines = Array.from(document
                                       .getElementsByClassName('program-line-text'));
             return programLines.map(el => (el as HTMLElement).innerText).join('\n');
         };
-        let progText = extractProgramText();
-        let livelitFunctionDeclarations = this.gatherLivelitsAsFunctionDeclarations();
-        progText  = `${livelitFunctionDeclarations}\n(async function() { ${progText} })();`;
-        console.log(progText);
         const PROGRAM_PANE = this;
-        eval(progText);
+        this.setRunning(true, () => {
+            let innerProgText = extractProgramText();
+            let livelitFunctionDeclarations = this.gatherLivelitsAsFunctionDeclarations();
+            let progText  = `${livelitFunctionDeclarations}`;
+            progText += `\n(async function() {`;
+            progText += `try {`;
+            progText += `${innerProgText}`;
+            progText += `} catch (e) { console.log('Execution reset.');`;
+            progText += `} finally { PROGRAM_PANE.setRunning(false); }`;
+            progText += `})();`;
+            console.log(progText);
+            eval(progText);
+        });
+    }
+
+    setRunning(running: boolean, callback: () => void | undefined) {
+        this.setState(_ => {
+            return { running: running };
+        }, callback);
+    }
+
+    resetExecution() {
+        let modulePane = this.modulePaneRef.current;
+        if (!modulePane) {
+            return;
+        }
+        let openModuleRef = modulePane.moduleRefs.find((moduleRef) => {
+            let currModule = moduleRef.current;
+            if (!currModule) {
+                return;
+            }
+            return currModule.state.windowOpen;
+        });
+        if (openModuleRef) {
+            let openModule = openModuleRef.current;
+            if (!openModule) {
+                return;
+            }
+            openModule.setState(_ => {
+                return { abortOnResumingExecution: true };
+            }, () => {
+                if (openModule && openModule.applyButton) {
+                    // This is a hack... I am aware.
+                    let applyButton = document
+                        .querySelector(':not(.hidden) > .apply-btn') as HTMLElement;
+                    if (applyButton) {
+                        applyButton.click();
+                    }
+                }
+            });
+        }
+    }
+
+    compile() {
+        if (this.state.running) {
+            return;
+        }
+        // We will probably want to promise chain off of this, rejecting if
+        // we fail type check.
+        this.typeCheck();
+        if (this.modulePaneRef.current) {
+            this.modulePaneRef.current.setState((prevState: ModulePaneState) => {
+                return { lines: this.state.currentWorkflow }
+            });
+        }
+    }
+
+    typeCheck() {
+        console.log('Looks good to me @_@');
     }
 
     render() {
-        return <div className="program-pane">
-            <div className="program-lines">
-                { this.renderTextLines(this.state.defaultLines) }
+        let maybeGrayed = this.state.running ? 'grayed' : '';
+        let hiddenIffNotRunning = this.state.running ? '' : 'hidden';
+        return (
+            <div id="program-pane">
+                <div id="program-lines-and-controls">
+                    <div id="program-lines">
+                        { this.renderTextLines(this.state.currentWorkflow) }
+                    </div>
+                    <div id="program-controls">
+                        <div className={`pc-btn pc-compile ${maybeGrayed}`}
+                             onClick={this.compile.bind(this)}>
+                            Generate
+                        </div>
+                        <div className={`pc-btn pc-run ${maybeGrayed}`}
+                             onClick={this.runAllLines.bind(this)}>
+                             Run
+                        </div>
+                        <div className={`pc-btn pc-reset ${hiddenIffNotRunning}`}
+                             onClick={this.resetExecution.bind(this)}>
+                             Reset
+                        </div>
+                    </div>
+                </div>
+                <ModulePane plRefs={this.plRefs}
+                            ref={this.modulePaneRef}></ModulePane>
             </div>
-            <div className="program-controls">
-                <div className="pc-btn pc-run"
-                     onClick={this.runAllLines.bind(this)}>Run</div>
+        );
+    }
+}
+
+interface ModulePaneProps extends Props {
+    plRefs: React.RefObject<ProgramLine>[];
+}
+
+interface ModulePaneState extends State {
+    lines: string[];
+}
+
+class ModulePane extends React.Component<ModulePaneProps, ModulePaneState> {
+    moduleRefs: React.RefObject<LivelitWindow>[];
+    plRefs: React.RefObject<ProgramLine>[];
+
+    constructor(props: ModulePaneProps) {
+        super(props);
+        this.moduleRefs = [];
+        this.plRefs = props.plRefs;
+        this.state = {
+            lines: []
+        };
+    }
+
+    getModules() {
+        let modules = this.moduleRefs.map(ref => {
+            return ref ? ref.current : null;
+        });
+        let nonNullModules = modules.filter(maybeModule => maybeModule !== null);
+        return nonNullModules;
+    }
+
+    mapLinesToLivelits() : JSX.Element[] {
+        let livelits = this.state.lines.map((lineText, lineIndex) => {
+            let plRef = this.plRefs[lineIndex];
+            let moduleRef = React.createRef<LivelitWindow>();
+            this.moduleRefs.push(moduleRef);
+            return ProgramUtil.parseTextForLivelit(lineText, plRef, moduleRef);
+        });
+        let nonNullLiveLits = livelits.filter((ll): ll is JSX.Element => {
+            return ll !== null;
+        });
+        return nonNullLiveLits;
+    }
+
+    updateProgramLineRefs(plRefs: React.RefObject<ProgramLine>[]) {
+        this.plRefs = plRefs;
+        this.moduleRefs.forEach((ref, refIndex) => {
+            if (!ref.current) {
+                return;
+            }
+            let moduleWindow = ref.current;
+            let moduleLineNumber = refIndex;
+            let correspondingPlRef = this.plRefs[moduleLineNumber];
+            moduleWindow.plRef = correspondingPlRef;
+        });
+    }
+
+    render() {
+        return (
+            <div id="module-pane" key="module-pane">
+                { this.mapLinesToLivelits() }
             </div>
-        </div>
+        );
     }
 }
 
@@ -254,22 +430,20 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
     render() {
         const highlightClass = this.state.highlight ? 'pl-highlight' : '';
         const lineNumber = this.props.lineNumber || 0;
-        const livelitWindow = ProgramUtil.parseTextForLivelit(
-                                this.state.lineText,
-                                this.props.refForLivelit);
         return <div className={`program-line ${highlightClass}`}
                     id={`line-${lineNumber - 1}`}
                     onClick={this.toggleLivelitWindow.bind(this)}>
-                    <div className="program-line-text">
+                    <pre className="program-line-text language-typescript"><code>
                         {this.state.lineText}
-                    </div>
-                    { livelitWindow }
+                    </code></pre>
                </div>
     }
 }
 
 interface LivelitState {
     windowOpen: boolean;
+    valueSet: boolean;
+    abortOnResumingExecution: boolean;
 }
 
 class LivelitWindow extends React.Component {
@@ -278,6 +452,8 @@ class LivelitWindow extends React.Component {
     livelitClassName: string;
     titleKey: number;
     contentKey: number;
+    plRef: React.RefObject<ProgramLine>;
+    applyButton?: JSX.Element;
     props: LivelitProps;
     state: LivelitState;
 
@@ -289,8 +465,11 @@ class LivelitWindow extends React.Component {
         this.livelitClassName = 'livelit-window';
         this.titleKey = 0;
         this.contentKey = 1;
+        this.plRef = props.plRef;
         this.state = {
-            windowOpen: props.windowOpen
+            windowOpen: props.windowOpen,
+            abortOnResumingExecution: false,
+            valueSet: props.valueSet,
         }
     }
 
@@ -299,11 +478,29 @@ class LivelitWindow extends React.Component {
     }
 
     async openWindow() {
+        if (this.props.plRef.current) {
+            await this.props.plRef.current.setState(_ => {
+                return { highlight: true };
+            });
+        }
         return this._setWindowOpenState(true);
     }
 
     async closeWindow() {
-        return this._setWindowOpenState(false);
+        let abortBeforeFunctionReturn = this.state.abortOnResumingExecution;
+        await this.setState((prev: LivelitState) => {
+            return { abortOnResumingExecution: false };
+        });
+        if (this.props.plRef.current) {
+            await this.props.plRef.current.setState(_ => {
+                return { highlight: false };
+            });
+        }
+        let windowToClose = await this._setWindowOpenState(false);
+        if (abortBeforeFunctionReturn) {
+            this.handleAbortExecution();
+        }
+        return windowToClose;
     }
 
     async _setWindowOpenState(open: boolean) {
@@ -314,6 +511,21 @@ class LivelitWindow extends React.Component {
         });
     };
 
+
+    handleAbortExecution() : never {
+        throw new Error('Resetting execution.');
+    }
+
+    saveValue() : any {
+        return undefined;
+    }
+
+    clearSavedValue() : Promise<void> {
+        return new Promise<void>((resolve) => {
+            resolve();
+        });
+    }
+
     renderTitle() {
         return <div className="title"
                     key={this.titleKey.toString()}>
@@ -321,24 +533,47 @@ class LivelitWindow extends React.Component {
                </div>;
     }
 
+    renderValue() {
+        let maybeGrayed = this.state.valueSet ? '' : 'grayed';
+        return (
+            <div className={`module-value ${maybeGrayed}`}
+                 key={`${this.titleKey}-value`}>
+                 I am the value.
+            </div>
+        );
+    }
+
     renderContent() {
-        return <div className="content"
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return <div className={`content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
                </div>;
     }
 
+    renderClearButton() {
+        let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
+        return (
+            <div className={`clear-btn ${hiddenIffUnset}`}
+                 onClick={this.clearSavedValue.bind(this)}
+                 key={`${this.titleKey}-clear-value`}>
+                Clear
+            </div>
+        );
+    }
+
     render() {
-        if (!this.state.windowOpen) {
-            return <div className="hidden"></div>
-        }
-        return <div className={this.livelitClassName}>
-                    {[ this.renderTitle(), this.renderContent() ]}
+        return <div className={this.livelitClassName}
+                    key={this.livelitClassName}>
+                    {[ this.renderTitle(),
+                       this.renderValue(),
+                       this.renderClearButton(),
+                       this.renderContent() ]}
                </div>
     }
 };
 
 interface GeometryGalleryProps extends LivelitProps {
-    ref: React.Ref<GeometryGallery>,
+    ref: React.RefObject<GeometryGallery>;
     windowOpen: boolean;
 };
 
@@ -348,7 +583,7 @@ interface GeometryGalleryState extends LivelitState {
 };
 class GeometryGallery extends LivelitWindow {
     state: GeometryGalleryState;
-    chooseButton: JSX.Element;
+    applyButton: JSX.Element;
 
     constructor(props: GeometryGalleryProps) {
         super(props);
@@ -357,10 +592,12 @@ class GeometryGallery extends LivelitWindow {
         this.state = {
             selectedUrl: '',
             imageNameUrlPairs: [],
-            windowOpen: false
+            windowOpen: props.windowOpen,
+            abortOnResumingExecution: false,
+            valueSet: props.valueSet
         };
         this.fetchGeometryNames();
-        this.chooseButton = <div className="button" id="choose-geometry">
+        this.applyButton = <div className="button apply-btn" id="choose-geometry">
                                 Choose
                             </div>
     }
@@ -415,18 +652,35 @@ class GeometryGallery extends LivelitWindow {
                </div>;
     }
 
+    renderValue() {
+        let maybeGrayed = this.state.valueSet ? '' : 'grayed';
+        let pairWithSelectedUrl = this.state.imageNameUrlPairs.find((pair) => {
+            let geomName = pair[0];
+            let geomUrl = pair[1];
+            return geomUrl === this.state.selectedUrl;
+        });
+        let geomName = pairWithSelectedUrl ? pairWithSelectedUrl[0] : '?'
+        return (
+            <div className={`module-value ${maybeGrayed}`}
+                 key={`${this.titleKey}-value`}>
+                 { geomName }
+            </div>
+        );
+    }
+
     renderContent() {
         const galleryItems = this.state.imageNameUrlPairs.map((nameUrlPair, idx) => {
             let name = nameUrlPair[0];
             let url = nameUrlPair[1];
             return this.renderGalleryItem(name, url, idx);
         });
-        return <div className="content"
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return <div className={`content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
                     <div className="geometry-gallery">
                         { galleryItems }
                     </div>
-                    { this.chooseButton }
+                    { this.applyButton }
                </div>
     }
 
@@ -456,7 +710,7 @@ class GeometryGallery extends LivelitWindow {
 }
 
 interface PointPickerProps extends LivelitProps {
-    ref: React.Ref<PointPicker>;
+    ref: React.RefObject<PointPicker>;
     windowOpen: boolean;
 };
 
@@ -471,7 +725,8 @@ class PointPicker extends LivelitWindow {
     }
 
     renderContent() {
-        return <div className="point-picker"
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return <div className={`point-picker content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
                    <div className="table-thumbnail">
                        <div className="crosshair"></div>
@@ -486,8 +741,16 @@ class PointPicker extends LivelitWindow {
     }
 }
 
+interface TabletopCalibratorProps extends LivelitProps {
+    machine: pair.Machine | undefined;
+    tabletop: pair.Tabletop | undefined;
+    ref: React.RefObject<TabletopCalibrator>;
+    windowOpen: boolean;
+};
+
 interface TabletopCalibratorState extends LivelitState {
     tabletop?: pair.Tabletop;
+    pixelToPhysical?: Homography;
 };
 
 class TabletopCalibrator extends LivelitWindow {
@@ -502,11 +765,15 @@ class TabletopCalibrator extends LivelitWindow {
         this.functionName = '$tabletopCalibrator';
         this.tabletop = undefined;
         this.props = props;
+        let maybeSavedHomography = this.loadSavedValue();
         this.state = {
             tabletop: undefined,
-            windowOpen: false
+            windowOpen: props.windowOpen,
+            abortOnResumingExecution: false,
+            pixelToPhysical: maybeSavedHomography,
+            valueSet: !!maybeSavedHomography
         };
-        this.applyButton = <div className="button"
+        this.applyButton = <div className="button apply-btn"
                                 id="apply-tabletop-homography">
                                 Apply
                             </div>
@@ -516,10 +783,16 @@ class TabletopCalibrator extends LivelitWindow {
         let s = `async function ${this.functionName}(machine) {`;
         s += `let tc = PROGRAM_PANE.getLivelitWithName(\'$tabletopCalibrator\');`;
         s += `tc.tabletop = new pair.Tabletop(machine);`;
+        s += 'if (!tc.state.valueSet) {';
         s += 'await tc.openWindow();';
         s += `await tc.applyTabletopHomography();`;
+        s += `await tc.saveValue();`;
         s += 'await tc.closeWindow();';
-        s += `machine.tabletop = tc;`;
+        s += '}';
+        s += 'else {';
+        s += 'tc.tabletop.homography = tc.state.pixelToPhysical;';
+        s += '}';
+        s += `machine.tabletop = tc.tabletop;`;
         s += `return tc.tabletop;`;
         s += `}`;
         return s;
@@ -545,8 +818,75 @@ class TabletopCalibrator extends LivelitWindow {
         });
     }
 
+    saveValue() {
+        return new Promise<void>((resolve) => {
+            if (this.tabletop) {
+                let h = this.tabletop.workEnvelope.homography;
+                let hSerialized = JSON.stringify(h);
+                localStorage.setItem(this.functionName, hSerialized);
+                this.setState(_ => {
+                    return {
+                        pixelToPhysical: h,
+                        valueSet: true
+                    }
+                }, resolve);
+            }
+            else {
+                console.warn('TabletopCalibrator: Could not save homography.');
+            }
+        });
+    }
+
+    loadSavedValue() {
+        interface RevivedHomography {
+            srcPts: number[];
+            dstPts: number[];
+            coeffs: number[];
+            coeffsInv: number[];
+        }
+        let coeffsStr = localStorage.getItem(this.functionName);
+        if (coeffsStr) {
+            let revivedH = JSON.parse(coeffsStr) as RevivedHomography;
+            // Hopefully no numerical errors here.
+            let h = PerspT(revivedH.srcPts, revivedH.dstPts);
+            return h;
+        }
+        else {
+            return undefined;
+        }
+    }
+
+    clearSavedValue() {
+        return new Promise<void>((resolve) => {
+            localStorage.removeItem(this.functionName);
+            this.setState(_ => {
+                return {
+                    pixelToPhysical: undefined,
+                    valueSet: false
+                }
+            }, resolve);
+        });
+    }
+
+    renderValue() {
+        let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
+        let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
+        let value = this.state.pixelToPhysical
+                        ? this.state.pixelToPhysical.coeffs.toString()
+                        : '?';
+        let display = `Tabletop(WorkEnvelope(pixelToPhysical: `
+                      + `[${value}]))`;
+        return (
+            <div className={`module-value ${grayedIffUnset}`}
+                 key={`${this.titleKey}-value`}>
+                 { display }
+            </div>
+        );
+    }
+
     renderContent() {
-        return <div className="tabletop-calibrator"
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return <div className={`tabletop-calibrator content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
                    <div className="help-text">
                        1. Draw a border around the work envelope with the
@@ -573,7 +913,7 @@ class TabletopCalibrator extends LivelitWindow {
 }
 
 interface CameraCalibratorProps extends LivelitProps {
-    ref: React.Ref<CameraCalibrator>;
+    ref: React.RefObject<CameraCalibrator>;
     windowOpen: boolean;
 }
 
@@ -599,17 +939,11 @@ class CameraCalibrator extends LivelitWindow {
     constructor(props: CameraCalibratorProps) {
         super(props);
         this.props = props;
-        this.state = {
-            unwarpedImageUrl: '',
-            warpedImageUrl: '',
-            extrinsicTransform: undefined,
-            windowOpen: this.props.windowOpen,
-            selectedPoints: []
-        };
         this.camera = new pair.Camera();
+        this.titleText = 'Camera Calibrator';
         this.functionName = '$cameraCalibrator';
         this.applyButtonId = 'apply-camera-homography';
-        this.applyButton = <div className="button"
+        this.applyButton = <div className="button apply-btn"
                                 id={this.applyButtonId}>
                                 Apply
                             </div>
@@ -618,13 +952,23 @@ class CameraCalibrator extends LivelitWindow {
                                 className="button" id={this.photoButtonId}>
                                Take Photo
                            </div>
+        let maybeSavedExtrinsicTransform = this.loadSavedValue();
+        this.state = {
+            unwarpedImageUrl: '',
+            warpedImageUrl: '',
+            extrinsicTransform: maybeSavedExtrinsicTransform,
+            windowOpen: this.props.windowOpen,
+            abortOnResumingExecution: false,
+            valueSet: !!maybeSavedExtrinsicTransform,
+            selectedPoints: []
+        };
     }
 
     setImageToTableScaling(camera: pair.Camera) {
         let feedDom = document.getElementById('cc-unwarped-feed') as HTMLImageElement;
         if (feedDom && this.tabletop) {
             if (feedDom.naturalWidth === 0 || feedDom.naturalHeight === 0) {
-                console.warn('Camera Calibrator: window to table scaling'
+                console.warn('Camera Calibrator: window to table scaling '
                     + 'is incorrect because there is no image yet.');
             }
             camera.imageToTabletopScale.x = this.tabletop.workEnvelope.width
@@ -643,7 +987,6 @@ class CameraCalibrator extends LivelitWindow {
             if (applyButton) {
                 applyButton.addEventListener('click', (event) => {
                     this.camera.extrinsicTransform = this.state.extrinsicTransform;
-                    this.camera.tabletop = this.tabletop;
                     this.setImageToTableScaling(this.camera);
                     resolve(this.camera);
                 });
@@ -651,15 +994,75 @@ class CameraCalibrator extends LivelitWindow {
         });
     }
 
+    saveValue() {
+        return new Promise<void>((resolve, reject) => {
+            if (this.camera.extrinsicTransform) {
+                let h = this.camera.extrinsicTransform;
+                let hSerialized = JSON.stringify(h);
+                localStorage.setItem(this.functionName, hSerialized);
+                this.setState(_ => {
+                    return {
+                        extrinsicTransform: h,
+                        valueSet: true
+                    }
+                }, resolve);
+            }
+            else {
+                console.warn('CameraCalibrator: Could not save homography.');
+                resolve();
+            }
+        });
+    }
+
+    loadSavedValue() {
+        interface RevivedHomography {
+            srcPts: number[];
+            dstPts: number[];
+            coeffs: number[];
+            coeffsInv: number[];
+        }
+        let coeffsStr = localStorage.getItem(this.functionName);
+        if (coeffsStr) {
+            let revivedH = JSON.parse(coeffsStr) as RevivedHomography;
+            // Hopefully no numerical errors here.
+            let h = PerspT(revivedH.srcPts, revivedH.dstPts);
+            return h;
+        }
+        else {
+            return undefined;
+        }
+    }
+
+    clearSavedValue() {
+        return new Promise<void>((resolve) => {
+            localStorage.removeItem(this.functionName);
+            this.setState(_ => {
+                return {
+                    extrinsicTransform: undefined,
+                    valueSet: false
+                }
+            }, resolve);
+        });
+    }
+
     expand() : string {
         let s = `async function ${this.functionName}(tabletop) {`;
         s += `let cc = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `cc.tabletop = tabletop;`;
+        s += `cc.camera.tabletop = cc.tabletop;`;
+        s += `if (!cc.state.valueSet) {`;
         s += `await cc.openWindow();`;
         s += `await cc.takePhoto();`;
-        s += `let camera = await cc.acceptCameraWarp();`;
+        s += `await cc.acceptCameraWarp();`;
+        s += `await cc.saveValue();`;
         s += `await cc.closeWindow();`;
-        s += `return camera;`;
+        s += `}`;
+        s += `else {`;
+        s += `let extrinsicTransform = cc.loadSavedValue();`;
+        s += `cc.camera.extrinsicTransform = extrinsicTransform;`;
+        s += `cc.setImageToTableScaling(cc.camera);`;
+        s += `}`;
+        s += `return cc.camera;`;
         s += `}`;
         return s;
     }
@@ -732,8 +1135,22 @@ class CameraCalibrator extends LivelitWindow {
         }
     }
 
+    renderValue() {
+        let maybeGrayed = this.state.valueSet ? '' : 'grayed';
+        let value = this.state.extrinsicTransform
+                    ? this.state.extrinsicTransform.coeffs.toString()
+                    : '?';
+        return (
+            <div className={`module-value ${maybeGrayed}`}
+                 key={`${this.titleKey}-value`}>
+                 { `Camera(extrinsicTransform: [${value}], ...)` }
+            </div>
+        );
+    }
+
     renderContent() {
-        return <div className="camera-calibrator"
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return <div className={`camera-calibrator content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
                    <div className="help-text">
                        1. Draw a border around the work envelope with the
@@ -777,7 +1194,7 @@ class CameraCalibrator extends LivelitWindow {
 
 interface FaceFinderProps extends LivelitProps {
     camera?: pair.Camera;
-    ref: React.Ref<FaceFinder>;
+    ref: React.RefObject<FaceFinder>;
     windowOpen: boolean;
 }
 
@@ -803,13 +1220,15 @@ class FaceFinder extends LivelitWindow {
             imageTaken: false,
             imagePath: './img/seattle-times.jpg',
             detectedRegions: [],
-            windowOpen: false
+            windowOpen: props.windowOpen,
+            abortOnResumingExecution: false,
+            valueSet: props.valueSet
         }
         this.photoButton = <div onClick={this.takePhoto.bind(this)}
                                 className="button" id="take-photo">
                                Take Photo
                            </div>
-        this.acceptButton = <div className="button" id="accept-faces">
+        this.acceptButton = <div className="button apply-btn" id="accept-faces">
                                 Accept
                             </div>
     }
@@ -869,6 +1288,10 @@ class FaceFinder extends LivelitWindow {
                     resolve(this.state.detectedRegions);
                 });
             }
+            else {
+                console.warn('FaceFinder: accepting no faces.');
+                resolve([]);
+            }
         });
     }
 
@@ -880,11 +1303,25 @@ class FaceFinder extends LivelitWindow {
         return resultLis;
     }
 
+    renderValue() {
+        let maybeGrayed = this.state.valueSet ? '' : 'grayed';
+        let value = this.state.detectedRegions.length > 0
+                        ? `Region[]([${this.state.detectedRegions}])`
+                        : '?';
+        return (
+            <div className={`module-value ${maybeGrayed}`}
+                 key={`${this.titleKey}-value`}>
+                 { value }
+            </div>
+        );
+    }
+
     renderContent() {
         let image = this.state.imageTaken
                         ? <img src={this.state.imagePath}/>
                         : <div></div>;
-        return <div className="face-finder"
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return <div className={`face-finder content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
                    { this.photoButton }
                    <div className="image-thumbnail face-finder-thumbnail">
@@ -955,7 +1392,8 @@ class ToolpathDeployer extends LivelitWindow {
     }
 
     renderContent() {
-        return <div className="toolpath-deployer"
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return <div className={`toolpath-deployer content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
                <ul>
                    <li>
@@ -970,10 +1408,4 @@ class ToolpathDeployer extends LivelitWindow {
     }
 }
 
-const inflateProgramPane = () => {
-    const blankDom = document.querySelector('#program-container');
-    const programPane = <ProgramPane></ProgramPane>;
-    ReactDOM.render(programPane, blankDom);
-};
-
-export { inflateProgramPane };
+export { ProgramPane };
