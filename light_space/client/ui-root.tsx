@@ -34,7 +34,7 @@ class PaperCanvas extends React.Component<Props, State> {
     }
 
     render() {
-        return <canvas id="main-canvas" className="hidden"></canvas>
+        return <canvas id="main-canvas" className=""></canvas>
     }
 }
 
