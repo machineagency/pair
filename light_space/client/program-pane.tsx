@@ -1461,38 +1461,82 @@ interface ToolpathDeployerProps extends LivelitProps {
 }
 
 interface ToolpathDeployerState extends LivelitState {
+    machine: pair.Machine;
+    toolpaths: pair.Toolpath[];
 }
 
 class ToolpathDeployer extends LivelitWindow {
+    state: ToolpathDeployerState;
+
     constructor(props: LivelitProps) {
         super(props);
         this.titleText = 'Toolpath Deployer';
         this.functionName = '$toolpathDeployer';
+        this.applyButton = <div className="button apply-btn"
+                                id="done-toolpath-deployer">
+                                Done
+                            </div>
+        this.state = {
+            machine: new pair.Machine('TEMP'),
+            toolpaths: [],
+            windowOpen: props.windowOpen,
+            abortOnResumingExecution: false,
+            valueSet: props.valueSet
+        };
+    }
+
+    async setArguments(machine: pair.Machine, toolpaths: pair.Toolpath[]) {
+        return new Promise<void>((resolve) => {
+            this.setState(_ => {
+                return {
+                    machine: machine,
+                    toolpaths: toolpaths
+                };
+            }, resolve);
+        });
     }
 
     expand() : string {
         let s = `async function ${this.functionName}(machine, toolpaths) {`;
+        s += `let td = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `await td.setArguments(machine, toolpaths);`;
+        s += `await td.openWindow();`;
+        s += `await td.finishDeployment();`;
+        s += `await td.closeWindow();`;
         s += `}`;
         return s;
     }
 
+    async finishDeployment() : Promise<void>{
+        return new Promise<void>((resolve) => {
+            const doneDom = document.getElementById('done-toolpath-deployer');
+            if (doneDom) {
+                doneDom.addEventListener('click', (event) => {
+                    resolve();
+                });
+            }
+            else {
+                resolve();
+            }
+        });
+    }
+
     renderToolpathThumbnails() {
+        let elements = this.state.toolpaths.map((tp, idx) => {
+            return <li key={idx}>{tp.pairName}</li>;
+        });
+        return <ul>{elements}</ul>;
     }
 
     renderContent() {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
-        return <div className={`toolpath-deployer content ${maybeHidden}`}
-                    key={this.contentKey.toString()}>
-               <ul>
-                   <li>
-                        <div></div>
-                        <div>
-                            <div></div>
-                            <div></div>
-                        </div>
-                   </li>
-               </ul>
-               </div>;
+        return (
+            <div className={`toolpath-deployer content ${maybeHidden}`}
+                 key={this.contentKey.toString()}>
+                <div>{this.state.machine.machineName}</div>
+                { this.renderToolpathThumbnails() }
+           </div>
+       );
     }
 }
 
