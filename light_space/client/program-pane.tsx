@@ -618,7 +618,7 @@ class GeometryGallery extends LivelitWindow {
         this.titleText = 'Geometry Gallery';
         this.functionName = '$geometryGallery';
         this.state = {
-            selectedUrl: '',
+            selectedUrl: this.loadSavedValue() || '',
             imageNameUrlPairs: [],
             windowOpen: props.windowOpen,
             abortOnResumingExecution: false,
@@ -638,12 +638,60 @@ class GeometryGallery extends LivelitWindow {
         let s = `async function ${this.functionName}(machine) {`;
         // TODO: filter geometries by machine
         s += `let gg = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `let geomUrl;`;
+        s += `if (!gg.state.valueSet) {`;
         s += `await gg.openWindow();`
-        s += `let geomUrl = await gg.waitForGeometryChosen();`;
+        s += `geomUrl = await gg.waitForGeometryChosen();`;
+        s += `await gg.saveValue();`;
         s += `await gg.closeWindow();`
+        s += `}`;
+        s += `else {`;
+        s += `geomUrl = gg.state.selectedUrl;`;
+        s += `}`;
         s += `return new pair.Geometry(geomUrl);`;
         s += `}`;
         return s;
+    }
+
+    saveValue() {
+        if (this.state.abortOnResumingExecution) {
+            return;
+        }
+        return new Promise<void>((resolve) => {
+            if (this.state.selectedUrl) {
+                localStorage.setItem(this.functionName, this.state.selectedUrl);
+                this.setState(_ => {
+                    return {
+                        valueSet: true
+                    }
+                }, resolve);
+            }
+            else {
+                console.warn('TabletopCalibrator: Could not save homography.');
+            }
+        });
+    }
+
+    loadSavedValue() {
+        let selectedUrl = localStorage.getItem(this.functionName);
+        if (selectedUrl) {
+            return selectedUrl;
+        }
+        else {
+            return undefined;
+        }
+    }
+
+    clearSavedValue() {
+        return new Promise<void>((resolve) => {
+            localStorage.removeItem(this.functionName);
+            this.setState(_ => {
+                return {
+                    selectedUrl: '',
+                    valueSet: false
+                }
+            }, resolve);
+        });
     }
 
     setSelectedGeometryUrl(url: string) {
