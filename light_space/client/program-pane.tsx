@@ -31,7 +31,7 @@ interface ProgramLineProps {
 };
 interface State {}
 interface ProgramPaneState {
-    defaultLines: string[];
+    currentWorkflow: string[];
     running: boolean;
 };
 interface ProgramLineState {
@@ -294,7 +294,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         this.typeCheck();
         if (this.modulePaneRef.current) {
             this.modulePaneRef.current.setState((prevState: ModulePaneState) => {
-                return { lines: this.defaultLinesMustacheLiveLits }
+                return { lines: this.state.currentWorkflow }
             });
         }
     }
@@ -310,7 +310,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
             <div id="program-pane">
                 <div id="program-lines-and-controls">
                     <div id="program-lines">
-                        { this.renderTextLines(this.state.defaultLines) }
+                        { this.renderTextLines(this.state.currentWorkflow) }
                     </div>
                     <div id="program-controls">
                         <div className={`pc-btn pc-compile ${maybeGrayed}`}
