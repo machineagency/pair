@@ -617,17 +617,28 @@ class GeometryGallery extends LivelitWindow {
         super(props);
         this.titleText = 'Geometry Gallery';
         this.functionName = '$geometryGallery';
+        this.applyButton = <div className="button apply-btn" id="choose-geometry">
+                                Choose
+                            </div>
         this.state = {
-            selectedUrl: this.loadSavedValue() || '',
+            selectedUrl: '',
             imageNameUrlPairs: [],
             windowOpen: props.windowOpen,
             abortOnResumingExecution: false,
             valueSet: props.valueSet
         };
-        this.fetchGeometryNames();
-        this.applyButton = <div className="button apply-btn" id="choose-geometry">
-                                Choose
-                            </div>
+        this.fetchGeometryNames()
+            .then((imageNameUrlPairs: [string, string][]) => {
+                let maybeSavedName = this.loadSavedValue();
+                let selectedUrl = '';
+                let valueSet = false;
+                if (maybeSavedName) {
+                    selectedUrl = this.getUrlForGeometryName(maybeSavedName,
+                                    imageNameUrlPairs);
+                    valueSet = true;
+                }
+                this.setState(_ => ({ selectedUrl, imageNameUrlPairs, valueSet }));
+            });
     }
 
     expandOld() : pair.Geometry {
@@ -653,13 +664,17 @@ class GeometryGallery extends LivelitWindow {
         return s;
     }
 
+    /**
+     * Save the name of the geometry since URLs are volatile.
+     */
     saveValue() {
         if (this.state.abortOnResumingExecution) {
             return;
         }
         return new Promise<void>((resolve) => {
             if (this.state.selectedUrl) {
-                localStorage.setItem(this.functionName, this.state.selectedUrl);
+                let geomName = this.getGeometryNameForUrl(this.state.selectedUrl);
+                localStorage.setItem(this.functionName, geomName);
                 this.setState(_ => {
                     return {
                         valueSet: true
@@ -667,19 +682,18 @@ class GeometryGallery extends LivelitWindow {
                 }, resolve);
             }
             else {
-                console.warn('TabletopCalibrator: Could not save homography.');
+                console.warn('GeometryGallery: Could not save geometry name.');
             }
         });
     }
 
+    /**
+     * Load a saved name if it exists, else undefined. The caller must convert
+     * the name to a URL if needed.
+     */
     loadSavedValue() {
-        let selectedUrl = localStorage.getItem(this.functionName);
-        if (selectedUrl) {
-            return selectedUrl;
-        }
-        else {
-            return undefined;
-        }
+        let geomName = localStorage.getItem(this.functionName);
+        return geomName;
     }
 
     clearSavedValue() {
@@ -728,14 +742,31 @@ class GeometryGallery extends LivelitWindow {
                </div>;
     }
 
-    renderValue() {
-        let maybeGrayed = this.state.valueSet ? '' : 'grayed';
-        let pairWithSelectedUrl = this.state.imageNameUrlPairs.find((pair) => {
+    getUrlForGeometryName(desiredName: string, pairs?: [string, string][]) {
+        let pairList = pairs || this.state.imageNameUrlPairs;
+        let pairWithName = pairList.find((pair) => {
+            let geomName = pair[0];
+            let geomUrl = pair[1];
+            return geomName === desiredName;
+        });
+        let currentUrl = pairWithName ? pairWithName[1] : '';
+        return currentUrl;
+    }
+
+    getGeometryNameForUrl(url: string, pairs?: [string, string][]) {
+        let pairList = pairs || this.state.imageNameUrlPairs;
+        let pairWithSelectedUrl = pairList.find((pair) => {
             let geomName = pair[0];
             let geomUrl = pair[1];
             return geomUrl === this.state.selectedUrl;
         });
-        let geomName = pairWithSelectedUrl ? pairWithSelectedUrl[0] : '?'
+        let geomName = pairWithSelectedUrl ? pairWithSelectedUrl[0] : '';
+        return geomName;
+    }
+
+    renderValue() {
+        let maybeGrayed = this.state.valueSet ? '' : 'grayed';
+        let geomName = this.getGeometryNameForUrl(this.state.selectedUrl);
         return (
             <div className={`module-value ${maybeGrayed}`}
                  key={`${this.titleKey}-value`}>
@@ -760,28 +791,33 @@ class GeometryGallery extends LivelitWindow {
                </div>
     }
 
-    async fetchGeometryNames() {
-        const namesUrl = '/geometries';
-        let namesRes = await fetch(namesUrl);
-        if (namesRes.ok) {
-            let namesJson = await namesRes.json();
-            let names : string[] = namesJson.names;
-            let fetchImage = async (name: string) => {
-                let imageRes = await fetch(`/geometry/${name}`);
-                if (imageRes.ok) {
-                    let blob = await imageRes.blob();
-                    let url = URL.createObjectURL(blob);
-                    this.setState((prev: GeometryGalleryState) => {
-                        return {
-                            selectedUrl: prev.selectedUrl || url,
-                            imageNameUrlPairs: prev.imageNameUrlPairs
-                                                   .concat([[name, url]])
-                        };
-                    });
+    async fetchGeometryNames() : Promise<[string, string][]> {
+        return new Promise<[string, string][]>(async (resolve) => {
+            const namesUrl = '/geometries';
+            let namesRes = await fetch(namesUrl);
+            if (namesRes.ok) {
+                let namesJson = await namesRes.json();
+                let names : string[] = namesJson.names;
+                let fetchImageUrl = async (name: string) => {
+                    let imageRes = await fetch(`/geometry/${name}`);
+                    if (imageRes.ok) {
+                        let blob = await imageRes.blob();
+                        let url = URL.createObjectURL(blob);
+                        return url;
+                    };
+                    return '';
                 };
-            };
-            names.forEach(fetchImage);
-        }
+                let urls: string[] = await Promise.all(names.map(fetchImageUrl));
+                let nameUrlPairs: [string, string][] = names.map((name, idx) => {
+                    let url: string = urls[idx] || '';
+                    return [name, url];
+                });
+                resolve(nameUrlPairs);
+            }
+            else {
+                resolve([]);
+            }
+        });
     }
 }
 
