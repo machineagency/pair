@@ -100,6 +100,14 @@ class ProgramUtil {
                 };
                 return <FaceFinder {...ffProps}>
                        </FaceFinder>;
+            case 'toolpathDeployer':
+                const tdProps: ToolpathDeployerProps = {
+                    ref: livelitRef as React.RefObject<ToolpathDeployer>,
+                    plRef: plRef,
+                    valueSet: false,
+                    windowOpen: false
+                };
+                return <ToolpathDeployer {...tdProps}></ToolpathDeployer>;
             default:
                 return null;
         }
@@ -146,10 +154,21 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'toolpaths.forEach(toolpath => machine.plotToolpathOnTabletop(toolpath, tabletop));'
     ];
 
+    defaultToolpathPreviewing = [
+        'let machine = new pair.Machine(\'axidraw\');',
+        'let tabletop = await $tabletopCalibrator(machine);',
+        'let camera = await $cameraCalibrator(tabletop);',
+        'let mustache = await $geometryGallery(machine);',
+        'let point = new pair.Point(50, 50);',
+        '// TODO: use eiter camera or toolpath direct manipulator',
+        'let toolpath = await mustache.placeAt(point, tabletop);',
+        'let deployer = await $toolpathDeployer(machine, toolpath);'
+    ];
+
     constructor(props: Props) {
         super(props);
         this.state = {
-            defaultLines: this.defaultLinesMustacheLiveLits,
+            currentWorkflow: this.defaultToolpathPreviewing,
             running: false
         };
         this.livelitRefs = [];
@@ -1375,6 +1394,13 @@ class ToolpathDirectManipulator extends LivelitWindow {
         });
         */
     }
+}
+
+interface ToolpathDeployerProps extends LivelitProps {
+    ref: React.RefObject<ToolpathDeployer>;
+    plRef: React.RefObject<ProgramLine>;
+    valueSet: boolean;
+    windowOpen: boolean;
 }
 
 interface ToolpathDeployerState extends LivelitState {
