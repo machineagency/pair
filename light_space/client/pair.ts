@@ -362,7 +362,9 @@ export class WorkEnvelope {
 export class Toolpath {
     pairName: string;
     _visible: boolean;
+    _visualizationMode: boolean;
     group: paper.Group;
+    visualizationGroup: paper.Group;
     tabletop: Tabletop;
     readonly originalGroup: paper.Group;
 
@@ -378,6 +380,10 @@ export class Toolpath {
         // Original group is never visible
         this.originalGroup.visible = false;
         this.tabletop.project.activeLayer.addChild(this.group);
+        // Have separate group for visualizing instructions, etc.
+        this._visualizationMode = false;
+        this.visualizationGroup = new paper.Group([]);
+        this.visualizationGroup.visible = false;
     }
 
     /* Wrapper getters, setters, and methods for paper.Group below. */
@@ -424,6 +430,22 @@ export class Toolpath {
         if (!result) {
             console.warn(`Could not remove toolpath ${this}`);
         }
+    }
+
+    get visualizationMode() : boolean {
+        return this._visualizationMode
+    }
+
+    set visualizationMode(flag: boolean) {
+        this.visualizationGroup.visible = flag;
+        this.visualizationMode = flag;
+    }
+
+    /* TODO: add visualization parameters */
+    visualizeInstructions() {
+        this.visualizationGroup = this.group.clone({ insert: true, deep: true });
+        this.visualizationGroup.strokeColor = new paper.Color('green');
+        this.visualizationMode = true;
     }
 
     reinitializeGroup() {
