@@ -1569,6 +1569,7 @@ class ToolpathDeployer extends LivelitWindow {
                  key={this.contentKey.toString()}>
                 <div>{this.state.machine.machineName}</div>
                 { this.renderToolpathThumbnails() }
+                { this.applyButton }
            </div>
        );
     }
