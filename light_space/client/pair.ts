@@ -32,6 +32,7 @@ export class Tabletop {
     project: paper.Project;
     tool: paper.Tool;
     workEnvelope: WorkEnvelope;
+    toolpaths: Toolpath[];
     interactionMode: InteractionMode;
     activeToolpath?: Toolpath;
     activeEnvelopeSegment?: paper.Segment;
@@ -41,6 +42,7 @@ export class Tabletop {
         this.machine = machine;
         this.project = (paper as any).project;
         this.tool = new paper.Tool();
+        this.toolpaths = [];
         this.workEnvelope = new WorkEnvelope(this,
                                              machine.workEnvelopeDimensions.x,
                                              machine.workEnvelopeDimensions.y);
@@ -170,7 +172,19 @@ export class Tabletop {
     }
 
     loadToolpath(toolpath: Toolpath) {
+        this.toolpaths.push(toolpath);
         toolpath.visible = true;
+    }
+
+    clearToolpaths() {
+        this.toolpaths.forEach(tp => tp.clearFromTabletop());
+        this.toolpaths = [];
+    }
+
+    clearTabletopFromCanvas() {
+        this.workEnvelope.clearFromTabletop();
+        this.clearToolpaths();
+        console.log('Tabletop cleared.');
     }
 
     sendPaperItemToMachine(itemToSend: paper.Item) : Promise<Response> {
@@ -271,6 +285,14 @@ export class WorkEnvelope {
     get center() : paper.Point {
         return new paper.Point(Math.floor(this.width / 2),
                                Math.floor(this.height / 2));
+    }
+
+    clearFromTabletop() {
+        let pathRemoveResult = this.path.remove();
+        let labelRemoveResult = this.sizeLabel.remove();
+        if (!(pathRemoveResult && labelRemoveResult)) {
+            console.warn('Could not clear workEnvelope from tabletop.');
+        }
     }
 
     getCornerPoints() : paper.Point[] {
@@ -396,6 +418,13 @@ export class Toolpath {
     }
 
     /* Methods that are specific to Toolpath follow. */
+
+    clearFromTabletop() {
+        let result = this.group.remove();
+        if (!result) {
+            console.warn(`Could not remove toolpath ${this}`);
+        }
+    }
 
     reinitializeGroup() {
         let existingGroupVisible = this.group.visible;
