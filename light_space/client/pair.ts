@@ -438,7 +438,8 @@ export class Toolpath {
 
     set visualizationMode(flag: boolean) {
         this.visualizationGroup.visible = flag;
-        this.visualizationMode = flag;
+        this._visualizationMode = flag;
+        this.group.visible = !flag;
     }
 
     /* TODO: add visualization parameters */
