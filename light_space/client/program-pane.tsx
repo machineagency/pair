@@ -263,6 +263,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
             let livelitFunctionDeclarations = this.gatherLivelitsAsFunctionDeclarations();
             let progText  = `${livelitFunctionDeclarations}`;
             progText += `\n(async function() {`;
+            progText += `paper.project.clear();`;
             progText += `try {`;
             progText += `${innerProgText}`;
             progText += `} catch (e) {`;
