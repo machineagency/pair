@@ -1552,9 +1552,6 @@ class ToolpathDeployer extends LivelitWindow {
                     resolve();
                 });
             }
-            else {
-                resolve();
-            }
         });
     }
 
