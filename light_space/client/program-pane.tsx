@@ -1500,6 +1500,7 @@ interface ToolpathDeployerProps extends LivelitProps {
 interface ToolpathDeployerState extends LivelitState {
     machine: pair.Machine;
     toolpaths: pair.Toolpath[];
+    selectedToolpathUrl: string;
 }
 
 class ToolpathDeployer extends LivelitWindow {
@@ -1518,7 +1519,8 @@ class ToolpathDeployer extends LivelitWindow {
             toolpaths: [],
             windowOpen: props.windowOpen,
             abortOnResumingExecution: false,
-            valueSet: props.valueSet
+            valueSet: props.valueSet,
+            selectedToolpathUrl: ''
         };
     }
 
@@ -1555,9 +1557,27 @@ class ToolpathDeployer extends LivelitWindow {
         });
     }
 
+    setSelectedToolpathUrl(url: string) {
+        this.setState(_ => ({ setSelectedToolpathUrl: url }), () => {
+            let tp = this.state.toolpaths.find(tp => tp.pairName === url);
+            if (tp) {
+                tp.visualizeInstructions();
+            }
+        });
+    }
+
     renderToolpathThumbnails() {
         let elements = this.state.toolpaths.map((tp, idx) => {
-            return <li key={idx}>{tp.pairName}</li>;
+            let url = tp.pairName;
+            let maybeHighlight = this.state.selectedToolpathUrl === url
+                                    ? 'highlight' : '';
+            return <li className={`gallery-item ${maybeHighlight}`}
+                        data-geometry-name={name}
+                        onClick={this.setSelectedToolpathUrl.bind(this, url)}
+                        key={idx.toString()}>
+                        <img src={url}
+                             className="gallery-image"/>
+                   </li>
         });
         return <ul>{elements}</ul>;
     }
