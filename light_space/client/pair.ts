@@ -476,6 +476,11 @@ export class Toolpath {
         return vg;
     }
 
+    parseInstructionsFromVisualization() {
+        // TODO: make a list of NC code, for use in linking w/ module,
+        // also for scrubbing
+    }
+
     reinitializeGroup() {
         let existingGroupVisible = this.group.visible;
         let originalGroupCopy = this.originalGroup.clone({ insert: true, deep: true });
