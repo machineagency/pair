@@ -892,6 +892,7 @@ class TabletopCalibrator extends LivelitWindow {
                             </div>
     }
 
+    // FIXME: this doesn't properly apply saved homographies yet
     expand() : string {
         let s = `async function ${this.functionName}(machine) {`;
         s += `let tc = PROGRAM_PANE.getLivelitWithName(\'$tabletopCalibrator\');`;

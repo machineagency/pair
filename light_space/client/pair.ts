@@ -444,9 +444,36 @@ export class Toolpath {
 
     /* TODO: add visualization parameters */
     visualizeInstructions() {
-        this.visualizationGroup = this.group.clone({ insert: true, deep: true });
-        this.visualizationGroup.strokeColor = new paper.Color('green');
+        this.visualizationGroup = this._constructVisualizationGroup();
         this.visualizationMode = true;
+    }
+
+    _constructVisualizationGroup() {
+        let subpaths = this.group.children.filter((child) : child is paper.Path => {
+            return child.className === 'Path';
+        });
+        let pathsForSegments = subpaths.map(subpath => {
+            let segments = subpath.segments;
+            let makeSegPaths = (seg: paper.Segment, rest: paper.Segment[],
+                          sofar: paper.Path[]) : paper.Path[] => {
+                if (rest.length === 0) {
+                    let originalFirstSegment = segments[0];
+                    let lastPath = new paper.Path([seg, originalFirstSegment]);
+                    return sofar;
+                }
+                else {
+                    let nextSeg = rest[0];
+                    let path = new paper.Path([seg, nextSeg]);
+                    return makeSegPaths(nextSeg, rest.slice(1), sofar.concat(path));
+                }
+            };
+            let segmentPaths = makeSegPaths(segments[0], segments.slice(1), []);
+            return segmentPaths;
+        }).flat();
+        let vg = new paper.Group(pathsForSegments)
+        vg.strokeColor = new paper.Color('green');
+        console.log(vg);
+        return vg;
     }
 
     reinitializeGroup() {
