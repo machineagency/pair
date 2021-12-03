@@ -168,13 +168,13 @@ pre code.hljs {
 
 /* Livelit-Specific Styles */
 
-.geometry-gallery {
+.gallery {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
 }
 
-.geometry-gallery .gallery-item {
+.gallery .gallery-item {
     height: 50px;
     width: 50px;
     background-color: whitesmoke;
@@ -184,7 +184,7 @@ pre code.hljs {
     cursor: pointer;
 }
 
-.geometry-gallery .gallery-item.geometry-highlight {
+.gallery .gallery-item.gallery-highlight {
     background-color: red;
 }
 

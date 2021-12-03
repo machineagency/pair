@@ -733,7 +733,7 @@ class GeometryGallery extends LivelitWindow {
 
     renderGalleryItem(name: string, url: string, itemNumber: number) {
         const maybeHighlight = this.state.selectedUrl === url
-                               ? 'geometry-highlight' : '';
+                               ? 'gallery-highlight' : '';
         return <div className={`gallery-item ${maybeHighlight}`}
                     data-geometry-name={name}
                     onClick={this.setSelectedGeometryUrl.bind(this, url)}
@@ -785,7 +785,7 @@ class GeometryGallery extends LivelitWindow {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return <div className={`content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
-                    <div className="geometry-gallery">
+                    <div className="gallery">
                         { galleryItems }
                     </div>
                     { this.applyButton }
@@ -1571,16 +1571,16 @@ class ToolpathDeployer extends LivelitWindow {
         let elements = this.state.toolpaths.map((tp, idx) => {
             let url = tp.pairName;
             let maybeHighlight = this.state.selectedToolpathUrl === url
-                                    ? 'highlight' : '';
-            return <li className={`gallery-item ${maybeHighlight}`}
+                                    ? 'gallery-highlight' : '';
+            return <div className={`gallery-item ${maybeHighlight}`}
                         data-geometry-name={name}
                         onClick={this.setSelectedToolpathUrl.bind(this, url)}
                         key={idx.toString()}>
                         <img src={url}
                              className="gallery-image"/>
-                   </li>
+                   </div>
         });
-        return <ul>{elements}</ul>;
+        return <div className="gallery">{elements}</div>;
     }
 
     renderContent() {
