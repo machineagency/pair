@@ -1559,7 +1559,7 @@ class ToolpathDeployer extends LivelitWindow {
     }
 
     setSelectedToolpathUrl(url: string) {
-        this.setState(_ => ({ setSelectedToolpathUrl: url }), () => {
+        this.setState(_ => ({ selectedToolpathUrl: url }), () => {
             let tp = this.state.toolpaths.find(tp => tp.pairName === url);
             if (tp) {
                 tp.visualizeInstructions();
