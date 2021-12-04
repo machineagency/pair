@@ -1583,6 +1583,20 @@ class ToolpathDeployer extends LivelitWindow {
         return <div className="gallery">{elements}</div>;
     }
 
+    renderSelectedToolpathInstructions() {
+        let tp = this.state.toolpaths.find(tp => {
+            return tp.pairName === this.state.selectedToolpathUrl;
+        });
+        if (!tp) {
+            return []
+        }
+        return tp.instructions.map((inst, idx) => {
+            return (
+                <div key={idx}>{inst}</div>
+            );
+        });
+    }
+
     renderContent() {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return (
@@ -1590,6 +1604,7 @@ class ToolpathDeployer extends LivelitWindow {
                  key={this.contentKey.toString()}>
                 <div>{this.state.machine.machineName}</div>
                 { this.renderToolpathThumbnails() }
+                { this.renderSelectedToolpathInstructions() }
                 { this.applyButton }
            </div>
        );

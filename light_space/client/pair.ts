@@ -365,6 +365,7 @@ export class Toolpath {
     _visualizationMode: boolean;
     group: paper.Group;
     visualizationGroup: paper.Group;
+    instructions: string[];
     tabletop: Tabletop;
     readonly originalGroup: paper.Group;
 
@@ -382,8 +383,9 @@ export class Toolpath {
         this.tabletop.project.activeLayer.addChild(this.group);
         // Have separate group for visualizing instructions, etc.
         this._visualizationMode = false;
-        this.visualizationGroup = new paper.Group([]);
+        this.visualizationGroup = this._constructVisualizationGroup();
         this.visualizationGroup.visible = false;
+        this.instructions = this._parseInstructions();
     }
 
     /* Wrapper getters, setters, and methods for paper.Group below. */
@@ -444,7 +446,6 @@ export class Toolpath {
 
     /* TODO: add visualization parameters */
     visualizeInstructions() {
-        this.visualizationGroup = this._constructVisualizationGroup();
         this.visualizationMode = true;
     }
 
@@ -470,15 +471,22 @@ export class Toolpath {
             let segmentPaths = makeSegPaths(segments[0], segments.slice(1), []);
             return segmentPaths;
         }).flat();
-        let vg = new paper.Group(pathsForSegments)
+        let vg = new paper.Group(pathsForSegments);
         vg.strokeColor = new paper.Color('green');
         console.log(vg);
         return vg;
     }
 
-    parseInstructionsFromVisualization() {
-        // TODO: make a list of NC code, for use in linking w/ module,
-        // also for scrubbing
+    _parseInstructions() {
+        let visGroup = this.visualizationGroup;
+        let linePaths = visGroup.children.filter((child) : child is paper.Path => {
+            return child.className === 'Path';
+        });
+        let strings = linePaths.map((path) => {
+            let endPt = path.lastSegment.point;
+            return `move (${endPt.x}, ${endPt.y})`;
+        });
+        return strings;
     }
 
     reinitializeGroup() {
