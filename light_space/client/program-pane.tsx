@@ -1502,6 +1502,7 @@ interface ToolpathDeployerState extends LivelitState {
     machine: pair.Machine;
     toolpaths: pair.Toolpath[];
     selectedToolpathUrl: string;
+    selectedInstIndex: number;
 }
 
 class ToolpathDeployer extends LivelitWindow {
@@ -1521,7 +1522,8 @@ class ToolpathDeployer extends LivelitWindow {
             windowOpen: props.windowOpen,
             abortOnResumingExecution: false,
             valueSet: props.valueSet,
-            selectedToolpathUrl: ''
+            selectedToolpathUrl: '',
+            selectedInstIndex: -1
         };
     }
 
@@ -1577,7 +1579,11 @@ class ToolpathDeployer extends LivelitWindow {
     selectInstruction(instIndex: number) {
         let tp = this.getSelectedToolpath();
         if (tp) {
-            tp.selectInstructionsWithIndices([instIndex]);
+            this.setState(_ => ({ selectedInstIndex: instIndex }), () => {
+                if (tp) {
+                    tp.selectInstructionsWithIndices([instIndex]);
+                }
+            });
         }
     }
 
@@ -1602,12 +1608,18 @@ class ToolpathDeployer extends LivelitWindow {
         if (!tp) {
             return []
         }
-        return tp.instructions.map((inst, idx) => {
+        let instElements = tp.instructions.map((inst, idx) => {
+            let maybeHighlight = this.state.selectedInstIndex === idx
+                                 ? 'highlight' : '';
             return (
-                <div onClick={this.selectInstruction.bind(this, idx)}
+                <div className={`inst-list-item ${maybeHighlight}`}
+                     onClick={this.selectInstruction.bind(this, idx)}
                      key={idx}>{inst}</div>
             );
         });
+        return (
+            <div id="inst-list">{ instElements }</div>
+        );
     }
 
     renderContent() {

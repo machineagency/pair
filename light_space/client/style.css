@@ -26,6 +26,11 @@ pre code.hljs {
     font-style: italic;
 }
 
+.highlight {
+    background-color: whitesmoke;
+    color: black;
+}
+
 .pc-btn.grayed {
     background-color: #888888;
     color: #222222;
@@ -219,6 +224,29 @@ pre code.hljs {
     cursor: crosshair;
     max-height: 100%;
     max-width: 100%;
+}
+
+#inst-list {
+    max-height: 200px;
+    overflow-y: scroll;
+    border: 1px solid white;
+    margin: 0px 10px 0px 10px;
+}
+
+.inst-list-item {
+    cursor: pointer;
+    margin-left: 10px;
+    counter-increment: inst-line;
+}
+
+.inst-list-item::before {
+    content: counter(inst-line);
+    display: inline-block;
+    font-weight: bold;
+    margin-right: 10px;
+    text-align: right;
+    width: 20px;
+    color: #ffffffab;
 }
 
 #program-controls {
