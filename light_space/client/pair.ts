@@ -449,6 +449,16 @@ export class Toolpath {
         this.visualizationMode = true;
     }
 
+    selectInstructionsWithIndices(indices: number[]) {
+        let instPaths = this.visualizationGroup.children.filter((path) : path is paper.Path => {
+            return path.className === 'Path';
+        });
+        instPaths.forEach(path => path.selected = false);
+        indices.forEach((instIndex) => {
+            instPaths[instIndex].selected = true;
+        });
+    }
+
     _constructVisualizationGroup() {
         let subpaths = this.group.children.filter((child) : child is paper.Path => {
             return child.className === 'Path';
@@ -460,7 +470,7 @@ export class Toolpath {
                 if (rest.length === 0) {
                     let originalFirstSegment = segments[0];
                     let lastPath = new paper.Path([seg, originalFirstSegment]);
-                    return sofar;
+                    return sofar.concat(lastPath);
                 }
                 else {
                     let nextSeg = rest[0];
@@ -472,7 +482,7 @@ export class Toolpath {
             return segmentPaths;
         }).flat();
         let vg = new paper.Group(pathsForSegments);
-        vg.strokeColor = new paper.Color('green');
+        vg.strokeColor = new paper.Color(0x00ff00);
         console.log(vg);
         return vg;
     }

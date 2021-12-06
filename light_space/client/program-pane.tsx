@@ -166,7 +166,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'let tabletop = await $tabletopCalibrator(machine);',
         'let camera = await $cameraCalibrator(tabletop);',
         'let mustache = await $geometryGallery(machine);',
-        'let point = new pair.Point(50, 50);',
+        'let point = new pair.Point(200, 200);',
         '// TODO: use either camera or toolpath direct manipulator',
         'let toolpath = await mustache.placeAt(point, tabletop);',
         'let deployer = await $toolpathDeployer(machine, [toolpath]);'
@@ -1567,6 +1567,20 @@ class ToolpathDeployer extends LivelitWindow {
         });
     }
 
+    getSelectedToolpath() : pair.Toolpath | undefined {
+        let tp = this.state.toolpaths.find(tp => {
+            return tp.pairName === this.state.selectedToolpathUrl;
+        });
+        return tp;
+    }
+
+    selectInstruction(instIndex: number) {
+        let tp = this.getSelectedToolpath();
+        if (tp) {
+            tp.selectInstructionsWithIndices([instIndex]);
+        }
+    }
+
     renderToolpathThumbnails() {
         let elements = this.state.toolpaths.map((tp, idx) => {
             let url = tp.pairName;
@@ -1584,15 +1598,14 @@ class ToolpathDeployer extends LivelitWindow {
     }
 
     renderSelectedToolpathInstructions() {
-        let tp = this.state.toolpaths.find(tp => {
-            return tp.pairName === this.state.selectedToolpathUrl;
-        });
+        let tp = this.getSelectedToolpath();
         if (!tp) {
             return []
         }
         return tp.instructions.map((inst, idx) => {
             return (
-                <div key={idx}>{inst}</div>
+                <div onClick={this.selectInstruction.bind(this, idx)}
+                     key={idx}>{inst}</div>
             );
         });
     }
