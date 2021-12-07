@@ -3,11 +3,11 @@ from pyaxidraw import axidraw
 class Machine:
     def __init__(self, port='/dev/tty.usbmodem14101', dry=True):
         self.dry = dry
+        self.ad = axidraw.AxiDraw()
+        self.ad.interactive()
+        MILLIMETER_FLAG = 2
+        self.ad.options.units = MILLIMETER_FLAG
         if not self.dry:
-            self.ad = axidraw.AxiDraw()
-            self.ad.interactive()
-            MILLIMETER_FLAG = 2
-            self.ad.options.units = MILLIMETER_FLAG
             self.ad.connect()
         else:
             print('Running in DRY mode.')
