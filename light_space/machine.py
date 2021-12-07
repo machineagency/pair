@@ -55,6 +55,18 @@ class Machine:
             self.pen_up()
         return f'square at {start_pt} height {height} width {width}'
 
+    def generate_preview_svg(self, filepath):
+        self.ad.plot_setup(filepath)
+        self.ad.options.preview = True
+        self.ad.options.rendering = True
+        self.ad.options.report_time = True
+        preview_svg = self.ad.plot_run(True)
+        # TODO: use the time estimate values
+        # time_estimate = self.ad.time_estimate
+        # distance_total = self.ad.distance_total
+        # distance_pendown = self.ad.distance_pendown
+        return preview_svg
+
     def plot_svg(self, filepath):
         if not self.dry:
             try:

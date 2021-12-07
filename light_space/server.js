@@ -56,6 +56,12 @@ shell.on('message', (message) => {
             console.log(`PC --> Could not parse faces.`);
         }
     }
+    else if (shell.currRpcName === 'generatePreview') {
+        console.log(`PC (preview) --> ${message}`);
+        shell.currRpcResponse.sendFile(__dirname + '/volatile/plot_preview.svg');
+        shell.currRpcResponse = undefined;
+        shell.currRpcName = '';
+    }
     else if (shell.currRpcName === 'takePhoto') {
         shell.currRpcResponse.sendFile(__dirname + '/volatile/camera-photo.jpg');
         shell.currRpcResponse = undefined;
@@ -84,6 +90,13 @@ let attachRoutesAndStart = () => {
         let svg_string = req.query['svgString']
         shell.send('draw_toolpath '+ svg_string);
         res.status(200).send();
+    });
+
+    app.get('/machine/generatePreview', (req, res) => {
+        let svg_string = req.query['svgString']
+        shell.currRpcResponse = res;
+        shell.currRpcName = 'generatePreview';
+        shell.send('generate_preview '+ svg_string);
     });
 
     app.get('/camera/takePhoto', (req, res) => {

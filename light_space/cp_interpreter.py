@@ -219,6 +219,19 @@ class Interpreter(cmd.Cmd):
         instr = self.machine.plot_rect_hw(pt, height, width)
         print(instr)
 
+    def do_generate_preview(self, arg):
+        svg_filepath = './volatile/drawing.svg'
+        preview_filepath = './volatile/plot_preview.svg'
+        svg_string = arg
+        f_drawing = open(svg_filepath, 'w')
+        f_drawing.write(svg_string)
+        f_drawing.close()
+        preview_string = self.machine.generate_preview_svg(svg_filepath)
+        f_preview = open(preview_filepath, 'w')
+        f_preview.write(preview_string)
+        f_preview.close()
+        print(preview_string)
+
     def do_draw_toolpath(self, arg):
         svg_filepath = './volatile/drawing.svg'
         svg_string = arg
