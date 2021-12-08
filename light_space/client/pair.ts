@@ -25,6 +25,11 @@ const MM_TO_PX = 3.7795275591;
 const PX_TO_MM = 0.2645833333;
 const BASE_URL = 'http://localhost:3000';
 
+// TODO: develop a bona fide type for units and enforce type checks
+export const mm = (valueInMm: number) => {
+    return valueInMm * MM_TO_PX;
+}
+
 const __idenPts = [0, 0, 0, 0, 0, 0, 0, 0];
 
 export class Tabletop {

@@ -12,6 +12,8 @@
 
 /// <reference path="lib/perspective-transform.d.ts" />
 import * as pair from './pair.js';
+import { mm } from './pair.js';
+(window as any).mm = mm;
 
 interface Props {};
 interface LivelitProps {
@@ -166,7 +168,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'let tabletop = await $tabletopCalibrator(machine);',
         'let camera = await $cameraCalibrator(tabletop);',
         'let mustache = await $geometryGallery(machine);',
-        'let point = new pair.Point(200, 200);',
+        'let point = new pair.Point(mm(100), mm(50));',
         '// TODO: use either camera or toolpath direct manipulator',
         'let toolpath = await mustache.placeAt(point, tabletop);',
         'let deployer = await $toolpathDeployer(machine, [toolpath]);'
