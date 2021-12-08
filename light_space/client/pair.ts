@@ -29,6 +29,9 @@ const BASE_URL = 'http://localhost:3000';
 export const mm = (valueInMm: number) => {
     return valueInMm * MM_TO_PX;
 }
+export const px = (valueInPx: number) => {
+    return valueInPx * PX_TO_MM;
+}
 
 const __idenPts = [0, 0, 0, 0, 0, 0, 0, 0];
 
@@ -455,7 +458,24 @@ export class Toolpath {
     visualizeInstructions(vizGroup: paper.Group) {
         this.visualizationMode = true;
         this.visualizationGroup.children = vizGroup.children;
-        this.visualizationGroup.visible = true;
+        // TODO: do this in a more structured way, use TS interface
+        // Turns out this is not the right assumption, it seems like
+        // the first group is JUST pen down, and the second one is
+        // both
+        let penDownCPath = this.visualizationGroup.children[1].children[0].children[0] as paper.CompoundPath;
+        let penUpCPath = this.visualizationGroup.children[1].children[1].children[0] as paper.CompoundPath;
+        penDownCPath.set({
+            strokeColor: new paper.Color('red'),
+            strokeWidth: 2,
+            name: 'move'
+        });
+        penUpCPath.set({
+            strokeColor: new paper.Color('cyan'),
+            strokeWidth: 1,
+            name: 'travel'
+        });
+        // this.visualizationGroup = new paper.Group([penDownCPath, penUpCPath]);
+        // this.visualizationMode = true;
         this.instructions = this._parseInstructions();
     }
 
@@ -470,21 +490,24 @@ export class Toolpath {
     }
 
     _parseInstructions() {
-        let gatherPaths = (item: paper.Item) : paper.Path[] => {
+        let gatherPaths = (item: paper.Item, ancestorName: string) : paper.Path[] => {
             if (item.className === 'Path') {
+                item.name = ancestorName;
                 return [item] as paper.Path[];
             }
-            let paths = item.children.map(child => gatherPaths(child)).flat();
+            let nameToPass = item.name || ancestorName;
+            let paths = item.children.map(child => gatherPaths(child, nameToPass)).flat();
             return paths;
         };
         let visGroup = this.visualizationGroup;
-        let paths = gatherPaths(visGroup);
+        let paths = gatherPaths(visGroup, '');
         let pathToStrings = (path: paper.Path) => {
+            let command = path.name;
             let strings = path.segments.map((segment) => {
-                return `move (${segment.point.x}, ${segment.point.y})`;
+                return `${command} (${px(segment.point.x)}, ${px(segment.point.y)})`;
             });
             let startSeg = path.firstSegment;
-            return strings.concat(`move (${startSeg.point.x}, ${startSeg.point.y})`);
+            return strings.concat(`${command} (${px(startSeg.point.x)}, ${px(startSeg.point.y)})`);
         };
         return paths.map(path => pathToStrings(path)).flat();
     }
@@ -798,6 +821,8 @@ export class Machine {
                 },
                 onLoad: (vizGroup: paper.Group, svgString: string) => {
                     if (!this.tabletop) { return; }
+                    // let upAndDownPaths = new paper.Group(vizGroup.children[1]);
+                    // toolpath.visualizeInstructions(upAndDownPaths);
                     toolpath.visualizeInstructions(vizGroup);
                     resolve(toolpath);
                 }
