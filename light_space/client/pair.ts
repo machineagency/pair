@@ -208,6 +208,8 @@ export class Tabletop {
         const headerHeight = `height="${this.workEnvelope.height}mm"`;
         const svgHeader = `<svg ${headerXmlns} ${headerWidth} ${headerHeight}>`;
         const svgFooter = `</svg>`;
+        const visibleItemCopy = itemToSend.clone({ insert: false, deep: true })
+                                    .set({ visible: true });
         const svgPath = itemToSend.exportSVG({
             bounds: 'content',
             asString: true,
@@ -750,6 +752,34 @@ export class Machine {
             this.tabletop.sendPaperItemToMachine(wePathGroup);
             wePathGroup.remove();
         }
+    }
+
+    async previewToolpath(toolpath: Toolpath) {
+        toolpath.instructions = [];
+        toolpath.visualizationGroup.children = [];
+        let previewSvgUrl = await this._fetchPreviewUrl(toolpath);
+        return new Promise<Toolpath>((resolve, reject) => {
+            if (!this.tabletop) {
+                console.error(`${this.machineName} needs a tabletop before previewing.`);
+                return;
+            }
+            if (!previewSvgUrl) {
+                return;
+            }
+            console.log(previewSvgUrl);
+            this.tabletop.project.importSVG(previewSvgUrl, {
+                expandShapes: true,
+                insert: false,
+                onError: () => {
+                    console.warn('Could not load an SVG');
+                },
+                onLoad: (vizGroup: paper.Group, svgString: string) => {
+                    if (!this.tabletop) { return; }
+                    toolpath.visualizeInstructions(vizGroup);
+                    resolve(toolpath);
+                }
+            });
+        });
     }
 
     plotToolpathOnTabletop(toolpath: Toolpath, tabletop: Tabletop) {
