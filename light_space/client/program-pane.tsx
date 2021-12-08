@@ -1563,12 +1563,13 @@ class ToolpathDeployer extends LivelitWindow {
     }
 
     setSelectedToolpathUrl(url: string) {
-        this.setState(_ => ({ selectedToolpathUrl: url }), () => {
-            let tp = this.state.toolpaths.find(tp => tp.pairName === url);
-            if (tp) {
-                tp.visualizeInstructions();
-            }
-        });
+        let tp = this.state.toolpaths.find(tp => tp.pairName === url);
+        if (tp) {
+            this.state.machine.previewToolpath(tp)
+            .then(toolpathWithVizGroup => {
+                this.setState(_ => ({ selectedToolpathUrl: url }));
+            });
+        }
     }
 
     getSelectedToolpath() : pair.Toolpath | undefined {
