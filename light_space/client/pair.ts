@@ -390,9 +390,9 @@ export class Toolpath {
         this.tabletop.project.activeLayer.addChild(this.group);
         // Have separate group for visualizing instructions, etc.
         this._visualizationMode = false;
-        this.visualizationGroup = this._constructVisualizationGroup();
+        this.visualizationGroup = new paper.Group();
         this.visualizationGroup.visible = false;
-        this.instructions = this._parseInstructions();
+        this.instructions = [];
     }
 
     /* Wrapper getters, setters, and methods for paper.Group below. */
@@ -452,8 +452,11 @@ export class Toolpath {
     }
 
     /* TODO: add visualization parameters */
-    visualizeInstructions() {
+    visualizeInstructions(vizGroup: paper.Group) {
         this.visualizationMode = true;
+        this.visualizationGroup.children = vizGroup.children;
+        this.visualizationGroup.visible = true;
+        this.instructions = this._parseInstructions();
     }
 
     selectInstructionsWithIndices(indices: number[]) {
@@ -466,44 +469,24 @@ export class Toolpath {
         });
     }
 
-    _constructVisualizationGroup() {
-        let subpaths = this.group.children.filter((child) : child is paper.Path => {
-            return child.className === 'Path';
-        });
-        let pathsForSegments = subpaths.map(subpath => {
-            let segments = subpath.segments;
-            let makeSegPaths = (seg: paper.Segment, rest: paper.Segment[],
-                          sofar: paper.Path[]) : paper.Path[] => {
-                if (rest.length === 0) {
-                    let originalFirstSegment = segments[0];
-                    let lastPath = new paper.Path([seg, originalFirstSegment]);
-                    return sofar.concat(lastPath);
-                }
-                else {
-                    let nextSeg = rest[0];
-                    let path = new paper.Path([seg, nextSeg]);
-                    return makeSegPaths(nextSeg, rest.slice(1), sofar.concat(path));
-                }
-            };
-            let segmentPaths = makeSegPaths(segments[0], segments.slice(1), []);
-            return segmentPaths;
-        }).flat();
-        let vg = new paper.Group(pathsForSegments);
-        vg.strokeColor = new paper.Color(0x00ff00);
-        console.log(vg);
-        return vg;
-    }
-
     _parseInstructions() {
+        let gatherPaths = (item: paper.Item) : paper.Path[] => {
+            if (item.className === 'Path') {
+                return [item] as paper.Path[];
+            }
+            let paths = item.children.map(child => gatherPaths(child)).flat();
+            return paths;
+        };
         let visGroup = this.visualizationGroup;
-        let linePaths = visGroup.children.filter((child) : child is paper.Path => {
-            return child.className === 'Path';
-        });
-        let strings = linePaths.map((path) => {
-            let endPt = path.lastSegment.point;
-            return `move (${endPt.x}, ${endPt.y})`;
-        });
-        return strings;
+        let paths = gatherPaths(visGroup);
+        let pathToStrings = (path: paper.Path) => {
+            let strings = path.segments.map((segment) => {
+                return `move (${segment.point.x}, ${segment.point.y})`;
+            });
+            let startSeg = path.firstSegment;
+            return strings.concat(`move (${startSeg.point.x}, ${startSeg.point.y})`);
+        };
+        return paths.map(path => pathToStrings(path)).flat();
     }
 
     reinitializeGroup() {
