@@ -458,20 +458,24 @@ export class Toolpath {
     visualizeInstructions(vizGroup: paper.Group) {
         this.visualizationMode = true;
         this.visualizationGroup.children = vizGroup.children;
+        this.visualizationGroup.position = this.visualizationGroup.position
+                                            .add(this.tabletop.workEnvelope.anchor);
         // TODO: do this in a more structured way, use TS interface
         // Turns out this is not the right assumption, it seems like
         // the first group is JUST pen down, and the second one is
         // both
+        let originalSvgPath = this.visualizationGroup.children[0];
         let penDownCPath = this.visualizationGroup.children[1].children[0].children[0] as paper.CompoundPath;
         let penUpCPath = this.visualizationGroup.children[1].children[1].children[0] as paper.CompoundPath;
+        originalSvgPath.remove();
         penDownCPath.set({
-            strokeColor: new paper.Color('red'),
+            strokeColor: new paper.Color('green'),
             strokeWidth: 2,
             name: 'move'
         });
         penUpCPath.set({
             strokeColor: new paper.Color('cyan'),
-            strokeWidth: 1,
+            strokeWidth: 2,
             name: 'travel'
         });
         // this.visualizationGroup = new paper.Group([penDownCPath, penUpCPath]);
@@ -706,6 +710,7 @@ export class Geometry {
     }
 
     async placeAt(placementPoint: Point, tabletop: Tabletop) : Promise<Toolpath> {
+        let adjustedPoint = placementPoint.paperPoint.add(tabletop.workEnvelope.anchor);
         return new Promise<Toolpath>((resolve) => {
             tabletop.project.importSVG(this.filepath, {
                 expandShapes: true,
@@ -716,7 +721,7 @@ export class Geometry {
                 onLoad: (item: paper.Group, svgString: string) => {
                     tabletop.workEnvelope.applyHomographyToGroup(item);
                     item.strokeColor = new paper.Color(0xffffff);
-                    item.position = placementPoint.paperPoint;
+                    item.position = adjustedPoint;
 
                     let tp = new Toolpath(this.filepath, item, tabletop);
                     resolve(tp);
