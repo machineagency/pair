@@ -465,15 +465,15 @@ export class Toolpath {
         // the first group is JUST pen down, and the second one is
         // both
         let originalSvgPath = this.visualizationGroup.children[0];
-        let penDownCPath = this.visualizationGroup.children[1].children[0].children[0] as paper.CompoundPath;
-        let penUpCPath = this.visualizationGroup.children[1].children[1].children[0] as paper.CompoundPath;
+        let travelPath = this.visualizationGroup.children[1].children[0].children[0] as paper.CompoundPath;
+        let downPath = this.visualizationGroup.children[1].children[1].children[0] as paper.CompoundPath;
         originalSvgPath.remove();
-        penDownCPath.set({
+        travelPath.set({
             strokeColor: new paper.Color('green'),
             strokeWidth: 2,
             name: 'move'
         });
-        penUpCPath.set({
+        downPath.set({
             strokeColor: new paper.Color('cyan'),
             strokeWidth: 2,
             name: 'travel'
