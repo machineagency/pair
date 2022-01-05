@@ -786,6 +786,8 @@ class GeometryGallery extends LivelitWindow {
             return this.renderGalleryItem(name, url, idx);
         });
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        // TODO: if we hide options, instead show a preview of the currently
+        // saved geometry
         return <div className={`content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
                     <div className="gallery">
