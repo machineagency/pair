@@ -110,14 +110,14 @@ class ProgramUtil {
                 };
                 return <FaceFinder {...ffProps}>
                        </FaceFinder>;
-            case 'toolpathDeployer':
-                const tdProps: ToolpathDeployerProps = {
-                    ref: livelitRef as React.RefObject<ToolpathDeployer>,
+            case 'toolpathVisualizer':
+                const tdProps: ToolpathVisualizerProps = {
+                    ref: livelitRef as React.RefObject<ToolpathVisualizer>,
                     plRef: plRef,
                     valueSet: false,
                     windowOpen: false
                 };
-                return <ToolpathDeployer {...tdProps}></ToolpathDeployer>;
+                return <ToolpathVisualizer {...tdProps}></ToolpathVisualizer>;
             default:
                 return null;
         }
@@ -172,7 +172,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'let point = new pair.Point(mm(75), mm(25));',
         '// TODO: use either camera or toolpath direct manipulator',
         'let toolpath = await mustache.placeAt(point, tabletop);',
-        'let deployer = await $toolpathDeployer(machine, [toolpath]);'
+        'let visualizer = await $toolpathVisualizer(machine, [toolpath]);'
     ];
 
     constructor(props: Props) {
@@ -1496,29 +1496,29 @@ class ToolpathDirectManipulator extends LivelitWindow {
     }
 }
 
-interface ToolpathDeployerProps extends LivelitProps {
-    ref: React.RefObject<ToolpathDeployer>;
+interface ToolpathVisualizerProps extends LivelitProps {
+    ref: React.RefObject<ToolpathVisualizer>;
     plRef: React.RefObject<ProgramLine>;
     valueSet: boolean;
     windowOpen: boolean;
 }
 
-interface ToolpathDeployerState extends LivelitState {
+interface ToolpathVisualizerState extends LivelitState {
     machine: pair.Machine;
     toolpaths: pair.Toolpath[];
     selectedToolpathUrl: string;
     selectedInstIndex: number;
 }
 
-class ToolpathDeployer extends LivelitWindow {
-    state: ToolpathDeployerState;
+class ToolpathVisualizer extends LivelitWindow {
+    state: ToolpathVisualizerState;
 
     constructor(props: LivelitProps) {
         super(props);
-        this.titleText = 'Toolpath Deployer';
-        this.functionName = '$toolpathDeployer';
+        this.titleText = 'Toolpath Visualizer';
+        this.functionName = '$toolpathVisualizer';
         this.applyButton = <div className="button apply-btn"
-                                id="done-toolpath-deployer">
+                                id="done-toolpath-visualizer">
                                 Done
                             </div>
         this.state = {
@@ -1556,7 +1556,7 @@ class ToolpathDeployer extends LivelitWindow {
 
     async finishDeployment() : Promise<void>{
         return new Promise<void>((resolve) => {
-            const doneDom = document.getElementById('done-toolpath-deployer');
+            const doneDom = document.getElementById('done-toolpath-visualizer');
             if (doneDom) {
                 doneDom.addEventListener('click', (event) => {
                     resolve();
@@ -1631,7 +1631,7 @@ class ToolpathDeployer extends LivelitWindow {
     renderContent() {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return (
-            <div className={`toolpath-deployer content ${maybeHidden}`}
+            <div className={`toolpath-visualizer content ${maybeHidden}`}
                  key={this.contentKey.toString()}>
                 <div>{this.state.machine.machineName}</div>
                 { this.renderToolpathThumbnails() }
