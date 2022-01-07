@@ -66,6 +66,14 @@ try:
 except NameError:
     basestring = str
 
+# def test():
+#     svg_filepath = '../../geometries/nadya-sig-old.svg'
+#     a = AxiDraw()
+#     a.plot_setup(svg_filepath)
+#     a.options.preview = True
+#     a.plot_run()
+#     return a.jasper_log
+
 class AxiDraw(inkex.Effect):
 
     def __init__(self):
@@ -100,6 +108,8 @@ class AxiDraw(inkex.Effect):
         # which elements have received a warning
         self.warnings = {}
         
+        self.jasper_log = []
+        
     def set_defaults(self):
         # Set default values of certain parameters
         # These are set when the class is initialized.
@@ -127,8 +137,6 @@ class AxiDraw(inkex.Effect):
         self.x_bounds_min = axidraw_conf.start_pos_x
         self.y_bounds_min = axidraw_conf.start_pos_y
         self.svg_transform = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]
-        
-        self.jasper_log = []
         
     def update_options(self):
         # Parse and update certain options; called in effect and in interactive modes
@@ -614,7 +622,7 @@ class AxiDraw(inkex.Effect):
     def plot_document(self):
         # Plot the actual SVG document, if so selected in the interface
         # parse the svg data as a series of line segments and send each segment to be plotted
-
+        
         if not self.getDocProps():
             # Error: This document appears to have inappropriate (or missing) dimensions.
             self.text_log(gettext.gettext('This document does not have valid dimensions.\r'))
@@ -938,7 +946,6 @@ class AxiDraw(inkex.Effect):
 
             # first apply the current matrix transform to this node's transform
             mat_new = simpletransform.composeTransform(mat_current, simpletransform.parseTransform(node.get("transform")))
-
             if node.tag == inkex.addNS('g', 'svg') or node.tag == 'g':
 
                 # Store old layer status variables before recursively traversing the layer that we just found.
@@ -1740,7 +1747,6 @@ class AxiDraw(inkex.Effect):
                         n_index += 1
                         single_path.append([f_x, f_y])    
                     self.plan_trajectory(single_path)
-                    self.jasper_log.append(single_path)
 
             if not self.b_stopped:  # an "index" for resuming plots quickly-- record last complete path
                 self.svg_last_path = self.pathcount  # The number of the last path completed
@@ -2668,7 +2674,8 @@ class AxiDraw(inkex.Effect):
                                         self.path_data_pen_up = 0  # Reset pen state indicator
                                     self.path_data_pd.append(" {0:0.3f} {1:0.3f}".format(
                                         x_new_t, y_new_t))
-                        print(move_steps2)
+                        # print(f'CMD {move_steps2} {move_steps1} {move_time}')
+                        self.jasper_log.append(f'SM,{move_time},{move_steps2},{move_steps1}')
                     else:
                         ebb_motion.doXYMove(self.serial_port, move_steps2, move_steps1, move_time)
                         if move_time > 50:
@@ -2824,6 +2831,7 @@ class AxiDraw(inkex.Effect):
         if self.options.resolution == 1:  # High-resolution ("Super") mode
             if not self.options.preview:
                 ebb_motion.sendEnableMotors(self.serial_port, 1)  # 16X microstepping
+            self.jasper_log.append(f'EM,{self.options.resolution},{self.options.resolution}')
             self.StepScaleFactor = 2.0 * axidraw_conf.native_res_factor
             self.speed_pendown = local_speed_pendown * axidraw_conf.speed_lim_xy_hr / 110.0  # Speed given as maximum inches/second in XY plane
             self.speed_penup = self.options.speed_penup * axidraw_conf.speed_lim_xy_hr / 110.0  # Speed given as maximum inches/second in XY plane
@@ -2834,6 +2842,7 @@ class AxiDraw(inkex.Effect):
         else:  # i.e., self.options.resolution == 2; Low-resolution ("Normal") mode
             if not self.options.preview:
                 ebb_motion.sendEnableMotors(self.serial_port, 2)  # 8X microstepping
+            self.jasper_log.append(f'EM,{self.options.resolution},{self.options.resolution}')
             self.StepScaleFactor = axidraw_conf.native_res_factor
             # In low-resolution mode, allow faster pen-up moves. Keep maximum pen-down speed the same.
             self.speed_penup = self.options.speed_penup * axidraw_conf.speed_lim_xy_lr / 110.0  # Speed given as maximum inches/second in XY plane
@@ -2870,6 +2879,7 @@ class AxiDraw(inkex.Effect):
                     if self.options.mode != "manual":
                         time.sleep(float(v_time - 10) / 1000.0)  # pause before issuing next command
             self.pen_up = True
+            self.jasper_log.append(f'SP,1,{v_time}')
         self.path_data_pen_up = -1
 
     def pen_lower(self):
@@ -2900,6 +2910,7 @@ class AxiDraw(inkex.Effect):
                             # pause before issuing next command
                             time.sleep(float(v_time - 10) / 1000.0)  
                 self.pen_up = False
+                self.jasper_log.append(f'SP,0,{v_time}')
         self.path_data_pen_up = -1
 
     def ServoSetupWrapper(self):
@@ -2947,6 +2958,7 @@ class AxiDraw(inkex.Effect):
                 self.pen_up = None
                 self.virtual_pen_up = False
                 ebb_motion.setEBBLV(self.serial_port, self.options.pen_pos_up + 1) 
+                self.jasper_log.append(f'SL,{self.options.pen_pos_up + 1}')
 
             else:   # It looks like the EEBLV has already been set; we can trust the value from QueryPenUp:
                     # Note, however, that this does not ensure that the current 
@@ -2976,9 +2988,11 @@ class AxiDraw(inkex.Effect):
 
             int_temp = int(round(axidraw_conf.servo_min + servo_slope * self.options.pen_pos_up))
             ebb_motion.setPenUpPos(self.serial_port, int_temp)
+            self.jasper_log.append(f'SC,4,{int_temp}')
 
             int_temp = int(round(axidraw_conf.servo_min + servo_slope * pen_down_pos))
             ebb_motion.setPenDownPos(self.serial_port, int_temp)
+            self.jasper_log.append(f'SC,5,{int_temp}')
 
             """ 
             Servo speed units (as set with setPenUpRate) are units of %/second,
@@ -2995,9 +3009,11 @@ class AxiDraw(inkex.Effect):
 
             int_temp = 18 * self.options.pen_rate_raise
             ebb_motion.setPenUpRate(self.serial_port, int_temp)
+            self.jasper_log.append(f'SC,11,{int_temp}')
 
             int_temp = 18 * self.options.pen_rate_lower
             ebb_motion.setPenDownRate(self.serial_port, int_temp)
+            self.jasper_log.append(f'SC,12,{int_temp}')
 
     def queryEBBVoltage(self):  # Check that power supply is detected.
         if axidraw_conf.skip_voltage_check:
