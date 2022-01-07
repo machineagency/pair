@@ -128,6 +128,7 @@ class AxiDraw(inkex.Effect):
         self.y_bounds_min = axidraw_conf.start_pos_y
         self.svg_transform = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]
         
+        self.jasper_log = []
         
     def update_options(self):
         # Parse and update certain options; called in effect and in interactive modes
@@ -1739,6 +1740,7 @@ class AxiDraw(inkex.Effect):
                         n_index += 1
                         single_path.append([f_x, f_y])    
                     self.plan_trajectory(single_path)
+                    self.jasper_log.append(single_path)
 
             if not self.b_stopped:  # an "index" for resuming plots quickly-- record last complete path
                 self.svg_last_path = self.pathcount  # The number of the last path completed
@@ -2666,6 +2668,7 @@ class AxiDraw(inkex.Effect):
                                         self.path_data_pen_up = 0  # Reset pen state indicator
                                     self.path_data_pd.append(" {0:0.3f} {1:0.3f}".format(
                                         x_new_t, y_new_t))
+                        print(move_steps2)
                     else:
                         ebb_motion.doXYMove(self.serial_port, move_steps2, move_steps1, move_time)
                         if move_time > 50:
@@ -3090,6 +3093,13 @@ class AxiDraw(inkex.Effect):
         self.effect()
         if output:
             return self.get_output()
+        
+        # Write commands to volatile file
+        f = open('../../volatile/plot_log.txt', 'w')
+        f.write('Begin log.\n')
+        for log_item in self.jasper_log:
+            f.write(log_item + '\n')
+        f.close()
 
     def interactive(self):
         # Initialize AxiDraw options
