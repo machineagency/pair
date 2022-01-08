@@ -166,6 +166,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
 
     defaultToolpathPreviewing = [
         'let machine = new pair.Machine(\'axidraw\');',
+        '// TODO: pen up calibrator with preview',
         'let tabletop = await $tabletopCalibrator(machine);',
         'let camera = await $cameraCalibrator(tabletop);',
         'let mustache = await $geometryGallery(machine);',
@@ -1568,8 +1569,11 @@ class ToolpathVisualizer extends LivelitWindow {
     setSelectedToolpathUrl(url: string) {
         let tp = this.state.toolpaths.find(tp => tp.pairName === url);
         if (tp) {
-            this.state.machine.previewToolpath(tp)
-            .then(toolpathWithVizGroup => {
+            this.state.machine.compileToolpathToInstructions(tp)
+            .then(instructions => {
+                if (tp) {
+                    tp.instructions = instructions;
+                }
                 this.setState(_ => ({ selectedToolpathUrl: url }));
             });
         }
@@ -1619,7 +1623,8 @@ class ToolpathVisualizer extends LivelitWindow {
                                  ? 'highlight' : '';
             return (
                 <div className={`inst-list-item ${maybeHighlight}`}
-                     onClick={this.selectInstruction.bind(this, idx)}
+                     /* TODO: re-enable instruction selection later */
+                     // onClick={this.selectInstruction.bind(this, idx)}
                      key={idx}>{inst}</div>
             );
         });

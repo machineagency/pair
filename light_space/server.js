@@ -63,7 +63,12 @@ shell.on('message', (message) => {
         shell.currRpcName = '';
     }
     else if (shell.currRpcName === 'generateInstructions') {
-        shell.currRpcResponse.sendFile(__dirname + '/volatile/plot_instructions.txt');
+        let instText = fs.readFileSync(__dirname + '/volatile/plot_instructions.txt')
+                         .toString();
+        let instructions = instText.split('\n').filter(inst => !!inst);
+        shell.currRpcResponse.status(200).json({
+            instructions: instructions
+        });
         shell.currRpcResponse = undefined;
         shell.currRpcName = '';
     }

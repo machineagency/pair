@@ -454,8 +454,10 @@ export class Toolpath {
         this.group.visible = !flag;
     }
 
-    /* TODO: add visualization parameters */
+    /* DEPRECATED as we will separate visualization into a separate class
+     * and not use the pre-provided SVG. */
     visualizeInstructions(vizGroup: paper.Group) {
+        throw new Error('Deprecated.');
         this.visualizationMode = true;
         this.visualizationGroup.children = vizGroup.children;
         this.visualizationGroup.position = this.visualizationGroup.position
@@ -493,7 +495,10 @@ export class Toolpath {
         });
     }
 
+    /* DEPRECATED as we get instructions from the server rather than parsing
+     * the pre-provided visualization. */
     _parseInstructions() {
+        throw new Error('Deprecated.');
         let gatherPaths = (item: paper.Item, ancestorName: string) : paper.Path[] => {
             if (item.className === 'Path') {
                 item.name = ancestorName;
@@ -765,6 +770,46 @@ export class Machine {
         }
     }
 
+    async compileToolpathToInstructions(toolpath: Toolpath) {
+        // Credit: https://github.com/yoksel/url-encoder/ .
+        const urlEncodeSvg = (data: String) : String => {
+            const symbols = /[\r\n%#()<>?[\\\]^`{|}]/g;
+            data = data.replace(/"/g, `'`);
+            data = data.replace(/>\s{1,}</g, `><`);
+            data = data.replace(/\s{2,}/g, ` `);
+            return data.replace(symbols, encodeURIComponent);
+        }
+        if (!this.tabletop) {
+            console.error(`${this.machineName} needs a tabletop before previewing.`);
+            return;
+        }
+        const headerXmlns = 'xmlns="http://www.w3.org/2000/svg"';
+        const headerWidth = `width="${this.tabletop.workEnvelope.width}mm"`;
+        const headerHeight = `height="${this.tabletop.workEnvelope.height}mm"`;
+        const svgHeader = `<svg ${headerXmlns} ${headerWidth} ${headerHeight}>`;
+        const svgFooter = `</svg>`;
+        const visibleGroupCopy = toolpath.group
+                                    .clone({ insert: false, deep: true })
+                                    .set({ visible: true });
+        const svgPath = visibleGroupCopy.exportSVG({
+            bounds: 'content',
+            asString: true,
+            precision: 2
+        });
+        const svgString = svgHeader + svgPath + svgFooter;
+        const encodedSvg = urlEncodeSvg(svgString);
+        const url = `${BASE_URL}/machine/generateInstructions?svgString=${encodedSvg}`;
+        let response = await fetch(url);
+        if (response.ok) {
+            let resJson = await response.json();
+            return resJson.instructions;
+        }
+        else {
+            console.error('Couldn\'t fetch toolpath instructions.');
+        }
+    }
+
+    /* DEPRECATED */
     async _fetchPreviewUrl(toolpath: Toolpath) {
         // Credit: https://github.com/yoksel/url-encoder/ .
         const urlEncodeSvg = (data: String) : String => {
@@ -805,7 +850,9 @@ export class Machine {
         }
     }
 
+    /* DEPRECATED. */
     async previewToolpath(toolpath: Toolpath) {
+        throw new Error('Deprecated.');
         toolpath.instructions = [];
         toolpath.visualizationGroup.children = [];
         let previewSvgUrl = await this._fetchPreviewUrl(toolpath);
@@ -826,9 +873,6 @@ export class Machine {
                 },
                 onLoad: (vizGroup: paper.Group, svgString: string) => {
                     if (!this.tabletop) { return; }
-                    // let upAndDownPaths = new paper.Group(vizGroup.children[1]);
-                    // toolpath.visualizeInstructions(upAndDownPaths);
-                    toolpath.visualizeInstructions(vizGroup);
                     resolve(toolpath);
                 }
             });
