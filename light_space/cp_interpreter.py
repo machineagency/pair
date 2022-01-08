@@ -232,6 +232,20 @@ class Interpreter(cmd.Cmd):
         f_preview.close()
         print(preview_string)
 
+    def do_generate_instructions(self, arg):
+        svg_filepath = './volatile/drawing.svg'
+        instructions_filepath = './volatile/plot_instructions.txt'
+        svg_string = arg
+        f_drawing = open(svg_filepath, 'w')
+        f_drawing.write(svg_string)
+        f_drawing.close()
+        instruction_list = self.machine.generate_axidraw_instructions(svg_filepath)
+        f_instructions = open(instructions_filepath, 'w')
+        for instruction in instruction_list:
+            f_instructions.write(instruction + '\n')
+        f_instructions.close()
+        print(instruction_list)
+
     def do_draw_toolpath(self, arg):
         svg_filepath = './volatile/drawing.svg'
         svg_string = arg
