@@ -454,37 +454,6 @@ export class Toolpath {
         this.group.visible = !flag;
     }
 
-    /* DEPRECATED as we will separate visualization into a separate class
-     * and not use the pre-provided SVG. */
-    visualizeInstructions(vizGroup: paper.Group) {
-        throw new Error('Deprecated.');
-        this.visualizationMode = true;
-        this.visualizationGroup.children = vizGroup.children;
-        this.visualizationGroup.position = this.visualizationGroup.position
-                                            .add(this.tabletop.workEnvelope.anchor);
-        // TODO: do this in a more structured way, use TS interface
-        // Turns out this is not the right assumption, it seems like
-        // the first group is JUST pen down, and the second one is
-        // both
-        let originalSvgPath = this.visualizationGroup.children[0];
-        let travelPath = this.visualizationGroup.children[1].children[0].children[0] as paper.CompoundPath;
-        let downPath = this.visualizationGroup.children[1].children[1].children[0] as paper.CompoundPath;
-        originalSvgPath.remove();
-        travelPath.set({
-            strokeColor: new paper.Color('green'),
-            strokeWidth: 2,
-            name: 'move'
-        });
-        downPath.set({
-            strokeColor: new paper.Color('cyan'),
-            strokeWidth: 2,
-            name: 'travel'
-        });
-        // this.visualizationGroup = new paper.Group([penDownCPath, penUpCPath]);
-        // this.visualizationMode = true;
-        this.instructions = this._parseInstructions();
-    }
-
     selectInstructionsWithIndices(indices: number[]) {
         let instPaths = this.visualizationGroup.children.filter((path) : path is paper.Path => {
             return path.className === 'Path';
@@ -493,32 +462,6 @@ export class Toolpath {
         indices.forEach((instIndex) => {
             instPaths[instIndex].selected = true;
         });
-    }
-
-    /* DEPRECATED as we get instructions from the server rather than parsing
-     * the pre-provided visualization. */
-    _parseInstructions() {
-        throw new Error('Deprecated.');
-        let gatherPaths = (item: paper.Item, ancestorName: string) : paper.Path[] => {
-            if (item.className === 'Path') {
-                item.name = ancestorName;
-                return [item] as paper.Path[];
-            }
-            let nameToPass = item.name || ancestorName;
-            let paths = item.children.map(child => gatherPaths(child, nameToPass)).flat();
-            return paths;
-        };
-        let visGroup = this.visualizationGroup;
-        let paths = gatherPaths(visGroup, '');
-        let pathToStrings = (path: paper.Path) => {
-            let command = path.name;
-            let strings = path.segments.map((segment) => {
-                return `${command} (${px(segment.point.x)}, ${px(segment.point.y)})`;
-            });
-            let startSeg = path.firstSegment;
-            return strings.concat(`${command} (${px(startSeg.point.x)}, ${px(startSeg.point.y)})`);
-        };
-        return paths.map(path => pathToStrings(path)).flat();
     }
 
     reinitializeGroup() {
@@ -848,35 +791,6 @@ export class Machine {
         else {
             console.error('Couldn\'t fetch toolpath preview.');
         }
-    }
-
-    /* DEPRECATED. */
-    async previewToolpath(toolpath: Toolpath) {
-        throw new Error('Deprecated.');
-        toolpath.instructions = [];
-        toolpath.visualizationGroup.children = [];
-        let previewSvgUrl = await this._fetchPreviewUrl(toolpath);
-        return new Promise<Toolpath>((resolve, reject) => {
-            if (!this.tabletop) {
-                console.error(`${this.machineName} needs a tabletop before previewing.`);
-                return;
-            }
-            if (!previewSvgUrl) {
-                return;
-            }
-            console.log(previewSvgUrl);
-            this.tabletop.project.importSVG(previewSvgUrl, {
-                expandShapes: true,
-                insert: false,
-                onError: () => {
-                    console.warn('Could not load an SVG');
-                },
-                onLoad: (vizGroup: paper.Group, svgString: string) => {
-                    if (!this.tabletop) { return; }
-                    resolve(toolpath);
-                }
-            });
-        });
     }
 
     plotToolpathOnTabletop(toolpath: Toolpath, tabletop: Tabletop) {
