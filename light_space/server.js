@@ -62,6 +62,11 @@ shell.on('message', (message) => {
         shell.currRpcResponse = undefined;
         shell.currRpcName = '';
     }
+    else if (shell.currRpcName === 'generateInstructions') {
+        shell.currRpcResponse.sendFile(__dirname + '/volatile/plot_instructions.txt');
+        shell.currRpcResponse = undefined;
+        shell.currRpcName = '';
+    }
     else if (shell.currRpcName === 'takePhoto') {
         shell.currRpcResponse.sendFile(__dirname + '/volatile/camera-photo.jpg');
         shell.currRpcResponse = undefined;
@@ -97,6 +102,13 @@ let attachRoutesAndStart = () => {
         shell.currRpcResponse = res;
         shell.currRpcName = 'generatePreview';
         shell.send('generate_preview '+ svg_string);
+    });
+
+    app.get('/machine/generateInstructions', (req, res) => {
+        let svg_string = req.query['svgString']
+        shell.currRpcResponse = res;
+        shell.currRpcName = 'generateInstructions';
+        shell.send('generate_instructions '+ svg_string);
     });
 
     app.get('/camera/takePhoto', (req, res) => {
