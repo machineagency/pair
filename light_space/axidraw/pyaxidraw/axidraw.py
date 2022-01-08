@@ -3108,15 +3108,12 @@ class AxiDraw(inkex.Effect):
         self.set_defaults()
         self.effect()
         if output:
-            return self.get_output()
+            # Originally just returned self.get_output(), but I need a way
+            # to write the log without depending on file writing functions
+            # from the driver itself, so for now we just pass all the commands
+            # to the caller. This could not scale well however.
+            return (self.get_output(), self.jasper_log)
         
-        # Write commands to volatile file
-        f = open('../../volatile/plot_log.txt', 'w')
-        f.write('Begin log.\n')
-        for log_item in self.jasper_log:
-            f.write(log_item + '\n')
-        f.close()
-
     def interactive(self):
         # Initialize AxiDraw options
         # For interactive-mode use as an imported python module
