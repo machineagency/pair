@@ -173,6 +173,9 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'let point = new pair.Point(mm(75), mm(25));',
         '// TODO: use either camera or toolpath direct manipulator',
         'let toolpath = await mustache.placeAt(point, tabletop);',
+        '// TODO: need to separate compilation of geometry into instructions',
+        '// into its own functions. What is a toolpath if not a list of machine',
+        '// instructions? Redesignate toolpath above as another geometry.',
         'let visualizer = await $toolpathVisualizer(machine, [toolpath]);'
     ];
 
@@ -1633,14 +1636,45 @@ class ToolpathVisualizer extends LivelitWindow {
         );
     }
 
+    renderMachineParams() {
+        return (
+            <div id="machine-param-list">
+                <div className="machine-param">
+                <div className="param-name">Pen Height</div>
+                <div>: </div>
+                <div className="param-value">33mm</div>
+                </div>
+            </div>
+        );
+    }
+
+    renderVizInterpreters() {
+        return (
+            <div id="viz-interpreter-list">
+                <div className="viz-interpreter-item">
+                    <input type="checkbox"/>
+                    Order by something
+                </div>
+            </div>
+        );
+    }
+
     renderContent() {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return (
             <div className={`toolpath-visualizer content ${maybeHidden}`}
                  key={this.contentKey.toString()}>
-                <div>{this.state.machine.machineName}</div>
+                <div>Toolpath-Geometries</div>
                 { this.renderToolpathThumbnails() }
+                <div>
+                    Machine Parameters
+                    ({this.state.machine.machineName})
+                </div>
+                { this.renderMachineParams() }
+                <div>Instructions</div>
                 { this.renderSelectedToolpathInstructions() }
+                <div>Visualization Interpreters</div>
+                { this.renderVizInterpreters() }
                 { this.applyButton }
            </div>
        );
