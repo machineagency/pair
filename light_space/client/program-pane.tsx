@@ -1618,31 +1618,30 @@ class ToolpathVisualizer extends LivelitWindow {
 
     renderSelectedToolpathInstructions() {
         let tp = this.getSelectedToolpath();
-        if (!tp) {
-            return []
+        let instElements : JSX.Element[] = [];
+        if (tp) {
+            instElements = tp.instructions.map((inst, idx) => {
+                let maybeHighlight = this.state.selectedInstIndex === idx
+                                     ? 'highlight' : '';
+                return (
+                    <div className={`inst-list-item ${maybeHighlight}`}
+                         /* TODO: re-enable instruction selection later */
+                         // onClick={this.selectInstruction.bind(this, idx)}
+                         key={idx}>{inst}</div>
+                );
+            });
         }
-        let instElements = tp.instructions.map((inst, idx) => {
-            let maybeHighlight = this.state.selectedInstIndex === idx
-                                 ? 'highlight' : '';
-            return (
-                <div className={`inst-list-item ${maybeHighlight}`}
-                     /* TODO: re-enable instruction selection later */
-                     // onClick={this.selectInstruction.bind(this, idx)}
-                     key={idx}>{inst}</div>
-            );
-        });
         return (
-            <div id="inst-list">{ instElements }</div>
+            <div id="inst-list" className="boxed-list">{ instElements }</div>
         );
     }
 
     renderMachineParams() {
         return (
-            <div id="machine-param-list">
+            <div id="machine-param-list" className="boxed-list">
                 <div className="machine-param">
-                <div className="param-name">Pen Height</div>
-                <div>: </div>
-                <div className="param-value">33mm</div>
+                <span className="param-key">Pen Height</span>
+                <span className="param-value">33mm</span>
                 </div>
             </div>
         );
@@ -1650,7 +1649,7 @@ class ToolpathVisualizer extends LivelitWindow {
 
     renderVizInterpreters() {
         return (
-            <div id="viz-interpreter-list">
+            <div id="viz-interpreter-list" className="boxed-list">
                 <div className="viz-interpreter-item">
                     <input type="checkbox"/>
                     Order by something
@@ -1664,16 +1663,16 @@ class ToolpathVisualizer extends LivelitWindow {
         return (
             <div className={`toolpath-visualizer content ${maybeHidden}`}
                  key={this.contentKey.toString()}>
-                <div>Toolpath-Geometries</div>
+                <div className="bold-text">Toolpath-Geometries</div>
                 { this.renderToolpathThumbnails() }
-                <div>
+                <div className="bold-text">
                     Machine Parameters
                     ({this.state.machine.machineName})
                 </div>
                 { this.renderMachineParams() }
-                <div>Instructions</div>
+                <div className="bold-text">Instructions</div>
                 { this.renderSelectedToolpathInstructions() }
-                <div>Visualization Interpreters</div>
+                <div className="bold-text">Visualization Interpreters</div>
                 { this.renderVizInterpreters() }
                 { this.applyButton }
            </div>
