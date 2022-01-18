@@ -110,6 +110,15 @@ class ProgramUtil {
                 };
                 return <FaceFinder {...ffProps}>
                        </FaceFinder>;
+            case 'camCompiler':
+                const camProps: CamCompilerProps = {
+                    ref: livelitRef as React.RefObject<CamCompiler>,
+                    plRef: plRef,
+                    valueSet: false,
+                    windowOpen: false
+                };
+                return <CamCompiler {...camProps}>
+                       </CamCompiler>
             case 'toolpathVisualizer':
                 const tdProps: ToolpathVisualizerProps = {
                     ref: livelitRef as React.RefObject<ToolpathVisualizer>,
@@ -169,13 +178,11 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         '// TODO: pen up calibrator with preview',
         'let tabletop = await $tabletopCalibrator(machine);',
         'let camera = await $cameraCalibrator(tabletop);',
-        'let mustache = await $geometryGallery(machine);',
         'let point = new pair.Point(mm(75), mm(25));',
+        'let mustache = await $geometryGallery(machine, tabletop);',
         '// TODO: use either camera or toolpath direct manipulator',
-        'let toolpath = await mustache.placeAt(point, tabletop);',
-        '// TODO: need to separate compilation of geometry into instructions',
-        '// into its own functions. What is a toolpath if not a list of machine',
-        '// instructions? Redesignate toolpath above as another geometry.',
+        'let placedMustache = await mustache.placeAt(point, tabletop);',
+        'let toolpath = await $camCompiler(machine, placedMustache);',
         'let visualizer = await $toolpathVisualizer(machine, [toolpath]);'
     ];
 
@@ -649,12 +656,8 @@ class GeometryGallery extends LivelitWindow {
             });
     }
 
-    expandOld() : pair.Geometry {
-        return new pair.Geometry(this.state.selectedUrl);
-    }
-
     expand() : string {
-        let s = `async function ${this.functionName}(machine) {`;
+        let s = `async function ${this.functionName}(machine, tabletop) {`;
         // TODO: filter geometries by machine
         s += `let gg = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `let geomUrl;`;
@@ -667,7 +670,7 @@ class GeometryGallery extends LivelitWindow {
         s += `else {`;
         s += `geomUrl = gg.state.selectedUrl;`;
         s += `}`;
-        s += `return new pair.Geometry(geomUrl);`;
+        s += `return new pair.Geometry(geomUrl, tabletop);`;
         s += `}`;
         return s;
     }
@@ -1500,6 +1503,92 @@ class ToolpathDirectManipulator extends LivelitWindow {
     }
 }
 
+interface CamCompilerProps extends LivelitProps {
+    ref: React.RefObject<CamCompiler>;
+    plRef: React.RefObject<ProgramLine>;
+    valueSet: boolean;
+    windowOpen: boolean;
+}
+
+interface CamCompilerState extends LivelitState {
+    machine: pair.Machine;
+    geometry?: pair.Geometry;
+}
+
+class CamCompiler extends LivelitWindow {
+    state: CamCompilerState;
+
+    constructor(props: CamCompilerProps) {
+        super(props);
+        this.titleText = 'CAM Compiler';
+        this.functionName = '$camCompiler';
+        this.applyButton = <div className="button apply-btn"
+                                id="done-cam-compiler">
+                                Done
+                            </div>
+        this.state = {
+            machine: new pair.Machine('TEMP'),
+            geometry: undefined,
+            windowOpen: props.windowOpen,
+            abortOnResumingExecution: false,
+            valueSet: props.valueSet
+        };
+    }
+
+    async setArguments(machine: pair.Machine, geometry: pair.Geometry) {
+        return new Promise<void>((resolve) => {
+            this.setState(_ => {
+                return {
+                    machine: machine,
+                    geometry: geometry
+                };
+            }, resolve);
+        });
+    }
+
+    expand() : string {
+        let s = `async function ${this.functionName}(machine, geometry) {`;
+        s += `let td = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `await td.setArguments(machine, geometry);`;
+        s += `await td.openWindow();`;
+        s += `let toolpath = await td.acceptToolpath();`;
+        s += `await td.closeWindow();`;
+        s += `return toolpath;`;
+        s += `}`;
+        return s;
+    }
+
+    async acceptToolpath() : Promise<pair.Toolpath>{
+        return new Promise<pair.Toolpath>((resolve, reject) => {
+            const doneDom = document.getElementById('done-cam-compiler');
+            if (doneDom) {
+                doneDom.addEventListener('click', (event) => {
+                    if (!this.state.geometry) {
+                        reject('CamCompiler: geometry not set.');
+                    }
+                    else {
+                        this.state.machine
+                            .compileGeometryToToolpath(this.state.geometry)
+                            .then((toolpath) => {
+                                resolve(toolpath);
+                            });
+                        }
+                });
+            }
+        });
+    }
+
+    renderContent() {
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return (
+            <div className={`cam-compiler content ${maybeHidden}`}>
+                No options for now, just press done.
+                { this.applyButton }
+            </div>
+        );
+    }
+}
+
 interface ToolpathVisualizerProps extends LivelitProps {
     ref: React.RefObject<ToolpathVisualizer>;
     plRef: React.RefObject<ProgramLine>;
@@ -1517,7 +1606,7 @@ interface ToolpathVisualizerState extends LivelitState {
 class ToolpathVisualizer extends LivelitWindow {
     state: ToolpathVisualizerState;
 
-    constructor(props: LivelitProps) {
+    constructor(props: ToolpathVisualizerProps) {
         super(props);
         this.titleText = 'Toolpath Visualizer';
         this.functionName = '$toolpathVisualizer';
@@ -1570,39 +1659,19 @@ class ToolpathVisualizer extends LivelitWindow {
     }
 
     setSelectedToolpathUrl(url: string) {
-        let tp = this.state.toolpaths.find(tp => tp.pairName === url);
-        if (tp) {
-            this.state.machine.compileToolpathToInstructions(tp)
-            .then(instructions => {
-                if (tp) {
-                    tp.instructions = instructions;
-                }
-                this.setState(_ => ({ selectedToolpathUrl: url }));
-            });
-        }
+        this.setState(_ => ({ selectedToolpathUrl: url }));
     }
 
     getSelectedToolpath() : pair.Toolpath | undefined {
         let tp = this.state.toolpaths.find(tp => {
-            return tp.pairName === this.state.selectedToolpathUrl;
+            return tp.geometryUrl === this.state.selectedToolpathUrl;
         });
         return tp;
     }
 
-    selectInstruction(instIndex: number) {
-        let tp = this.getSelectedToolpath();
-        if (tp) {
-            this.setState(_ => ({ selectedInstIndex: instIndex }), () => {
-                if (tp) {
-                    tp.selectInstructionsWithIndices([instIndex]);
-                }
-            });
-        }
-    }
-
     renderToolpathThumbnails() {
         let elements = this.state.toolpaths.map((tp, idx) => {
-            let url = tp.pairName;
+            let url = tp.geometryUrl;
             let maybeHighlight = this.state.selectedToolpathUrl === url
                                     ? 'gallery-highlight' : '';
             return <div className={`gallery-item ${maybeHighlight}`}
@@ -1625,8 +1694,6 @@ class ToolpathVisualizer extends LivelitWindow {
                                      ? 'highlight' : '';
                 return (
                     <div className={`inst-list-item ${maybeHighlight}`}
-                         /* TODO: re-enable instruction selection later */
-                         // onClick={this.selectInstruction.bind(this, idx)}
                          key={idx}>{inst}</div>
                 );
             });
@@ -1663,7 +1730,7 @@ class ToolpathVisualizer extends LivelitWindow {
         return (
             <div className={`toolpath-visualizer content ${maybeHidden}`}
                  key={this.contentKey.toString()}>
-                <div className="bold-text">Toolpath-Geometries</div>
+                <div className="bold-text">Toolpaths</div>
                 { this.renderToolpathThumbnails() }
                 <div className="bold-text">
                     Machine Parameters
