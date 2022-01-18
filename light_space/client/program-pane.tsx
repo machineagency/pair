@@ -181,9 +181,9 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'let point = new pair.Point(mm(75), mm(25));',
         'let mustache = await $geometryGallery(machine, tabletop);',
         '// TODO: use either camera or toolpath direct manipulator',
-        'let placedMustache = await mustache.placeAt(point, tabletop);',
+        'let placedMustache = mustache.placeAt(point, tabletop);',
         'let toolpath = await $camCompiler(machine, placedMustache);',
-        'let visualizer = await $toolpathVisualizer(machine, [toolpath]);'
+        'let visualizer = await $toolpathVisualizer(machine, [toolpath], tabletop);'
     ];
 
     constructor(props: Props) {
@@ -670,7 +670,9 @@ class GeometryGallery extends LivelitWindow {
         s += `else {`;
         s += `geomUrl = gg.state.selectedUrl;`;
         s += `}`;
-        s += `return new pair.Geometry(geomUrl, tabletop);`;
+        s += `let geom = new pair.Geometry(tabletop);`;
+        s += `await geom.loadFromFilepath(geomUrl);`;
+        s += `return geom;`;
         s += `}`;
         return s;
     }
@@ -1599,6 +1601,7 @@ interface ToolpathVisualizerProps extends LivelitProps {
 interface ToolpathVisualizerState extends LivelitState {
     machine: pair.Machine;
     toolpaths: pair.Toolpath[];
+    tabletop?: pair.Tabletop;
     selectedToolpathUrl: string;
     selectedInstIndex: number;
 }
@@ -1617,6 +1620,7 @@ class ToolpathVisualizer extends LivelitWindow {
         this.state = {
             machine: new pair.Machine('TEMP'),
             toolpaths: [],
+            tabletop: undefined,
             windowOpen: props.windowOpen,
             abortOnResumingExecution: false,
             valueSet: props.valueSet,
@@ -1625,21 +1629,24 @@ class ToolpathVisualizer extends LivelitWindow {
         };
     }
 
-    async setArguments(machine: pair.Machine, toolpaths: pair.Toolpath[]) {
+    async setArguments(machine: pair.Machine,
+                       toolpaths: pair.Toolpath[],
+                       tabletop: pair.Tabletop) {
         return new Promise<void>((resolve) => {
             this.setState(_ => {
                 return {
                     machine: machine,
-                    toolpaths: toolpaths
+                    toolpaths: toolpaths,
+                    tabletop: tabletop
                 };
             }, resolve);
         });
     }
 
     expand() : string {
-        let s = `async function ${this.functionName}(machine, toolpaths) {`;
+        let s = `async function ${this.functionName}(machine, toolpaths, tabletop) {`;
         s += `let td = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
-        s += `await td.setArguments(machine, toolpaths);`;
+        s += `await td.setArguments(machine, toolpaths, tabletop);`;
         s += `await td.openWindow();`;
         s += `await td.finishDeployment();`;
         s += `await td.closeWindow();`;

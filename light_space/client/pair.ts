@@ -183,7 +183,7 @@ export class Tabletop {
         this.toolpaths.push(toolpath);
         toolpath.visible = true;
     }
-    
+
     // This should be deprecated
     clearToolpaths() {
         // this.toolpaths.forEach(tp => tp.clearFromTabletop());
@@ -570,30 +570,27 @@ export class Camera {
 }
 
 export class Geometry {
-    filepath: string;
     tabletop: Tabletop;
-    paperGroup: paper.Group;
+    filepath?: string;
+    paperGroup?: paper.Group;
 
-    constructor(filepath: string, tabletop: Tabletop) {
-        this.filepath = filepath;
+    constructor(tabletop: Tabletop) {
         this.tabletop = tabletop;
-        this.paperGroup = new paper.Group();
-        let defaultPlacementPoint = new Point(
-            this.tabletop.workEnvelope.anchor.x,
-            this.tabletop.workEnvelope.anchor.y
-        );
-        this.loadFromFilepath(defaultPlacementPoint, tabletop).then((paperGroup) => {
-            this.paperGroup = paperGroup;
-        });
     }
 
     get position() {
-        return this.paperGroup.position;
+        if (this.paperGroup) {
+            return this.paperGroup.position;
+        }
     }
 
     placeAt(placementPoint: Point, tabletop: Tabletop) : Geometry {
+        if (!this.paperGroup) {
+            throw new Error('Cannot place geometry without data loaded.');
+        }
         let adjustedPoint = placementPoint.paperPoint.add(tabletop.workEnvelope.anchor);
         this.paperGroup.position = adjustedPoint;
+        console.log(`new position ${this.paperGroup.position}`);
         return this;
     }
 
@@ -605,21 +602,23 @@ export class Geometry {
         // TODO
     }
 
-    private async loadFromFilepath(placementPoint: Point,
-                                   tabletop: Tabletop) : Promise<paper.Group> {
-        let adjustedPoint = placementPoint.paperPoint.add(tabletop.workEnvelope.anchor);
+    async loadFromFilepath(filepath: string) : Promise<paper.Group> {
         return new Promise<paper.Group>((resolve) => {
-            tabletop.project.importSVG(this.filepath, {
+            this.tabletop.project.importSVG(filepath, {
                 expandShapes: true,
-                insert: false,
+                insert: true,
                 onError: () => {
                     console.warn('Could not load an SVG');
                 },
                 onLoad: (item: paper.Group, svgString: string) => {
-                    tabletop.workEnvelope.applyHomographyToGroup(item);
+                    this.tabletop.workEnvelope.applyHomographyToGroup(item);
                     item.strokeColor = new paper.Color(0xffffff);
-                    item.position = adjustedPoint;
+                    item.position = new paper.Point(
+                        item.bounds.width * 0.5 + this.tabletop.workEnvelope.anchor.x,
+                        item.bounds.height * 0.5 + this.tabletop.workEnvelope.anchor.y
+                    );
                     this.paperGroup = item;
+                    this.filepath = filepath;
                     resolve(item);
                 }
             });
@@ -672,6 +671,9 @@ export class Machine {
         }
         if (!this.tabletop) {
             throw new Error(`${this.machineName} needs a tabletop before previewing.`);
+        }
+        if (!geometry.paperGroup || !geometry.filepath) {
+            throw new Error('Geometry is not ready: either paperGroup or filepath not set.');
         }
         const headerXmlns = 'xmlns="http://www.w3.org/2000/svg"';
         const headerWidth = `width="${this.tabletop.workEnvelope.width}mm"`;
