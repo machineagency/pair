@@ -1659,6 +1659,7 @@ class ToolpathVisualizer extends LivelitWindow {
             const doneDom = document.getElementById('done-toolpath-visualizer');
             if (doneDom) {
                 doneDom.addEventListener('click', (event) => {
+                    this.basicViz(this.state.toolpaths[0]);
                     resolve();
                 });
             }
@@ -1674,6 +1675,46 @@ class ToolpathVisualizer extends LivelitWindow {
             return tp.geometryUrl === this.state.selectedToolpathUrl;
         });
         return tp;
+    }
+
+    basicViz(toolpath: pair.Toolpath) {
+        if (!this.state.tabletop) {
+            throw new Error('Cannot visualize without tabletop linked.');
+        }
+        let vizPath = new paper.Path({
+            strokeWidth: 1,
+            strokeColor: new paper.Color(0xffffff)
+        });
+        let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
+            let x = 0.5 * (aSteps + bSteps);
+            let y = -0.5 * (aSteps - bSteps);
+            // TODO: read this from an EM instruction
+            let stepsPerMm = 80;
+            return new paper.Point(
+                mm(x / stepsPerMm),
+                mm(y / stepsPerMm)
+            );
+        };
+        let currentPosition = new paper.Point(
+            this.state.tabletop.workEnvelope.anchor.x,
+            this.state.tabletop.workEnvelope.anchor.y
+        );
+        let newPosition : paper.Point;
+        vizPath.segments.push(new paper.Segment(currentPosition));
+        let tokens, opcode, duration, aSteps, bSteps, xyChange;
+        toolpath.instructions.forEach((instruction) => {
+            tokens = instruction.split(',');
+            opcode = tokens[0];
+            if (opcode === 'SM') {
+                aSteps = parseInt(tokens[2]);
+                bSteps = parseInt(tokens[3]);
+                xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
+                newPosition = currentPosition.add(xyChange);
+                vizPath.segments.push(new paper.Segment(newPosition));
+                currentPosition = newPosition;
+            }
+        });
+        this.state.tabletop.project.activeLayer.addChild(vizPath);
     }
 
     renderToolpathThumbnails() {
