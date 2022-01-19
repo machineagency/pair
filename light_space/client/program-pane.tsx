@@ -1717,6 +1717,58 @@ class ToolpathVisualizer extends LivelitWindow {
         return wrapperGroup;
     }
 
+    // TODO: is there a way to do this without copy paste? Maybe not because
+    // each must be its own standalone interpreter
+    colorViz(toolpath: pair.Toolpath) {
+        if (!this.state.tabletop) {
+            throw new Error('Cannot visualize without tabletop linked.');
+        }
+        let vizGroup = new paper.Group();
+        let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
+            let x = 0.5 * (aSteps + bSteps);
+            let y = -0.5 * (aSteps - bSteps);
+            // TODO: read this from an EM instruction
+            let stepsPerMm = 80;
+            return new paper.Point(
+                mm(x / stepsPerMm),
+                mm(y / stepsPerMm)
+            );
+        };
+        let currentPosition = new paper.Point(
+            this.state.tabletop.workEnvelope.anchor.x,
+            this.state.tabletop.workEnvelope.anchor.y
+        );
+        type countColor = 'red' | 'green';
+        let currentColor : countColor = 'green';
+        let newPosition : paper.Point;
+        // vizPath.segments.push(new paper.Segment(currentPosition));
+        let tokens, opcode, duration, aSteps, bSteps, xyChange;
+        toolpath.instructions.forEach((instruction) => {
+            tokens = instruction.split(',');
+            opcode = tokens[0];
+            if (opcode === 'SM') {
+                aSteps = parseInt(tokens[2]);
+                bSteps = parseInt(tokens[3]);
+                xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
+                newPosition = currentPosition.add(xyChange);
+                let seg0 = new paper.Segment(currentPosition);
+                let seg1 = new paper.Segment(newPosition);
+                let newPath = new paper.Path({
+                    segments: [ seg0, seg1 ],
+                    strokeWidth: 1,
+                    strokeColor: new paper.Color(currentColor)
+                });
+                vizGroup.addChild(newPath);
+                currentPosition = newPosition;
+            }
+            if (opcode === 'SP') {
+                currentColor = currentColor === 'red'
+                               ? 'green' : 'red';
+            }
+        });
+        return vizGroup;
+    }
+
     toggleViz(event: React.ChangeEvent<HTMLInputElement>) {
         let vizName = event.target.dataset.vizName;
         let checked = event.target.checked;
@@ -1736,6 +1788,9 @@ class ToolpathVisualizer extends LivelitWindow {
         let visualization : paper.Group;
         if (vizName === 'plainMovementLines') {
             visualization = this.basicViz(selectedToolpath)
+        }
+        else if (vizName === 'coloredMovementLines') {
+            visualization = this.colorViz(selectedToolpath)
         }
         else {
             return;
@@ -1796,6 +1851,12 @@ class ToolpathVisualizer extends LivelitWindow {
                            data-viz-name="plainMovementLines"
                            onChange={this.toggleViz.bind(this)}/>
                     Plain movement lines
+                </div>
+                <div className="viz-interpreter-item">
+                    <input type="checkbox"
+                           data-viz-name="coloredMovementLines"
+                           onChange={this.toggleViz.bind(this)}/>
+                    Colored movement lines
                 </div>
             </div>
         );
