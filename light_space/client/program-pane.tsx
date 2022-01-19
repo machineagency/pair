@@ -1769,6 +1769,57 @@ class ToolpathVisualizer extends LivelitWindow {
         return vizGroup;
     }
 
+    velocityThicknessViz(toolpath: pair.Toolpath) {
+        if (!this.state.tabletop) {
+            throw new Error('Cannot visualize without tabletop linked.');
+        }
+        let vizGroup = new paper.Group();
+        let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
+            let x = 0.5 * (aSteps + bSteps);
+            let y = -0.5 * (aSteps - bSteps);
+            // TODO: read this from an EM instruction
+            let stepsPerMm = 80;
+            return new paper.Point(
+                mm(x / stepsPerMm),
+                mm(y / stepsPerMm)
+            );
+        };
+        let currentPosition = new paper.Point(
+            this.state.tabletop.workEnvelope.anchor.x,
+            this.state.tabletop.workEnvelope.anchor.y
+        );
+        let newPosition : paper.Point;
+        // vizPath.segments.push(new paper.Segment(currentPosition));
+        let axidrawMaxMMPerSec = 380;
+        let maxStrokeWidth = 20;
+        let tokens, opcode, duration, aSteps, bSteps, xyChange;
+        toolpath.instructions.forEach((instruction) => {
+            tokens = instruction.split(',');
+            opcode = tokens[0];
+            if (opcode === 'SM') {
+                duration = parseInt(tokens[1]);
+                aSteps = parseInt(tokens[2]);
+                bSteps = parseInt(tokens[3]);
+                xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
+                let durationSec = duration / 100;
+                let norm = Math.sqrt(Math.pow(xyChange.x, 2) + Math.pow(xyChange.y,2));
+                let mmPerSec = norm / durationSec;
+                let velWidth = (mmPerSec / axidrawMaxMMPerSec) * maxStrokeWidth;
+                newPosition = currentPosition.add(xyChange);
+                let seg0 = new paper.Segment(currentPosition);
+                let seg1 = new paper.Segment(newPosition);
+                let newPath = new paper.Path({
+                    segments: [ seg0, seg1 ],
+                    strokeWidth: velWidth,
+                    strokeColor: new paper.Color('white')
+                });
+                vizGroup.addChild(newPath);
+                currentPosition = newPosition;
+            }
+        });
+        return vizGroup;
+    }
+
     toggleViz(event: React.ChangeEvent<HTMLInputElement>) {
         let vizName = event.target.dataset.vizName;
         let checked = event.target.checked;
@@ -1791,6 +1842,9 @@ class ToolpathVisualizer extends LivelitWindow {
         }
         else if (vizName === 'coloredMovementLines') {
             visualization = this.colorViz(selectedToolpath)
+        }
+        else if (vizName === 'velocityThicknessLines') {
+            visualization = this.velocityThicknessViz(selectedToolpath)
         }
         else {
             return;
@@ -1857,6 +1911,12 @@ class ToolpathVisualizer extends LivelitWindow {
                            data-viz-name="coloredMovementLines"
                            onChange={this.toggleViz.bind(this)}/>
                     Colored movement lines
+                </div>
+                <div className="viz-interpreter-item">
+                    <input type="checkbox"
+                           data-viz-name="velocityThicknessLines"
+                           onChange={this.toggleViz.bind(this)}/>
+                    Velocity thickness lines
                 </div>
             </div>
         );
