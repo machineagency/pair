@@ -1659,7 +1659,6 @@ class ToolpathVisualizer extends LivelitWindow {
             const doneDom = document.getElementById('done-toolpath-visualizer');
             if (doneDom) {
                 doneDom.addEventListener('click', (event) => {
-                    this.basicViz(this.state.toolpaths[0]);
                     resolve();
                 });
             }
@@ -1683,7 +1682,7 @@ class ToolpathVisualizer extends LivelitWindow {
         }
         let vizPath = new paper.Path({
             strokeWidth: 1,
-            strokeColor: new paper.Color(0xffffff)
+            strokeColor: new paper.Color(0x0000ff)
         });
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
             let x = 0.5 * (aSteps + bSteps);
@@ -1714,7 +1713,34 @@ class ToolpathVisualizer extends LivelitWindow {
                 currentPosition = newPosition;
             }
         });
-        this.state.tabletop.project.activeLayer.addChild(vizPath);
+        let wrapperGroup = new paper.Group([vizPath]);
+        return wrapperGroup;
+    }
+
+    toggleViz(event: React.ChangeEvent<HTMLInputElement>) {
+        let vizName = event.target.dataset.vizName;
+        let checked = event.target.checked;
+        if (!this.state.tabletop
+            || this.state.toolpaths.length === 0
+            || !vizName) {
+            throw new Error('Tabletop, visualization DOM name, or '
+                            + 'toolpath not set for visualization.');
+        }
+        if (!checked) {
+            this.state.tabletop.removeVizWithName(vizName);
+            return;
+        }
+        // TODO: in this class, support toolpath selection rather than
+        // selecting URLs.
+        let selectedToolpath = this.state.toolpaths[0];
+        let visualization : paper.Group;
+        if (vizName === 'plainMovementLines') {
+            visualization = this.basicViz(selectedToolpath)
+        }
+        else {
+            return;
+        }
+        this.state.tabletop.addVizWithName(visualization, vizName);
     }
 
     renderToolpathThumbnails() {
@@ -1766,8 +1792,10 @@ class ToolpathVisualizer extends LivelitWindow {
         return (
             <div id="viz-interpreter-list" className="boxed-list">
                 <div className="viz-interpreter-item">
-                    <input type="checkbox"/>
-                    Order by something
+                    <input type="checkbox"
+                           data-viz-name="plainMovementLines"
+                           onChange={this.toggleViz.bind(this)}/>
+                    Plain movement lines
                 </div>
             </div>
         );

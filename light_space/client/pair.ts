@@ -45,6 +45,7 @@ export class Tabletop {
     activeToolpath?: Toolpath;
     activeEnvelopeSegment?: paper.Segment;
     moveEntireEnvelope: boolean;
+    vizLayer: paper.Layer;
 
     constructor(machine: Machine) {
         this.machine = machine;
@@ -57,6 +58,8 @@ export class Tabletop {
         this.interactionMode = InteractionMode.defaultState;
         this.moveEntireEnvelope = false;
         this.initMouseHandlers();
+        this.vizLayer = new paper.Layer();
+        this.project.addLayer(this.vizLayer);
     }
 
     toString() {
@@ -194,6 +197,18 @@ export class Tabletop {
         this.workEnvelope.clearFromTabletop();
         this.clearToolpaths();
         console.log('Tabletop cleared.');
+    }
+
+    addVizWithName(visualization: paper.Group, name: string) {
+        visualization.name = name;
+        this.vizLayer.addChild(visualization);
+    }
+
+    removeVizWithName(name: string) {
+        let maybeViz = this.vizLayer.children.find(v => v.name === name);
+        if (maybeViz) {
+            maybeViz.remove();
+        }
     }
 
     sendPaperItemToMachine(itemToSend: paper.Item) : Promise<Response> {
@@ -590,7 +605,6 @@ export class Geometry {
         }
         let adjustedPoint = placementPoint.paperPoint.add(tabletop.workEnvelope.anchor);
         this.paperGroup.position = adjustedPoint;
-        console.log(`new position ${this.paperGroup.position}`);
         return this;
     }
 
@@ -606,7 +620,7 @@ export class Geometry {
         return new Promise<paper.Group>((resolve) => {
             this.tabletop.project.importSVG(filepath, {
                 expandShapes: true,
-                insert: true,
+                insert: false,
                 onError: () => {
                     console.warn('Could not load an SVG');
                 },
