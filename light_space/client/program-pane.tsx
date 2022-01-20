@@ -183,7 +183,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         '// TODO: use either camera or toolpath direct manipulator',
         'let placedMustache = mustache.placeAt(point, tabletop);',
         'let toolpath = await $camCompiler(machine, placedMustache);',
-        'let visualizer = await $toolpathVisualizer(machine, [toolpath], tabletop);'
+        'let visualizer = await $toolpathVisualizer(machine, toolpath, tabletop);'
     ];
 
     constructor(props: Props) {
@@ -1600,9 +1600,8 @@ interface ToolpathVisualizerProps extends LivelitProps {
 
 interface ToolpathVisualizerState extends LivelitState {
     machine: pair.Machine;
-    toolpaths: pair.Toolpath[];
+    toolpath: pair.Toolpath;
     tabletop?: pair.Tabletop;
-    selectedToolpathUrl: string;
     selectedInstIndex: number;
 }
 
@@ -1619,24 +1618,23 @@ class ToolpathVisualizer extends LivelitWindow {
                             </div>
         this.state = {
             machine: new pair.Machine('TEMP'),
-            toolpaths: [],
+            toolpath: new pair.Toolpath('', []),
             tabletop: undefined,
             windowOpen: props.windowOpen,
             abortOnResumingExecution: false,
             valueSet: props.valueSet,
-            selectedToolpathUrl: '',
             selectedInstIndex: -1
         };
     }
 
     async setArguments(machine: pair.Machine,
-                       toolpaths: pair.Toolpath[],
+                       toolpath: pair.Toolpath,
                        tabletop: pair.Tabletop) {
         return new Promise<void>((resolve) => {
             this.setState(_ => {
                 return {
                     machine: machine,
-                    toolpaths: toolpaths,
+                    toolpath: toolpath,
                     tabletop: tabletop
                 };
             }, resolve);
@@ -1644,9 +1642,9 @@ class ToolpathVisualizer extends LivelitWindow {
     }
 
     expand() : string {
-        let s = `async function ${this.functionName}(machine, toolpaths, tabletop) {`;
+        let s = `async function ${this.functionName}(machine, toolpath, tabletop) {`;
         s += `let td = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
-        s += `await td.setArguments(machine, toolpaths, tabletop);`;
+        s += `await td.setArguments(machine, toolpath, tabletop);`;
         s += `await td.openWindow();`;
         s += `await td.finishDeployment();`;
         s += `await td.closeWindow();`;
@@ -1663,17 +1661,6 @@ class ToolpathVisualizer extends LivelitWindow {
                 });
             }
         });
-    }
-
-    setSelectedToolpathUrl(url: string) {
-        this.setState(_ => ({ selectedToolpathUrl: url }));
-    }
-
-    getSelectedToolpath() : pair.Toolpath | undefined {
-        let tp = this.state.toolpaths.find(tp => {
-            return tp.geometryUrl === this.state.selectedToolpathUrl;
-        });
-        return tp;
     }
 
     basicViz(toolpath: pair.Toolpath) {
@@ -1741,7 +1728,6 @@ class ToolpathVisualizer extends LivelitWindow {
         type countColor = 'red' | 'green';
         let currentColor : countColor = 'green';
         let newPosition : paper.Point;
-        // vizPath.segments.push(new paper.Segment(currentPosition));
         let tokens, opcode, duration, aSteps, bSteps, xyChange;
         toolpath.instructions.forEach((instruction) => {
             tokens = instruction.split(',');
@@ -1789,7 +1775,6 @@ class ToolpathVisualizer extends LivelitWindow {
             this.state.tabletop.workEnvelope.anchor.y
         );
         let newPosition : paper.Point;
-        // vizPath.segments.push(new paper.Segment(currentPosition));
         let axidrawMaxMMPerSec = 380;
         let maxStrokeWidth = 20;
         let tokens, opcode, duration, aSteps, bSteps, xyChange;
@@ -1824,7 +1809,7 @@ class ToolpathVisualizer extends LivelitWindow {
         let vizName = event.target.dataset.vizName;
         let checked = event.target.checked;
         if (!this.state.tabletop
-            || this.state.toolpaths.length === 0
+            || !this.state.toolpath
             || !vizName) {
             throw new Error('Tabletop, visualization DOM name, or '
                             + 'toolpath not set for visualization.');
@@ -1833,18 +1818,15 @@ class ToolpathVisualizer extends LivelitWindow {
             this.state.tabletop.removeVizWithName(vizName);
             return;
         }
-        // TODO: in this class, support toolpath selection rather than
-        // selecting URLs.
-        let selectedToolpath = this.state.toolpaths[0];
         let visualization : paper.Group;
         if (vizName === 'plainMovementLines') {
-            visualization = this.basicViz(selectedToolpath)
+            visualization = this.basicViz(this.state.toolpath)
         }
         else if (vizName === 'coloredMovementLines') {
-            visualization = this.colorViz(selectedToolpath)
+            visualization = this.colorViz(this.state.toolpath)
         }
         else if (vizName === 'velocityThicknessLines') {
-            visualization = this.velocityThicknessViz(selectedToolpath)
+            visualization = this.velocityThicknessViz(this.state.toolpath)
         }
         else {
             return;
@@ -1852,27 +1834,11 @@ class ToolpathVisualizer extends LivelitWindow {
         this.state.tabletop.addVizWithName(visualization, vizName);
     }
 
-    renderToolpathThumbnails() {
-        let elements = this.state.toolpaths.map((tp, idx) => {
-            let url = tp.geometryUrl;
-            let maybeHighlight = this.state.selectedToolpathUrl === url
-                                    ? 'gallery-highlight' : '';
-            return <div className={`gallery-item ${maybeHighlight}`}
-                        data-geometry-name={name}
-                        onClick={this.setSelectedToolpathUrl.bind(this, url)}
-                        key={idx.toString()}>
-                        <img src={url}
-                             className="gallery-image"/>
-                   </div>
-        });
-        return <div className="gallery">{elements}</div>;
-    }
-
-    renderSelectedToolpathInstructions() {
-        let tp = this.getSelectedToolpath();
+    renderToolpathInstructions() {
         let instElements : JSX.Element[] = [];
-        if (tp) {
-            instElements = tp.instructions.map((inst, idx) => {
+        if (this.state.toolpath) {
+            instElements = this.state.toolpath.instructions
+                .map((inst, idx) => {
                 let maybeHighlight = this.state.selectedInstIndex === idx
                                      ? 'highlight' : '';
                 return (
@@ -1927,15 +1893,13 @@ class ToolpathVisualizer extends LivelitWindow {
         return (
             <div className={`toolpath-visualizer content ${maybeHidden}`}
                  key={this.contentKey.toString()}>
-                <div className="bold-text">Toolpaths</div>
-                { this.renderToolpathThumbnails() }
                 <div className="bold-text">
                     Machine Parameters
                     ({this.state.machine.machineName})
                 </div>
                 { this.renderMachineParams() }
                 <div className="bold-text">Instructions</div>
-                { this.renderSelectedToolpathInstructions() }
+                { this.renderToolpathInstructions() }
                 <div className="bold-text">Visualization Interpreters</div>
                 { this.renderVizInterpreters() }
                 { this.applyButton }
