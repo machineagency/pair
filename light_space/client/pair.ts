@@ -45,6 +45,7 @@ export class Tabletop {
     activeToolpath?: Toolpath;
     activeEnvelopeSegment?: paper.Segment;
     moveEntireEnvelope: boolean;
+    vizLayer: paper.Layer;
 
     constructor(machine: Machine) {
         this.machine = machine;
@@ -57,6 +58,8 @@ export class Tabletop {
         this.interactionMode = InteractionMode.defaultState;
         this.moveEntireEnvelope = false;
         this.initMouseHandlers();
+        this.vizLayer = new paper.Layer();
+        this.project.addLayer(this.vizLayer);
     }
 
     toString() {
@@ -112,7 +115,7 @@ export class Tabletop {
         this.tool.onMouseDrag = (event: paper.MouseEvent,
                                  hitOptions: HitOptions) => {
             if (this.activeToolpath) {
-                this.activeToolpath.position = this.activeToolpath.position.add(event.delta);
+                // this.activeToolpath.position = this.activeToolpath.position.add(event.delta);
             }
             if (this.interactionMode === InteractionMode.adjustEnvelope) {
                 if (this.moveEntireEnvelope) {
@@ -154,7 +157,7 @@ export class Tabletop {
             }
             if (event.key === 't') {
                 if (this.activeToolpath) {
-                    let tpGroupCopy = this.activeToolpath.group.clone({
+                    let tpGroupCopy = this.activeToolpath.vizGroup.clone({
                         deep: true,
                         insert: false
                     });
@@ -184,15 +187,28 @@ export class Tabletop {
         toolpath.visible = true;
     }
 
+    // This should be deprecated
     clearToolpaths() {
-        this.toolpaths.forEach(tp => tp.clearFromTabletop());
-        this.toolpaths = [];
+        // this.toolpaths.forEach(tp => tp.clearFromTabletop());
+        // this.toolpaths = [];
     }
 
     clearTabletopFromCanvas() {
         this.workEnvelope.clearFromTabletop();
         this.clearToolpaths();
         console.log('Tabletop cleared.');
+    }
+
+    addVizWithName(visualization: paper.Group, name: string) {
+        visualization.name = name;
+        this.vizLayer.addChild(visualization);
+    }
+
+    removeVizWithName(name: string) {
+        let maybeViz = this.vizLayer.children.find(v => v.name === name);
+        if (maybeViz) {
+            maybeViz.remove();
+        }
     }
 
     sendPaperItemToMachine(itemToSend: paper.Item) : Promise<Response> {
@@ -370,162 +386,28 @@ export class WorkEnvelope {
 }
 
 export class Toolpath {
-    pairName: string;
-    _visible: boolean;
-    _visualizationMode: boolean;
-    group: paper.Group;
-    visualizationGroup: paper.Group;
+    geometryUrl: string;
     instructions: string[];
-    tabletop: Tabletop;
-    readonly originalGroup: paper.Group;
+    vizGroup: paper.Group;
 
-    constructor(tpName: string, svgItem: paper.Group, tabletop: Tabletop) {
-        this.pairName = tpName;
-        this.tabletop = tabletop;
-        this.group = svgItem;
-        this.group.strokeColor = new paper.Color('red');
-        this.group.strokeWidth = 2;
-        this.originalGroup = this.group.clone({ insert: true, deep: true });
-        this._visible = false;
-        this.group.visible = true;
-        // Original group is never visible
-        this.originalGroup.visible = false;
-        this.tabletop.project.activeLayer.addChild(this.group);
-        // Have separate group for visualizing instructions, etc.
-        this._visualizationMode = false;
-        this.visualizationGroup = new paper.Group();
-        this.visualizationGroup.visible = false;
-        this.instructions = [];
+    constructor(geometryUrl: string, instructions: string[]) {
+        this.geometryUrl = geometryUrl;
+        this.instructions = instructions;
+        this.vizGroup = new paper.Group();
+        // TODO: vizGroup should be populated by the toolpath visualizers
+        // and then rendered to the tabletop.
     }
 
-    /* Wrapper getters, setters, and methods for paper.Group below. */
-
-    get visible() : boolean {
-        return this._visible;
+    get position() {
+        return this.vizGroup.position;
     }
 
-    set visible(isVisible: boolean) {
-        this.group.visible = isVisible;
-        this._visible = isVisible;
+    get visible() {
+        return this.vizGroup.visible;
     }
 
-    get position() : paper.Point {
-        return this.group.position;
-    }
-
-    set position(newPos: paper.Point) {
-        this.group.position = newPos;
-        this.originalGroup.position = newPos;
-    }
-
-    get selected() : boolean {
-        return this.group.selected;
-    }
-
-    set selected(isSelected: boolean) {
-        this.group.selected = isSelected;
-        this.originalGroup.selected = isSelected;
-    }
-
-    get bounds() : paper.Rectangle {
-        return this.group.bounds;
-    }
-
-    hitTest(pt: paper.Point, options: HitOptions) : paper.HitResult {
-        return this.group.hitTest(pt, options);
-    }
-
-    /* Methods that are specific to Toolpath follow. */
-
-    clearFromTabletop() {
-        let result = this.group.remove();
-        if (!result) {
-            console.warn(`Could not remove toolpath ${this}`);
-        }
-    }
-
-    get visualizationMode() : boolean {
-        return this._visualizationMode
-    }
-
-    set visualizationMode(flag: boolean) {
-        this.visualizationGroup.visible = flag;
-        this._visualizationMode = flag;
-        this.group.visible = !flag;
-    }
-
-    /* TODO: add visualization parameters */
-    visualizeInstructions(vizGroup: paper.Group) {
-        this.visualizationMode = true;
-        this.visualizationGroup.children = vizGroup.children;
-        this.visualizationGroup.position = this.visualizationGroup.position
-                                            .add(this.tabletop.workEnvelope.anchor);
-        // TODO: do this in a more structured way, use TS interface
-        // Turns out this is not the right assumption, it seems like
-        // the first group is JUST pen down, and the second one is
-        // both
-        let originalSvgPath = this.visualizationGroup.children[0];
-        let travelPath = this.visualizationGroup.children[1].children[0].children[0] as paper.CompoundPath;
-        let downPath = this.visualizationGroup.children[1].children[1].children[0] as paper.CompoundPath;
-        originalSvgPath.remove();
-        travelPath.set({
-            strokeColor: new paper.Color('green'),
-            strokeWidth: 2,
-            name: 'move'
-        });
-        downPath.set({
-            strokeColor: new paper.Color('cyan'),
-            strokeWidth: 2,
-            name: 'travel'
-        });
-        // this.visualizationGroup = new paper.Group([penDownCPath, penUpCPath]);
-        // this.visualizationMode = true;
-        this.instructions = this._parseInstructions();
-    }
-
-    selectInstructionsWithIndices(indices: number[]) {
-        let instPaths = this.visualizationGroup.children.filter((path) : path is paper.Path => {
-            return path.className === 'Path';
-        });
-        instPaths.forEach(path => path.selected = false);
-        indices.forEach((instIndex) => {
-            instPaths[instIndex].selected = true;
-        });
-    }
-
-    _parseInstructions() {
-        let gatherPaths = (item: paper.Item, ancestorName: string) : paper.Path[] => {
-            if (item.className === 'Path') {
-                item.name = ancestorName;
-                return [item] as paper.Path[];
-            }
-            let nameToPass = item.name || ancestorName;
-            let paths = item.children.map(child => gatherPaths(child, nameToPass)).flat();
-            return paths;
-        };
-        let visGroup = this.visualizationGroup;
-        let paths = gatherPaths(visGroup, '');
-        let pathToStrings = (path: paper.Path) => {
-            let command = path.name;
-            let strings = path.segments.map((segment) => {
-                return `${command} (${px(segment.point.x)}, ${px(segment.point.y)})`;
-            });
-            let startSeg = path.firstSegment;
-            return strings.concat(`${command} (${px(startSeg.point.x)}, ${px(startSeg.point.y)})`);
-        };
-        return paths.map(path => pathToStrings(path)).flat();
-    }
-
-    reinitializeGroup() {
-        let existingGroupVisible = this.group.visible;
-        let originalGroupCopy = this.originalGroup.clone({ insert: true, deep: true });
-        originalGroupCopy.visible = existingGroupVisible;
-        this.group.remove();
-        this.group = originalGroupCopy;
-    }
-
-    plot() {
-        console.log(`Sending ${this.pairName} to machine.`);
+    set visible(newVisibility: boolean) {
+        this.vizGroup.visible = newVisibility;
     }
 }
 
@@ -703,28 +585,55 @@ export class Camera {
 }
 
 export class Geometry {
-    filepath: string;
+    tabletop: Tabletop;
+    filepath?: string;
+    paperGroup?: paper.Group;
 
-    constructor(filepath: string) {
-        this.filepath = filepath;
+    constructor(tabletop: Tabletop) {
+        this.tabletop = tabletop;
     }
 
-    async placeAt(placementPoint: Point, tabletop: Tabletop) : Promise<Toolpath> {
+    get position() {
+        if (this.paperGroup) {
+            return this.paperGroup.position;
+        }
+    }
+
+    placeAt(placementPoint: Point, tabletop: Tabletop) : Geometry {
+        if (!this.paperGroup) {
+            throw new Error('Cannot place geometry without data loaded.');
+        }
         let adjustedPoint = placementPoint.paperPoint.add(tabletop.workEnvelope.anchor);
-        return new Promise<Toolpath>((resolve) => {
-            tabletop.project.importSVG(this.filepath, {
+        this.paperGroup.position = adjustedPoint;
+        return this;
+    }
+
+    rotate() {
+        // TODO
+    }
+
+    scale() {
+        // TODO
+    }
+
+    async loadFromFilepath(filepath: string) : Promise<paper.Group> {
+        return new Promise<paper.Group>((resolve) => {
+            this.tabletop.project.importSVG(filepath, {
                 expandShapes: true,
                 insert: false,
                 onError: () => {
                     console.warn('Could not load an SVG');
                 },
                 onLoad: (item: paper.Group, svgString: string) => {
-                    tabletop.workEnvelope.applyHomographyToGroup(item);
+                    this.tabletop.workEnvelope.applyHomographyToGroup(item);
                     item.strokeColor = new paper.Color(0xffffff);
-                    item.position = adjustedPoint;
-
-                    let tp = new Toolpath(this.filepath, item, tabletop);
-                    resolve(tp);
+                    item.position = new paper.Point(
+                        item.bounds.width * 0.5 + this.tabletop.workEnvelope.anchor.x,
+                        item.bounds.height * 0.5 + this.tabletop.workEnvelope.anchor.y
+                    );
+                    this.paperGroup = item;
+                    this.filepath = filepath;
+                    resolve(item);
                 }
             });
         });
@@ -765,6 +674,47 @@ export class Machine {
         }
     }
 
+    async compileGeometryToToolpath(geometry: Geometry) : Promise<Toolpath> {
+        // Credit: https://github.com/yoksel/url-encoder/ .
+        const urlEncodeSvg = (data: String) : String => {
+            const symbols = /[\r\n%#()<>?[\\\]^`{|}]/g;
+            data = data.replace(/"/g, `'`);
+            data = data.replace(/>\s{1,}</g, `><`);
+            data = data.replace(/\s{2,}/g, ` `);
+            return data.replace(symbols, encodeURIComponent);
+        }
+        if (!this.tabletop) {
+            throw new Error(`${this.machineName} needs a tabletop before previewing.`);
+        }
+        if (!geometry.paperGroup || !geometry.filepath) {
+            throw new Error('Geometry is not ready: either paperGroup or filepath not set.');
+        }
+        const headerXmlns = 'xmlns="http://www.w3.org/2000/svg"';
+        const headerWidth = `width="${this.tabletop.workEnvelope.width}mm"`;
+        const headerHeight = `height="${this.tabletop.workEnvelope.height}mm"`;
+        const svgHeader = `<svg ${headerXmlns} ${headerWidth} ${headerHeight}>`;
+        const svgFooter = `</svg>`;
+        const svgPath = geometry.paperGroup.exportSVG({
+            bounds: 'content',
+            asString: true,
+            precision: 2
+        });
+        const svgString = svgHeader + svgPath + svgFooter;
+        const encodedSvg = urlEncodeSvg(svgString);
+        const url = `${BASE_URL}/machine/generateInstructions?svgString=${encodedSvg}`;
+        let response = await fetch(url);
+        if (response.ok) {
+            let resJson = await response.json();
+            let instructions = resJson.instructions;
+            let tp = new Toolpath(geometry.filepath, instructions);
+            return tp;
+        }
+        else {
+            throw new Error('Couldn\'t fetch toolpath instructions.');
+        }
+    }
+
+    /* DEPRECATED */
     async _fetchPreviewUrl(toolpath: Toolpath) {
         // Credit: https://github.com/yoksel/url-encoder/ .
         const urlEncodeSvg = (data: String) : String => {
@@ -783,7 +733,7 @@ export class Machine {
         const headerHeight = `height="${this.tabletop.workEnvelope.height}mm"`;
         const svgHeader = `<svg ${headerXmlns} ${headerWidth} ${headerHeight}>`;
         const svgFooter = `</svg>`;
-        const visibleGroupCopy = toolpath.group
+        const visibleGroupCopy = toolpath.vizGroup
                                     .clone({ insert: false, deep: true })
                                     .set({ visible: true });
         const svgPath = visibleGroupCopy.exportSVG({
@@ -805,38 +755,8 @@ export class Machine {
         }
     }
 
-    async previewToolpath(toolpath: Toolpath) {
-        toolpath.instructions = [];
-        toolpath.visualizationGroup.children = [];
-        let previewSvgUrl = await this._fetchPreviewUrl(toolpath);
-        return new Promise<Toolpath>((resolve, reject) => {
-            if (!this.tabletop) {
-                console.error(`${this.machineName} needs a tabletop before previewing.`);
-                return;
-            }
-            if (!previewSvgUrl) {
-                return;
-            }
-            console.log(previewSvgUrl);
-            this.tabletop.project.importSVG(previewSvgUrl, {
-                expandShapes: true,
-                insert: false,
-                onError: () => {
-                    console.warn('Could not load an SVG');
-                },
-                onLoad: (vizGroup: paper.Group, svgString: string) => {
-                    if (!this.tabletop) { return; }
-                    // let upAndDownPaths = new paper.Group(vizGroup.children[1]);
-                    // toolpath.visualizeInstructions(upAndDownPaths);
-                    toolpath.visualizeInstructions(vizGroup);
-                    resolve(toolpath);
-                }
-            });
-        });
-    }
-
     plotToolpathOnTabletop(toolpath: Toolpath, tabletop: Tabletop) {
-        let tpGroupCopy = toolpath.group.clone({
+        let tpGroupCopy = toolpath.vizGroup.clone({
             deep: true,
             insert: false
         });

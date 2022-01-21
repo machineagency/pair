@@ -177,6 +177,7 @@ pre code.hljs {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
+    margin-top: 10px;
 }
 
 .gallery .gallery-item {
@@ -184,7 +185,7 @@ pre code.hljs {
     width: 50px;
     background-color: whitesmoke;
     color: black;
-    margin-left: 10px;
+    margin-right: 10px;
     margin-bottom: 10px;
     cursor: pointer;
 }
@@ -226,11 +227,45 @@ pre code.hljs {
     max-width: 100%;
 }
 
-#inst-list {
+.boxed-list {
     max-height: 200px;
     overflow-y: scroll;
     border: 1px solid white;
-    margin: 0px 10px 0px 10px;
+}
+
+#cam-compiler-list {
+    margin: 10px 10px 0px 0px;
+}
+
+.cam-compiler-item {
+    padding: 5px;
+    cursor: pointer;
+}
+
+.cam-compiler-item.highlight {
+    color: #23241f;
+    background-color: whitesmoke;
+}
+
+#machine-param-list {
+    margin: 10px 10px 0px 0px;
+}
+
+.machine-param {
+    margin-left: 10px;
+}
+
+.param-key {
+    font-weight: bold;
+    margin-right: 20px;
+}
+
+.param-value {
+    margin-right: 20px;
+}
+
+#inst-list {
+    margin: 10px 10px 0px 0px;
 }
 
 .inst-list-item {
@@ -247,6 +282,18 @@ pre code.hljs {
     text-align: right;
     width: 20px;
     color: #ffffffab;
+}
+
+#viz-interpreter-list {
+    margin: 10px 10px 0px 0px;
+}
+
+#viz-interpreter-list input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+.viz-interpreter-item {
+    padding: 5px;
 }
 
 #program-controls {

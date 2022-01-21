@@ -110,6 +110,15 @@ class ProgramUtil {
                 };
                 return <FaceFinder {...ffProps}>
                        </FaceFinder>;
+            case 'camCompiler':
+                const camProps: CamCompilerProps = {
+                    ref: livelitRef as React.RefObject<CamCompiler>,
+                    plRef: plRef,
+                    valueSet: false,
+                    windowOpen: false
+                };
+                return <CamCompiler {...camProps}>
+                       </CamCompiler>
             case 'toolpathVisualizer':
                 const tdProps: ToolpathVisualizerProps = {
                     ref: livelitRef as React.RefObject<ToolpathVisualizer>,
@@ -166,13 +175,15 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
 
     defaultToolpathPreviewing = [
         'let machine = new pair.Machine(\'axidraw\');',
+        '// TODO: pen up calibrator with preview',
         'let tabletop = await $tabletopCalibrator(machine);',
         'let camera = await $cameraCalibrator(tabletop);',
-        'let mustache = await $geometryGallery(machine);',
         'let point = new pair.Point(mm(75), mm(25));',
+        'let mustache = await $geometryGallery(machine, tabletop);',
         '// TODO: use either camera or toolpath direct manipulator',
-        'let toolpath = await mustache.placeAt(point, tabletop);',
-        'let visualizer = await $toolpathVisualizer(machine, [toolpath]);'
+        'let placedMustache = mustache.placeAt(point, tabletop);',
+        'let toolpath = await $camCompiler(machine, placedMustache);',
+        'let visualizer = await $toolpathVisualizer(machine, toolpath, tabletop);'
     ];
 
     constructor(props: Props) {
@@ -645,12 +656,8 @@ class GeometryGallery extends LivelitWindow {
             });
     }
 
-    expandOld() : pair.Geometry {
-        return new pair.Geometry(this.state.selectedUrl);
-    }
-
     expand() : string {
-        let s = `async function ${this.functionName}(machine) {`;
+        let s = `async function ${this.functionName}(machine, tabletop) {`;
         // TODO: filter geometries by machine
         s += `let gg = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `let geomUrl;`;
@@ -663,7 +670,9 @@ class GeometryGallery extends LivelitWindow {
         s += `else {`;
         s += `geomUrl = gg.state.selectedUrl;`;
         s += `}`;
-        s += `return new pair.Geometry(geomUrl);`;
+        s += `let geom = new pair.Geometry(tabletop);`;
+        s += `await geom.loadFromFilepath(geomUrl);`;
+        s += `return geom;`;
         s += `}`;
         return s;
     }
@@ -1496,6 +1505,263 @@ class ToolpathDirectManipulator extends LivelitWindow {
     }
 }
 
+interface CamCompilerProps extends LivelitProps {
+    ref: React.RefObject<CamCompiler>;
+    plRef: React.RefObject<ProgramLine>;
+    valueSet: boolean;
+    windowOpen: boolean;
+}
+
+interface CamCompilerState extends LivelitState {
+    currentCompilerName: string;
+    machine: pair.Machine;
+    geometry?: pair.Geometry;
+    toolpath?: pair.Toolpath;
+}
+
+type CamGeometryInput = 'SVG' | 'STL';
+type CamIsaOutput = 'EBB' | 'g-Code';
+
+interface SingleCamCompiler {
+    name: string;
+    geometryInput: CamGeometryInput;
+    isaOutput: CamIsaOutput;
+}
+
+class CamCompiler extends LivelitWindow {
+    state: CamCompilerState;
+    compilers: SingleCamCompiler[];
+
+    constructor(props: CamCompilerProps) {
+        super(props);
+        this.titleText = 'CAM Compiler';
+        this.functionName = '$camCompiler';
+        this.applyButton = <div className="button apply-btn"
+                                id="done-cam-compiler">
+                                Done
+                            </div>
+        this.compilers = [
+            {
+                name: 'Axidraw EBB Compiler',
+                geometryInput: 'SVG',
+                isaOutput: 'EBB'
+            },
+            {
+                name: 'Jasper\'s Wacky Slicer',
+                geometryInput: 'STL',
+                isaOutput: 'g-Code'
+            }
+        ];
+        let maybeSavedToolpath = this.loadSavedValue();
+        this.state = {
+            currentCompilerName: 'Axidraw EBB Compiler',
+            machine: new pair.Machine('TEMP'),
+            geometry: undefined,
+            toolpath: maybeSavedToolpath,
+            windowOpen: props.windowOpen,
+            abortOnResumingExecution: false,
+            valueSet: !!maybeSavedToolpath
+        };
+    }
+
+    async setArguments(machine: pair.Machine, geometry: pair.Geometry) {
+        return new Promise<void>((resolve) => {
+            this.setState(_ => {
+                return {
+                    machine: machine,
+                    geometry: geometry
+                };
+            }, () => {
+                this.generateToolpathWithCurrentCompiler()
+                    .then((toolpath) => {
+                        this.setState((prevState) => {
+                            return { toolpath: toolpath }
+                        }, resolve);
+                     });
+                });
+            });
+        }
+
+    expand() : string {
+        let s = `async function ${this.functionName}(machine, geometry) {`;
+        s += `let cc = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `let toolpath;`;
+        s += `if (!cc.state.valueSet) {`;
+        s += `await cc.setArguments(machine, geometry);`;
+        s += `await cc.openWindow();`;
+        s += `toolpath = await cc.acceptToolpath();`;
+        s += `await cc.saveValue();`;
+        s += `await cc.closeWindow();`;
+        s += `return toolpath;`;
+        s += `}`;
+        s += `else {`;
+        s += `toolpath = cc.state.toolpath;`;
+        s += `}`;
+        s += `return toolpath;`;
+        s += `}`;
+        return s;
+    }
+
+    saveValue() {
+        if (this.state.abortOnResumingExecution) {
+            return;
+        }
+        return new Promise<void>((resolve) => {
+            if (this.state.toolpath) {
+                let serializedToolpath = JSON.stringify(this.state.toolpath,
+                    undefined, 2);
+                localStorage.setItem(this.functionName, serializedToolpath);
+                this.setState(_ => {
+                    return {
+                        valueSet: true
+                    }
+                }, resolve);
+            };
+        });
+    }
+
+    loadSavedValue() : pair.Toolpath | undefined {
+        interface RevivedToolpath {
+           geometryUrl: string;
+           instructions: string[];
+        }
+        let serializedToolpath = localStorage.getItem(this.functionName);
+        if (serializedToolpath) {
+            let revivedTp = JSON.parse(serializedToolpath) as RevivedToolpath;
+            let toolpath = new pair.Toolpath(revivedTp.geometryUrl,
+                revivedTp.instructions);
+            return toolpath;
+        }
+        else {
+            return undefined;
+        }
+    }
+
+    clearSavedValue() {
+        return new Promise<void>((resolve) => {
+            localStorage.removeItem(this.functionName);
+            this.setState(_ => {
+                return {
+                    toolpath: undefined,
+                    valueSet: false
+                }
+            }, resolve);
+        });
+    }
+
+    async generateToolpathWithCurrentCompiler(): Promise<pair.Toolpath> {
+        // TODO: find the correct compiler to use, for now assume Axidraw.
+        // return early if we cannot find an appropriate compiler
+        // for the current machine.
+        return new Promise<pair.Toolpath>((resolve, reject) => {
+            if (!this.state.geometry) {
+                throw new Error('Geometry not set');
+            }
+            this.state.machine
+                .compileGeometryToToolpath(this.state.geometry)
+                .then((toolpath) => resolve(toolpath));
+        });
+    }
+
+    async acceptToolpath() : Promise<pair.Toolpath>{
+        return new Promise<pair.Toolpath>((resolve, reject) => {
+            const doneDom = document.getElementById('done-cam-compiler');
+            if (doneDom) {
+                doneDom.addEventListener('click', (event) => {
+                    if (this.state.toolpath) {
+                        resolve(this.state.toolpath);
+                    }
+                });
+            }
+        });
+    }
+
+    setCurrentCompiler(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+        let compilerItemDom = event.target as HTMLDivElement;
+        let compilerName = compilerItemDom.dataset.compilerName;
+        if (compilerName) {
+            this.generateToolpathWithCurrentCompiler().
+                then((toolpath) => {
+                    this.setState((prevState) => {
+                        return {
+                            currentCompilerName: compilerName,
+                            toolpath: toolpath
+                        };
+                    });
+                });
+        }
+    }
+
+    renderCompilers() {
+        let compilerDoms = this.compilers.map((compiler: SingleCamCompiler) => {
+            let maybeHighlight = compiler.name === this.state.currentCompilerName
+                                ? 'highlight' : '';
+            return (
+                <div className={`cam-compiler-item ${maybeHighlight}`}
+                     data-compiler-name={compiler.name}
+                     onClick={this.setCurrentCompiler.bind(this)}>
+                    <span className="compiler-name param-key"
+                          data-compiler-name={compiler.name}>
+                         { compiler.name }
+                    </span>
+                    <span className="geometry-input param-value"
+                          data-compiler-name={compiler.name}>
+                         { compiler.geometryInput }
+                    </span>
+                    <span className="isa-output param-value"
+                          data-compiler-name={compiler.name}>
+                         { compiler.isaOutput }
+                    </span>
+                </div>
+            );
+        });
+        return (
+            <div id="cam-compiler-list" className="boxed-list">
+                { compilerDoms }
+            </div>
+        );
+    }
+
+    renderToolpathInstructions() {
+        let instElements : JSX.Element[] = [];
+        if (this.state.toolpath) {
+            instElements = this.state.toolpath.instructions
+                .map((inst, idx) => {
+                return (
+                    <div className={`inst-list-item`}
+                         key={idx}>{inst}</div>
+                );
+            });
+        }
+        return (
+            <div id="inst-list" className="boxed-list">{ instElements }</div>
+        );
+    }
+
+    renderValue() {
+        let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
+        let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
+        let display = `Toolpath(...) from ${this.state.currentCompilerName}`;
+        return (
+            <div className={`module-value ${grayedIffUnset}`}
+                 key={`${this.titleKey}-value`}>
+                 { display }
+            </div>
+        );
+    }
+
+    renderContent() {
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return (
+            <div className={`cam-compiler content ${maybeHidden}`}>
+                { this.renderCompilers() }
+                { this.renderToolpathInstructions() }
+                { this.applyButton }
+            </div>
+        );
+    }
+}
+
 interface ToolpathVisualizerProps extends LivelitProps {
     ref: React.RefObject<ToolpathVisualizer>;
     plRef: React.RefObject<ProgramLine>;
@@ -1505,15 +1771,15 @@ interface ToolpathVisualizerProps extends LivelitProps {
 
 interface ToolpathVisualizerState extends LivelitState {
     machine: pair.Machine;
-    toolpaths: pair.Toolpath[];
-    selectedToolpathUrl: string;
+    toolpath: pair.Toolpath;
+    tabletop?: pair.Tabletop;
     selectedInstIndex: number;
 }
 
 class ToolpathVisualizer extends LivelitWindow {
     state: ToolpathVisualizerState;
 
-    constructor(props: LivelitProps) {
+    constructor(props: ToolpathVisualizerProps) {
         super(props);
         this.titleText = 'Toolpath Visualizer';
         this.functionName = '$toolpathVisualizer';
@@ -1523,30 +1789,33 @@ class ToolpathVisualizer extends LivelitWindow {
                             </div>
         this.state = {
             machine: new pair.Machine('TEMP'),
-            toolpaths: [],
+            toolpath: new pair.Toolpath('', []),
+            tabletop: undefined,
             windowOpen: props.windowOpen,
             abortOnResumingExecution: false,
             valueSet: props.valueSet,
-            selectedToolpathUrl: '',
             selectedInstIndex: -1
         };
     }
 
-    async setArguments(machine: pair.Machine, toolpaths: pair.Toolpath[]) {
+    async setArguments(machine: pair.Machine,
+                       toolpath: pair.Toolpath,
+                       tabletop: pair.Tabletop) {
         return new Promise<void>((resolve) => {
             this.setState(_ => {
                 return {
                     machine: machine,
-                    toolpaths: toolpaths
+                    toolpath: toolpath,
+                    tabletop: tabletop
                 };
             }, resolve);
         });
     }
 
     expand() : string {
-        let s = `async function ${this.functionName}(machine, toolpaths) {`;
+        let s = `async function ${this.functionName}(machine, toolpath, tabletop) {`;
         s += `let td = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
-        s += `await td.setArguments(machine, toolpaths);`;
+        s += `await td.setArguments(machine, toolpath, tabletop);`;
         s += `await td.openWindow();`;
         s += `await td.finishDeployment();`;
         s += `await td.closeWindow();`;
@@ -1565,66 +1834,241 @@ class ToolpathVisualizer extends LivelitWindow {
         });
     }
 
-    setSelectedToolpathUrl(url: string) {
-        let tp = this.state.toolpaths.find(tp => tp.pairName === url);
-        if (tp) {
-            this.state.machine.previewToolpath(tp)
-            .then(toolpathWithVizGroup => {
-                this.setState(_ => ({ selectedToolpathUrl: url }));
-            });
+    basicViz(toolpath: pair.Toolpath) {
+        if (!this.state.tabletop) {
+            throw new Error('Cannot visualize without tabletop linked.');
         }
-    }
-
-    getSelectedToolpath() : pair.Toolpath | undefined {
-        let tp = this.state.toolpaths.find(tp => {
-            return tp.pairName === this.state.selectedToolpathUrl;
+        let vizPath = new paper.Path({
+            strokeWidth: 1,
+            strokeColor: new paper.Color(0x0000ff)
         });
-        return tp;
-    }
-
-    selectInstruction(instIndex: number) {
-        let tp = this.getSelectedToolpath();
-        if (tp) {
-            this.setState(_ => ({ selectedInstIndex: instIndex }), () => {
-                if (tp) {
-                    tp.selectInstructionsWithIndices([instIndex]);
-                }
-            });
-        }
-    }
-
-    renderToolpathThumbnails() {
-        let elements = this.state.toolpaths.map((tp, idx) => {
-            let url = tp.pairName;
-            let maybeHighlight = this.state.selectedToolpathUrl === url
-                                    ? 'gallery-highlight' : '';
-            return <div className={`gallery-item ${maybeHighlight}`}
-                        data-geometry-name={name}
-                        onClick={this.setSelectedToolpathUrl.bind(this, url)}
-                        key={idx.toString()}>
-                        <img src={url}
-                             className="gallery-image"/>
-                   </div>
-        });
-        return <div className="gallery">{elements}</div>;
-    }
-
-    renderSelectedToolpathInstructions() {
-        let tp = this.getSelectedToolpath();
-        if (!tp) {
-            return []
-        }
-        let instElements = tp.instructions.map((inst, idx) => {
-            let maybeHighlight = this.state.selectedInstIndex === idx
-                                 ? 'highlight' : '';
-            return (
-                <div className={`inst-list-item ${maybeHighlight}`}
-                     onClick={this.selectInstruction.bind(this, idx)}
-                     key={idx}>{inst}</div>
+        let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
+            let x = 0.5 * (aSteps + bSteps);
+            let y = -0.5 * (aSteps - bSteps);
+            // TODO: read this from an EM instruction
+            let stepsPerMm = 80;
+            return new paper.Point(
+                mm(x / stepsPerMm),
+                mm(y / stepsPerMm)
             );
+        };
+        let currentPosition = new paper.Point(
+            this.state.tabletop.workEnvelope.anchor.x,
+            this.state.tabletop.workEnvelope.anchor.y
+        );
+        let newPosition : paper.Point;
+        vizPath.segments.push(new paper.Segment(currentPosition));
+        let tokens, opcode, duration, aSteps, bSteps, xyChange;
+        toolpath.instructions.forEach((instruction) => {
+            tokens = instruction.split(',');
+            opcode = tokens[0];
+            if (opcode === 'SM') {
+                aSteps = parseInt(tokens[2]);
+                bSteps = parseInt(tokens[3]);
+                xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
+                newPosition = currentPosition.add(xyChange);
+                vizPath.segments.push(new paper.Segment(newPosition));
+                currentPosition = newPosition;
+            }
         });
+        let wrapperGroup = new paper.Group([vizPath]);
+        return wrapperGroup;
+    }
+
+    // TODO: is there a way to do this without copy paste? Maybe not because
+    // each must be its own standalone interpreter
+    colorViz(toolpath: pair.Toolpath) {
+        if (!this.state.tabletop) {
+            throw new Error('Cannot visualize without tabletop linked.');
+        }
+        let vizGroup = new paper.Group();
+        let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
+            let x = 0.5 * (aSteps + bSteps);
+            let y = -0.5 * (aSteps - bSteps);
+            // TODO: read this from an EM instruction
+            let stepsPerMm = 80;
+            return new paper.Point(
+                mm(x / stepsPerMm),
+                mm(y / stepsPerMm)
+            );
+        };
+        let currentPosition = new paper.Point(
+            this.state.tabletop.workEnvelope.anchor.x,
+            this.state.tabletop.workEnvelope.anchor.y
+        );
+        type countColor = 'red' | 'green';
+        let currentColor : countColor = 'green';
+        let newPosition : paper.Point;
+        let tokens, opcode, duration, aSteps, bSteps, xyChange;
+        toolpath.instructions.forEach((instruction) => {
+            tokens = instruction.split(',');
+            opcode = tokens[0];
+            if (opcode === 'SM') {
+                aSteps = parseInt(tokens[2]);
+                bSteps = parseInt(tokens[3]);
+                xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
+                newPosition = currentPosition.add(xyChange);
+                let seg0 = new paper.Segment(currentPosition);
+                let seg1 = new paper.Segment(newPosition);
+                let newPath = new paper.Path({
+                    segments: [ seg0, seg1 ],
+                    strokeWidth: 1,
+                    strokeColor: new paper.Color(currentColor)
+                });
+                vizGroup.addChild(newPath);
+                currentPosition = newPosition;
+            }
+            if (opcode === 'SP') {
+                currentColor = currentColor === 'red'
+                               ? 'green' : 'red';
+            }
+        });
+        return vizGroup;
+    }
+
+    velocityThicknessViz(toolpath: pair.Toolpath) {
+        if (!this.state.tabletop) {
+            throw new Error('Cannot visualize without tabletop linked.');
+        }
+        let vizGroup = new paper.Group();
+        let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
+            let x = 0.5 * (aSteps + bSteps);
+            let y = -0.5 * (aSteps - bSteps);
+            // TODO: read this from an EM instruction
+            let stepsPerMm = 80;
+            return new paper.Point(
+                mm(x / stepsPerMm),
+                mm(y / stepsPerMm)
+            );
+        };
+        let currentPosition = new paper.Point(
+            this.state.tabletop.workEnvelope.anchor.x,
+            this.state.tabletop.workEnvelope.anchor.y
+        );
+        let newPosition : paper.Point;
+        let axidrawMaxMMPerSec = 380;
+        let maxStrokeWidth = 20;
+        let tokens, opcode, duration, aSteps, bSteps, xyChange;
+        toolpath.instructions.forEach((instruction) => {
+            tokens = instruction.split(',');
+            opcode = tokens[0];
+            if (opcode === 'SM') {
+                duration = parseInt(tokens[1]);
+                aSteps = parseInt(tokens[2]);
+                bSteps = parseInt(tokens[3]);
+                xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
+                let durationSec = duration / 100;
+                let norm = Math.sqrt(Math.pow(xyChange.x, 2) + Math.pow(xyChange.y,2));
+                let mmPerSec = norm / durationSec;
+                let velWidth = (mmPerSec / axidrawMaxMMPerSec) * maxStrokeWidth;
+                newPosition = currentPosition.add(xyChange);
+                let seg0 = new paper.Segment(currentPosition);
+                let seg1 = new paper.Segment(newPosition);
+                let newPath = new paper.Path({
+                    segments: [ seg0, seg1 ],
+                    strokeWidth: velWidth,
+                    strokeColor: new paper.Color('white')
+                });
+                vizGroup.addChild(newPath);
+                currentPosition = newPosition;
+            }
+        });
+        return vizGroup;
+    }
+
+    toggleViz(event: React.ChangeEvent<HTMLInputElement>) {
+        let vizName = event.target.dataset.vizName;
+        let checked = event.target.checked;
+        if (!this.state.tabletop
+            || !this.state.toolpath
+            || !vizName) {
+            throw new Error('Tabletop, visualization DOM name, or '
+                            + 'toolpath not set for visualization.');
+        }
+        if (!checked) {
+            this.state.tabletop.removeVizWithName(vizName);
+            return;
+        }
+        let visualization : paper.Group;
+        if (vizName === 'plainMovementLines') {
+            visualization = this.basicViz(this.state.toolpath)
+        }
+        else if (vizName === 'coloredMovementLines') {
+            visualization = this.colorViz(this.state.toolpath)
+        }
+        else if (vizName === 'velocityThicknessLines') {
+            visualization = this.velocityThicknessViz(this.state.toolpath)
+        }
+        else {
+            return;
+        }
+        this.state.tabletop.addVizWithName(visualization, vizName);
+    }
+
+    renderToolpathInstructions() {
+        let instElements : JSX.Element[] = [];
+        if (this.state.toolpath) {
+            instElements = this.state.toolpath.instructions
+                .map((inst, idx) => {
+                let maybeHighlight = this.state.selectedInstIndex === idx
+                                     ? 'highlight' : '';
+                return (
+                    <div className={`inst-list-item ${maybeHighlight}`}
+                         key={idx}>{inst}</div>
+                );
+            });
+        }
         return (
-            <div id="inst-list">{ instElements }</div>
+            <div id="inst-list" className="boxed-list">{ instElements }</div>
+        );
+    }
+
+    renderMachineParams() {
+        return (
+            <div id="machine-param-list" className="boxed-list">
+                <div className="machine-param">
+                <span className="param-key">Pen Height</span>
+                <span className="param-value">33mm</span>
+                </div>
+            </div>
+        );
+    }
+
+    renderVizInterpreters() {
+        return (
+            <div id="viz-interpreter-list" className="boxed-list">
+                <div className="viz-interpreter-item">
+                    <input type="checkbox"
+                           data-viz-name="plainMovementLines"
+                           onChange={this.toggleViz.bind(this)}/>
+                    Plain movement lines
+                </div>
+                <div className="viz-interpreter-item">
+                    <input type="checkbox"
+                           data-viz-name="coloredMovementLines"
+                           onChange={this.toggleViz.bind(this)}/>
+                    Colored movement lines
+                </div>
+                <div className="viz-interpreter-item">
+                    <input type="checkbox"
+                           data-viz-name="velocityThicknessLines"
+                           onChange={this.toggleViz.bind(this)}/>
+                    Velocity thickness lines
+                </div>
+            </div>
+        );
+    }
+
+    renderValue() {
+        let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
+        let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
+        // TODO: have set visualizations modify state and the render... or not
+        let display = `Visualization(...)`;
+        return (
+            <div className={`module-value ${grayedIffUnset}`}
+                 key={`${this.titleKey}-value`}>
+                 { display }
+            </div>
         );
     }
 
@@ -1633,9 +2077,15 @@ class ToolpathVisualizer extends LivelitWindow {
         return (
             <div className={`toolpath-visualizer content ${maybeHidden}`}
                  key={this.contentKey.toString()}>
-                <div>{this.state.machine.machineName}</div>
-                { this.renderToolpathThumbnails() }
-                { this.renderSelectedToolpathInstructions() }
+                <div className="bold-text">
+                    Machine Parameters
+                    ({this.state.machine.machineName})
+                </div>
+                { this.renderMachineParams() }
+                <div className="bold-text">Instructions</div>
+                { this.renderToolpathInstructions() }
+                <div className="bold-text">Visualization Interpreters</div>
+                { this.renderVizInterpreters() }
                 { this.applyButton }
            </div>
        );
