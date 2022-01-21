@@ -11,8 +11,8 @@
  */
 
 /// <reference path="lib/perspective-transform.d.ts" />
-import * as pair from './pair.js';
-import { mm, px } from './pair.js';
+import * as verso from './verso.js';
+import { mm, px } from './verso.js';
 (window as any).mm = mm;
 (window as any).px = px;
 
@@ -148,11 +148,11 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     ];
 
     defaultLinesMustacheExpanded = [
-        'let machine = new pair.Machine(\'axidraw\');',
-        'let tabletop = new pair.Tabletop();',
+        'let machine = new verso.Machine(\'axidraw\');',
+        'let tabletop = new verso.Tabletop();',
         'tabletop = tabletop',
-        'let camera = new pair.Camera(tabletop);',
-        'let mustache = new pair.Geometry(\'./toolpaths/mustache.svg\')',
+        'let camera = new verso.Camera(tabletop);',
+        'let mustache = new verso.Geometry(\'./toolpaths/mustache.svg\')',
         'let faceRegions = await camera.findFaceRegions();',
         'let faceCentroids = faceRegions.map(r => r.centroid);',
         'let toolpaths = faceCentroids.map(c => mustache.placeAt(c, tabletop));',
@@ -160,7 +160,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     ];
 
     defaultLinesMustacheLiveLits = [
-        'let machine = new pair.Machine(\'axidraw\');',
+        'let machine = new verso.Machine(\'axidraw\');',
         'let tabletop = await $tabletopCalibrator(machine);',
         'let camera = await $cameraCalibrator(tabletop);',
         'let mustache = await $geometryGallery(machine);',
@@ -174,11 +174,11 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     ];
 
     defaultToolpathPreviewing = [
-        'let machine = new pair.Machine(\'axidraw\');',
+        'let machine = new verso.Machine(\'axidraw\');',
         '// TODO: pen up calibrator with preview',
         'let tabletop = await $tabletopCalibrator(machine);',
         'let camera = await $cameraCalibrator(tabletop);',
-        'let point = new pair.Point(mm(75), mm(25));',
+        'let point = new verso.Point(mm(75), mm(25));',
         'let mustache = await $geometryGallery(machine, tabletop);',
         '// TODO: use either camera or toolpath direct manipulator',
         'let placedMustache = mustache.placeAt(point, tabletop);',
@@ -670,7 +670,7 @@ class GeometryGallery extends LivelitWindow {
         s += `else {`;
         s += `geomUrl = gg.state.selectedUrl;`;
         s += `}`;
-        s += `let geom = new pair.Geometry(tabletop);`;
+        s += `let geom = new verso.Geometry(tabletop);`;
         s += `await geom.loadFromFilepath(geomUrl);`;
         s += `return geom;`;
         s += `}`;
@@ -755,25 +755,25 @@ class GeometryGallery extends LivelitWindow {
                </div>;
     }
 
-    getUrlForGeometryName(desiredName: string, pairs?: [string, string][]) {
-        let pairList = pairs || this.state.imageNameUrlPairs;
-        let pairWithName = pairList.find((pair) => {
-            let geomName = pair[0];
-            let geomUrl = pair[1];
+    getUrlForGeometryName(desiredName: string, versos?: [string, string][]) {
+        let versoList = versos || this.state.imageNameUrlPairs;
+        let versoWithName = versoList.find((verso) => {
+            let geomName = verso[0];
+            let geomUrl = verso[1];
             return geomName === desiredName;
         });
-        let currentUrl = pairWithName ? pairWithName[1] : '';
+        let currentUrl = versoWithName ? versoWithName[1] : '';
         return currentUrl;
     }
 
-    getGeometryNameForUrl(url: string, pairs?: [string, string][]) {
-        let pairList = pairs || this.state.imageNameUrlPairs;
-        let pairWithSelectedUrl = pairList.find((pair) => {
-            let geomName = pair[0];
-            let geomUrl = pair[1];
+    getGeometryNameForUrl(url: string, versos?: [string, string][]) {
+        let versoList = versos || this.state.imageNameUrlPairs;
+        let versoWithSelectedUrl = versoList.find((verso) => {
+            let geomName = verso[0];
+            let geomUrl = verso[1];
             return geomUrl === this.state.selectedUrl;
         });
-        let geomName = pairWithSelectedUrl ? pairWithSelectedUrl[0] : '';
+        let geomName = versoWithSelectedUrl ? versoWithSelectedUrl[0] : '';
         return geomName;
     }
 
@@ -869,21 +869,21 @@ class PointPicker extends LivelitWindow {
 }
 
 interface TabletopCalibratorProps extends LivelitProps {
-    machine: pair.Machine | undefined;
-    tabletop: pair.Tabletop | undefined;
+    machine: verso.Machine | undefined;
+    tabletop: verso.Tabletop | undefined;
     ref: React.RefObject<TabletopCalibrator>;
     windowOpen: boolean;
 };
 
 interface TabletopCalibratorState extends LivelitState {
-    tabletop?: pair.Tabletop;
+    tabletop?: verso.Tabletop;
     pixelToPhysical?: Homography;
 };
 
 class TabletopCalibrator extends LivelitWindow {
     state: TabletopCalibratorState;
     props: TabletopCalibratorProps;
-    tabletop?: pair.Tabletop;
+    tabletop?: verso.Tabletop;
     applyButton: JSX.Element;
 
     constructor(props: TabletopCalibratorProps) {
@@ -910,7 +910,7 @@ class TabletopCalibrator extends LivelitWindow {
     expand() : string {
         let s = `async function ${this.functionName}(machine) {`;
         s += `let tc = PROGRAM_PANE.getLivelitWithName(\'$tabletopCalibrator\');`;
-        s += `tc.tabletop = new pair.Tabletop(machine);`;
+        s += `tc.tabletop = new verso.Tabletop(machine);`;
         s += 'if (!tc.state.valueSet) {';
         s += 'await tc.openWindow();';
         s += `await tc.applyTabletopHomography();`;
@@ -1056,14 +1056,14 @@ interface CameraCalibratorState extends LivelitState {
     /* Make this H optional rather than initializing it as an identity
      * because we are having a lot of problems producing an identity. */
     extrinsicTransform?: Homography;
-    selectedPoints: pair.Point[];
+    selectedPoints: verso.Point[];
 };
 
 class CameraCalibrator extends LivelitWindow {
     props: LivelitProps;
     state: CameraCalibratorState;
-    tabletop?: pair.Tabletop;
-    camera: pair.Camera;
+    tabletop?: verso.Tabletop;
+    camera: verso.Camera;
     applyButtonId: string;
     applyButton: JSX.Element;
     photoButtonId: string;
@@ -1072,7 +1072,7 @@ class CameraCalibrator extends LivelitWindow {
     constructor(props: CameraCalibratorProps) {
         super(props);
         this.props = props;
-        this.camera = new pair.Camera();
+        this.camera = new verso.Camera();
         this.titleText = 'Camera Calibrator';
         this.functionName = '$cameraCalibrator';
         this.applyButtonId = 'apply-camera-homography';
@@ -1097,7 +1097,7 @@ class CameraCalibrator extends LivelitWindow {
         };
     }
 
-    setImageToTableScaling(camera: pair.Camera) {
+    setImageToTableScaling(camera: verso.Camera) {
         let feedDom = document.getElementById('cc-unwarped-feed') as HTMLImageElement;
         if (feedDom && this.tabletop) {
             if (feedDom.naturalWidth === 0 || feedDom.naturalHeight === 0) {
@@ -1114,8 +1114,8 @@ class CameraCalibrator extends LivelitWindow {
         }
     }
 
-    async acceptCameraWarp() : Promise<pair.Camera> {
-        return new Promise<pair.Camera>((resolve) => {
+    async acceptCameraWarp() : Promise<verso.Camera> {
+        return new Promise<verso.Camera>((resolve) => {
             const applyButton = document.getElementById(this.applyButtonId);
             if (applyButton) {
                 applyButton.addEventListener('click', (event) => {
@@ -1259,7 +1259,7 @@ class CameraCalibrator extends LivelitWindow {
             const scaledY = event.clientY - domBoundingRect.top;
             const x = scaledX * (cameraWidth / scaledDownWidth);
             const y = scaledY * (cameraHeight / scaledDownHeight);
-            const pt = new pair.Point(x, y);
+            const pt = new verso.Point(x, y);
             this.setState((prev: CameraCalibratorState) => {
                 return {
                     selectedPoints: prev.selectedPoints.concat(pt)
@@ -1326,7 +1326,7 @@ class CameraCalibrator extends LivelitWindow {
 }
 
 interface FaceFinderProps extends LivelitProps {
-    camera?: pair.Camera;
+    camera?: verso.Camera;
     ref: React.RefObject<FaceFinder>;
     windowOpen: boolean;
 }
@@ -1334,12 +1334,12 @@ interface FaceFinderProps extends LivelitProps {
 interface FaceFinderState extends LivelitState {
     imageTaken: boolean;
     imagePath: string;
-    detectedRegions: pair.Region[];
+    detectedRegions: verso.Region[];
 }
 
 class FaceFinder extends LivelitWindow {
     state: FaceFinderState;
-    camera?: pair.Camera;
+    camera?: verso.Camera;
     props: FaceFinderProps;
     photoButton: JSX.Element;
     acceptButton: JSX.Element;
@@ -1401,7 +1401,7 @@ class FaceFinder extends LivelitWindow {
                     r.drawOnTabletop(this.camera.tabletop);
                 }
             });
-            let prevRegions : pair.Region[];
+            let prevRegions : verso.Region[];
             this.setState((prevState: FaceFinderState) => {
                 prevRegions = prevState.detectedRegions;
                 return {
@@ -1414,7 +1414,7 @@ class FaceFinder extends LivelitWindow {
     }
 
     async acceptDetectedRegions() {
-        return new Promise<pair.Region[]>((resolve) => {
+        return new Promise<verso.Region[]>((resolve) => {
             let acceptDom = document.getElementById('accept-faces');
             if (acceptDom) {
                 acceptDom.addEventListener('click', () => {
@@ -1485,7 +1485,7 @@ class ToolpathDirectManipulator extends LivelitWindow {
         .forEach((thumbnail) => {
             let hitResult = thumbnail.hitTest(event.point, hitOptions);
             if (hitResult) {
-                this.loadToolpathByName(thumbnail.pairName);
+                this.loadToolpathByName(thumbnail.versoName);
             }
         });
         // Able to manipulate toolpaths
@@ -1514,9 +1514,9 @@ interface CamCompilerProps extends LivelitProps {
 
 interface CamCompilerState extends LivelitState {
     currentCompilerName: string;
-    machine: pair.Machine;
-    geometry?: pair.Geometry;
-    toolpath?: pair.Toolpath;
+    machine: verso.Machine;
+    geometry?: verso.Geometry;
+    toolpath?: verso.Toolpath;
 }
 
 type CamGeometryInput = 'SVG' | 'STL';
@@ -1555,7 +1555,7 @@ class CamCompiler extends LivelitWindow {
         let maybeSavedToolpath = this.loadSavedValue();
         this.state = {
             currentCompilerName: 'Axidraw EBB Compiler',
-            machine: new pair.Machine('TEMP'),
+            machine: new verso.Machine('TEMP'),
             geometry: undefined,
             toolpath: maybeSavedToolpath,
             windowOpen: props.windowOpen,
@@ -1564,7 +1564,7 @@ class CamCompiler extends LivelitWindow {
         };
     }
 
-    async setArguments(machine: pair.Machine, geometry: pair.Geometry) {
+    async setArguments(machine: verso.Machine, geometry: verso.Geometry) {
         return new Promise<void>((resolve) => {
             this.setState(_ => {
                 return {
@@ -1620,7 +1620,7 @@ class CamCompiler extends LivelitWindow {
         });
     }
 
-    loadSavedValue() : pair.Toolpath | undefined {
+    loadSavedValue() : verso.Toolpath | undefined {
         interface RevivedToolpath {
            geometryUrl: string;
            instructions: string[];
@@ -1628,7 +1628,7 @@ class CamCompiler extends LivelitWindow {
         let serializedToolpath = localStorage.getItem(this.functionName);
         if (serializedToolpath) {
             let revivedTp = JSON.parse(serializedToolpath) as RevivedToolpath;
-            let toolpath = new pair.Toolpath(revivedTp.geometryUrl,
+            let toolpath = new verso.Toolpath(revivedTp.geometryUrl,
                 revivedTp.instructions);
             return toolpath;
         }
@@ -1649,11 +1649,11 @@ class CamCompiler extends LivelitWindow {
         });
     }
 
-    async generateToolpathWithCurrentCompiler(): Promise<pair.Toolpath> {
+    async generateToolpathWithCurrentCompiler(): Promise<verso.Toolpath> {
         // TODO: find the correct compiler to use, for now assume Axidraw.
         // return early if we cannot find an appropriate compiler
         // for the current machine.
-        return new Promise<pair.Toolpath>((resolve, reject) => {
+        return new Promise<verso.Toolpath>((resolve, reject) => {
             if (!this.state.geometry) {
                 throw new Error('Geometry not set');
             }
@@ -1663,8 +1663,8 @@ class CamCompiler extends LivelitWindow {
         });
     }
 
-    async acceptToolpath() : Promise<pair.Toolpath>{
-        return new Promise<pair.Toolpath>((resolve, reject) => {
+    async acceptToolpath() : Promise<verso.Toolpath>{
+        return new Promise<verso.Toolpath>((resolve, reject) => {
             const doneDom = document.getElementById('done-cam-compiler');
             if (doneDom) {
                 doneDom.addEventListener('click', (event) => {
@@ -1770,9 +1770,9 @@ interface ToolpathVisualizerProps extends LivelitProps {
 }
 
 interface ToolpathVisualizerState extends LivelitState {
-    machine: pair.Machine;
-    toolpath: pair.Toolpath;
-    tabletop?: pair.Tabletop;
+    machine: verso.Machine;
+    toolpath: verso.Toolpath;
+    tabletop?: verso.Tabletop;
     selectedInstIndex: number;
 }
 
@@ -1788,8 +1788,8 @@ class ToolpathVisualizer extends LivelitWindow {
                                 Done
                             </div>
         this.state = {
-            machine: new pair.Machine('TEMP'),
-            toolpath: new pair.Toolpath('', []),
+            machine: new verso.Machine('TEMP'),
+            toolpath: new verso.Toolpath('', []),
             tabletop: undefined,
             windowOpen: props.windowOpen,
             abortOnResumingExecution: false,
@@ -1798,9 +1798,9 @@ class ToolpathVisualizer extends LivelitWindow {
         };
     }
 
-    async setArguments(machine: pair.Machine,
-                       toolpath: pair.Toolpath,
-                       tabletop: pair.Tabletop) {
+    async setArguments(machine: verso.Machine,
+                       toolpath: verso.Toolpath,
+                       tabletop: verso.Tabletop) {
         return new Promise<void>((resolve) => {
             this.setState(_ => {
                 return {
@@ -1834,7 +1834,7 @@ class ToolpathVisualizer extends LivelitWindow {
         });
     }
 
-    basicViz(toolpath: pair.Toolpath) {
+    basicViz(toolpath: verso.Toolpath) {
         if (!this.state.tabletop) {
             throw new Error('Cannot visualize without tabletop linked.');
         }
@@ -1877,7 +1877,7 @@ class ToolpathVisualizer extends LivelitWindow {
 
     // TODO: is there a way to do this without copy paste? Maybe not because
     // each must be its own standalone interpreter
-    colorViz(toolpath: pair.Toolpath) {
+    colorViz(toolpath: verso.Toolpath) {
         if (!this.state.tabletop) {
             throw new Error('Cannot visualize without tabletop linked.');
         }
@@ -1926,7 +1926,7 @@ class ToolpathVisualizer extends LivelitWindow {
         return vizGroup;
     }
 
-    velocityThicknessViz(toolpath: pair.Toolpath) {
+    velocityThicknessViz(toolpath: verso.Toolpath) {
         if (!this.state.tabletop) {
             throw new Error('Cannot visualize without tabletop linked.');
         }

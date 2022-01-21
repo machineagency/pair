@@ -1,5 +1,5 @@
 import { inflateUI } from "./ui-root.js";
-import * as pair from './pair.js';
+import * as pair from './verso.js';
 
 const main = () => {
     inflateUI();

@@ -1,12 +1,12 @@
 /// <reference path="lib/paper.d.ts" />
 /// <reference path="lib/perspective-transform.d.ts" />
 
-/** This file contains all primitives in the (expanded) Pair language.
+/** This file contains all primitives in the (expanded) Verso language.
  */
 
-interface PairNameable extends paper.Group {
-    pairName: string;
-    pairType: string;
+interface VersoNameable extends paper.Group {
+    versoName: string;
+    versoType: string;
 }
 
 interface HitOptions {
@@ -412,7 +412,7 @@ export class Toolpath {
 }
 
 /**
- * Pair-level point object, one abstraction layer higher than paper.Point.
+ * Verso-level point object, one abstraction layer higher than paper.Point.
  */
 export class Point {
     paperPoint: paper.Point;
