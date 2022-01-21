@@ -1738,6 +1738,18 @@ class CamCompiler extends LivelitWindow {
         );
     }
 
+    renderValue() {
+        let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
+        let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
+        let display = `Toolpath(...) from ${this.state.currentCompilerName}`;
+        return (
+            <div className={`module-value ${grayedIffUnset}`}
+                 key={`${this.titleKey}-value`}>
+                 { display }
+            </div>
+        );
+    }
+
     renderContent() {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return (
@@ -2043,6 +2055,19 @@ class ToolpathVisualizer extends LivelitWindow {
                            onChange={this.toggleViz.bind(this)}/>
                     Velocity thickness lines
                 </div>
+            </div>
+        );
+    }
+
+    renderValue() {
+        let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
+        let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
+        // TODO: have set visualizations modify state and the render... or not
+        let display = `Visualization(...)`;
+        return (
+            <div className={`module-value ${grayedIffUnset}`}
+                 key={`${this.titleKey}-value`}>
+                 { display }
             </div>
         );
     }
