@@ -231,7 +231,20 @@ pre code.hljs {
     max-height: 200px;
     overflow-y: scroll;
     border: 1px solid white;
-    padding: 10px 0px 10px 10px;
+}
+
+#cam-compiler-list {
+    margin: 10px 10px 0px 0px;
+}
+
+.cam-compiler-item {
+    padding: 5px;
+    cursor: pointer;
+}
+
+.cam-compiler-item.highlight {
+    color: #23241f;
+    background-color: whitesmoke;
 }
 
 #machine-param-list {
@@ -242,12 +255,13 @@ pre code.hljs {
     margin-left: 10px;
 }
 
-.machine-param .param-key {
+.param-key {
     font-weight: bold;
     margin-right: 20px;
 }
 
-.machine-param .param-value {
+.param-value {
+    margin-right: 20px;
 }
 
 #inst-list {
@@ -276,6 +290,10 @@ pre code.hljs {
 
 #viz-interpreter-list input[type="checkbox"] {
     margin-right: 10px;
+}
+
+.viz-interpreter-item {
+    padding: 5px;
 }
 
 #program-controls {
