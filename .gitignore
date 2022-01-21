@@ -30,8 +30,8 @@ tags
 # Python
 *.pyc
 
-light_space/test_images/secret
-light_space/volatile
-light_space/client/*.js
-light_space/client/*.js.map
+test_images/secret
+volatile
+client/*.js
+client/*.js.map
 
