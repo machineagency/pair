@@ -1513,12 +1513,24 @@ interface CamCompilerProps extends LivelitProps {
 }
 
 interface CamCompilerState extends LivelitState {
+    currentCompilerName: string;
     machine: pair.Machine;
     geometry?: pair.Geometry;
+    toolpath: pair.Toolpath;
+}
+
+type CamGeometryInput = 'SVG' | 'STL';
+type CamIsaOutput = 'EBB' | 'g-Code';
+
+interface SingleCamCompiler {
+    name: string;
+    geometryInput: CamGeometryInput;
+    isaOutput: CamIsaOutput;
 }
 
 class CamCompiler extends LivelitWindow {
     state: CamCompilerState;
+    compilers: SingleCamCompiler[];
 
     constructor(props: CamCompilerProps) {
         super(props);
