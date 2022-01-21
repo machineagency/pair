@@ -1540,9 +1540,23 @@ class CamCompiler extends LivelitWindow {
                                 id="done-cam-compiler">
                                 Done
                             </div>
+        this.compilers = [
+            {
+                name: 'Axidraw EBB Compiler',
+                geometryInput: 'SVG',
+                isaOutput: 'EBB'
+            },
+            {
+                name: 'Jasper\'s Wacky Slicer',
+                geometryInput: 'STL',
+                isaOutput: 'g-Code'
+            }
+        ];
         this.state = {
+            currentCompilerName: 'Axidraw EBB Compiler',
             machine: new pair.Machine('TEMP'),
             geometry: undefined,
+            toolpath: new pair.Toolpath('', []),
             windowOpen: props.windowOpen,
             abortOnResumingExecution: false,
             valueSet: props.valueSet
@@ -1556,9 +1570,16 @@ class CamCompiler extends LivelitWindow {
                     machine: machine,
                     geometry: geometry
                 };
-            }, resolve);
-        });
-    }
+            }, () => {
+                this.generateToolpathWithCurrentCompiler()
+                    .then((toolpath) => {
+                        this.setState((prevState) => {
+                            return { toolpath: toolpath }
+                        }, resolve);
+                     });
+                });
+            });
+        }
 
     expand() : string {
         let s = `async function ${this.functionName}(machine, geometry) {`;
@@ -1572,31 +1593,99 @@ class CamCompiler extends LivelitWindow {
         return s;
     }
 
+    async generateToolpathWithCurrentCompiler(): Promise<pair.Toolpath> {
+        // TODO: find the correct compiler to use, for now assume Axidraw.
+        // return early if we cannot find an appropriate compiler
+        // for the current machine.
+        return new Promise<pair.Toolpath>((resolve, reject) => {
+            if (!this.state.geometry) {
+                throw new Error('Geometry not set');
+            }
+            this.state.machine
+                .compileGeometryToToolpath(this.state.geometry)
+                .then((toolpath) => resolve(toolpath));
+        });
+    }
+
     async acceptToolpath() : Promise<pair.Toolpath>{
         return new Promise<pair.Toolpath>((resolve, reject) => {
             const doneDom = document.getElementById('done-cam-compiler');
             if (doneDom) {
                 doneDom.addEventListener('click', (event) => {
-                    if (!this.state.geometry) {
-                        reject('CamCompiler: geometry not set.');
-                    }
-                    else {
-                        this.state.machine
-                            .compileGeometryToToolpath(this.state.geometry)
-                            .then((toolpath) => {
-                                resolve(toolpath);
-                            });
-                        }
+                    resolve(this.state.toolpath);
                 });
             }
         });
+    }
+
+    setCurrentCompiler(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+        let compilerItemDom = event.target as HTMLDivElement;
+        let compilerName = compilerItemDom.dataset.compilerName;
+        if (compilerName) {
+            this.generateToolpathWithCurrentCompiler().
+                then((toolpath) => {
+                    this.setState((prevState) => {
+                        return {
+                            currentCompilerName: compilerName,
+                            toolpath: toolpath
+                        };
+                    });
+                });
+        }
+    }
+
+    renderCompilers() {
+        let compilerDoms = this.compilers.map((compiler: SingleCamCompiler) => {
+            let maybeHighlight = compiler.name === this.state.currentCompilerName
+                                ? 'highlight' : '';
+            return (
+                <div className={`cam-compiler-item ${maybeHighlight}`}
+                     data-compiler-name={compiler.name}
+                     onClick={this.setCurrentCompiler.bind(this)}>
+                    <span className="compiler-name param-key"
+                          data-compiler-name={compiler.name}>
+                         { compiler.name }
+                    </span>
+                    <span className="geometry-input param-value"
+                          data-compiler-name={compiler.name}>
+                         { compiler.geometryInput }
+                    </span>
+                    <span className="isa-output param-value"
+                          data-compiler-name={compiler.name}>
+                         { compiler.isaOutput }
+                    </span>
+                </div>
+            );
+        });
+        return (
+            <div id="cam-compiler-list" className="boxed-list">
+                { compilerDoms }
+            </div>
+        );
+    }
+
+    renderToolpathInstructions() {
+        let instElements : JSX.Element[] = [];
+        if (this.state.toolpath) {
+            instElements = this.state.toolpath.instructions
+                .map((inst, idx) => {
+                return (
+                    <div className={`inst-list-item`}
+                         key={idx}>{inst}</div>
+                );
+            });
+        }
+        return (
+            <div id="inst-list" className="boxed-list">{ instElements }</div>
+        );
     }
 
     renderContent() {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return (
             <div className={`cam-compiler content ${maybeHidden}`}>
-                No options for now, just press done.
+                { this.renderCompilers() }
+                { this.renderToolpathInstructions() }
                 { this.applyButton }
             </div>
         );
