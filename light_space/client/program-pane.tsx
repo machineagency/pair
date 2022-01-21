@@ -1516,7 +1516,7 @@ interface CamCompilerState extends LivelitState {
     currentCompilerName: string;
     machine: pair.Machine;
     geometry?: pair.Geometry;
-    toolpath: pair.Toolpath;
+    toolpath?: pair.Toolpath;
 }
 
 type CamGeometryInput = 'SVG' | 'STL';
@@ -1552,14 +1552,15 @@ class CamCompiler extends LivelitWindow {
                 isaOutput: 'g-Code'
             }
         ];
+        let maybeSavedToolpath = this.loadSavedValue();
         this.state = {
             currentCompilerName: 'Axidraw EBB Compiler',
             machine: new pair.Machine('TEMP'),
             geometry: undefined,
-            toolpath: new pair.Toolpath('', []),
+            toolpath: maybeSavedToolpath,
             windowOpen: props.windowOpen,
             abortOnResumingExecution: false,
-            valueSet: props.valueSet
+            valueSet: !!maybeSavedToolpath
         };
     }
 
@@ -1583,14 +1584,69 @@ class CamCompiler extends LivelitWindow {
 
     expand() : string {
         let s = `async function ${this.functionName}(machine, geometry) {`;
-        s += `let td = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
-        s += `await td.setArguments(machine, geometry);`;
-        s += `await td.openWindow();`;
-        s += `let toolpath = await td.acceptToolpath();`;
-        s += `await td.closeWindow();`;
+        s += `let cc = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `let toolpath;`;
+        s += `if (!cc.state.valueSet) {`;
+        s += `await cc.setArguments(machine, geometry);`;
+        s += `await cc.openWindow();`;
+        s += `toolpath = await cc.acceptToolpath();`;
+        s += `await cc.saveValue();`;
+        s += `await cc.closeWindow();`;
+        s += `return toolpath;`;
+        s += `}`;
+        s += `else {`;
+        s += `toolpath = cc.state.toolpath;`;
+        s += `}`;
         s += `return toolpath;`;
         s += `}`;
         return s;
+    }
+
+    saveValue() {
+        if (this.state.abortOnResumingExecution) {
+            return;
+        }
+        return new Promise<void>((resolve) => {
+            if (this.state.toolpath) {
+                let serializedToolpath = JSON.stringify(this.state.toolpath,
+                    undefined, 2);
+                localStorage.setItem(this.functionName, serializedToolpath);
+                this.setState(_ => {
+                    return {
+                        valueSet: true
+                    }
+                }, resolve);
+            };
+        });
+    }
+
+    loadSavedValue() : pair.Toolpath | undefined {
+        interface RevivedToolpath {
+           geometryUrl: string;
+           instructions: string[];
+        }
+        let serializedToolpath = localStorage.getItem(this.functionName);
+        if (serializedToolpath) {
+            let revivedTp = JSON.parse(serializedToolpath) as RevivedToolpath;
+            let toolpath = new pair.Toolpath(revivedTp.geometryUrl,
+                revivedTp.instructions);
+            return toolpath;
+        }
+        else {
+            return undefined;
+        }
+    }
+
+    clearSavedValue() {
+        return new Promise<void>((resolve) => {
+            localStorage.removeItem(this.functionName);
+            this.setState(_ => {
+                return {
+                    toolpath: undefined,
+                    valueSet: false
+                }
+            }, resolve);
+        });
     }
 
     async generateToolpathWithCurrentCompiler(): Promise<pair.Toolpath> {
@@ -1612,7 +1668,9 @@ class CamCompiler extends LivelitWindow {
             const doneDom = document.getElementById('done-cam-compiler');
             if (doneDom) {
                 doneDom.addEventListener('click', (event) => {
-                    resolve(this.state.toolpath);
+                    if (this.state.toolpath) {
+                        resolve(this.state.toolpath);
+                    }
                 });
             }
         });
