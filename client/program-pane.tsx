@@ -25,6 +25,7 @@ interface LivelitProps {
     plRef: React.RefObject<ProgramLine>;
     windowOpen: boolean;
     valueSet: boolean;
+    key: string;
 
 };
 interface ProgramLineProps {
@@ -68,7 +69,8 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<GeometryGallery>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false
+                    windowOpen: false,
+                    key: text
                 };
                 return <GeometryGallery {...ggProps}>
                        </GeometryGallery>;
@@ -77,7 +79,8 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<PointPicker>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false
+                    windowOpen: false,
+                    key: text
                 };
                 return <PointPicker {...ppProps}>
                        </PointPicker>;
@@ -88,7 +91,8 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<TabletopCalibrator>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false
+                    windowOpen: false,
+                    key: text
                 };
                 return <TabletopCalibrator {...tcProps}>
                        </TabletopCalibrator>;
@@ -97,7 +101,8 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<CameraCalibrator>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false
+                    windowOpen: false,
+                    key: text
                 }
                 return <CameraCalibrator {...ccProps}></CameraCalibrator>;
             case 'faceFinder':
@@ -106,7 +111,8 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<FaceFinder>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false
+                    windowOpen: false,
+                    key: text
                 };
                 return <FaceFinder {...ffProps}>
                        </FaceFinder>;
@@ -115,7 +121,8 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<CamCompiler>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false
+                    windowOpen: false,
+                    key: text
                 };
                 return <CamCompiler {...camProps}>
                        </CamCompiler>
@@ -124,7 +131,8 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<ToolpathVisualizer>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false
+                    windowOpen: false,
+                    key: text
                 };
                 return <ToolpathVisualizer {...tdProps}></ToolpathVisualizer>;
             default:
@@ -607,10 +615,10 @@ class LivelitWindow extends React.Component {
     render() {
         return <div className={this.livelitClassName}
                     key={this.livelitClassName}>
-                    {[ this.renderTitle(),
-                       this.renderValue(),
-                       this.renderClearButton(),
-                       this.renderContent() ]}
+                    { this.renderTitle() }
+                    { this.renderValue() }
+                    { this.renderClearButton()}
+                    { this.renderContent() }
                </div>
     }
 };
@@ -795,8 +803,6 @@ class GeometryGallery extends LivelitWindow {
             return this.renderGalleryItem(name, url, idx);
         });
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
-        // TODO: if we hide options, instead show a preview of the currently
-        // saved geometry
         return <div className={`content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
                     <div className="gallery">
@@ -1693,11 +1699,13 @@ class CamCompiler extends LivelitWindow {
     }
 
     renderCompilers() {
-        let compilerDoms = this.compilers.map((compiler: SingleCamCompiler) => {
+        let compilerDoms = this.compilers.map((compiler: SingleCamCompiler,
+                                               idx: number) => {
             let maybeHighlight = compiler.name === this.state.currentCompilerName
                                 ? 'highlight' : '';
             return (
                 <div className={`cam-compiler-item ${maybeHighlight}`}
+                     key={idx}
                      data-compiler-name={compiler.name}
                      onClick={this.setCurrentCompiler.bind(this)}>
                     <span className="compiler-name param-key"
