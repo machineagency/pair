@@ -763,25 +763,25 @@ class GeometryGallery extends LivelitWindow {
                </div>;
     }
 
-    getUrlForGeometryName(desiredName: string, versos?: [string, string][]) {
-        let versoList = versos || this.state.imageNameUrlPairs;
-        let versoWithName = versoList.find((verso) => {
-            let geomName = verso[0];
-            let geomUrl = verso[1];
+    getUrlForGeometryName(desiredName: string, pairs?: [string, string][]) {
+        let pairList = pairs || this.state.imageNameUrlPairs;
+        let pairWithName = pairList.find((pair) => {
+            let geomName = pair[0];
+            let geomUrl = pair[1];
             return geomName === desiredName;
         });
-        let currentUrl = versoWithName ? versoWithName[1] : '';
+        let currentUrl = pairWithName ? pairWithName[1] : '';
         return currentUrl;
     }
 
-    getGeometryNameForUrl(url: string, versos?: [string, string][]) {
-        let versoList = versos || this.state.imageNameUrlPairs;
-        let versoWithSelectedUrl = versoList.find((verso) => {
-            let geomName = verso[0];
-            let geomUrl = verso[1];
+    getGeometryNameForUrl(url: string, pairs?: [string, string][]) {
+        let pairList = pairs || this.state.imageNameUrlPairs;
+        let pairWithSelectedUrl = pairList.find((pair) => {
+            let geomName = pair[0];
+            let geomUrl = pair[1];
             return geomUrl === this.state.selectedUrl;
         });
-        let geomName = versoWithSelectedUrl ? versoWithSelectedUrl[0] : '';
+        let geomName = pairWithSelectedUrl ? pairWithSelectedUrl[0] : '';
         return geomName;
     }
 
