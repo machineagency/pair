@@ -1,11 +1,11 @@
 import { inflateUI } from "./ui-root.js";
-import * as pair from './verso.js';
+import * as verso from './verso.js';
 
 const main = () => {
     inflateUI();
 };
 
 window.onload = function() {
-    (window as any).pair = pair;
+    (window as any).verso = verso;
     main();
 }
