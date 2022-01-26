@@ -1519,17 +1519,19 @@ interface CamCompilerProps extends LivelitProps {
 }
 
 interface CamCompilerState extends LivelitState {
-    currentCompilerName: string;
+    currentCompilerName?: CamCompilerName;
     machine: verso.Machine;
     geometry?: verso.Geometry;
     toolpath?: verso.Toolpath;
 }
 
+type CamCompilerName = 'Axidraw EBB Compiler'
+    | 'Jasper\'s Wacky Slicer';
 type CamGeometryInput = 'SVG' | 'STL';
 type CamIsaOutput = 'EBB' | 'g-Code';
 
 interface SingleCamCompiler {
-    name: string;
+    name: CamCompilerName;
     geometryInput: CamGeometryInput;
     isaOutput: CamIsaOutput;
 }
@@ -1558,15 +1560,15 @@ class CamCompiler extends LivelitWindow {
                 isaOutput: 'g-Code'
             }
         ];
-        let maybeSavedToolpath = this.loadSavedValue();
+        let maybeSavedCamCompilerName = this.loadSavedValue();
         this.state = {
-            currentCompilerName: 'Axidraw EBB Compiler',
+            currentCompilerName: maybeSavedCamCompilerName,
             machine: new verso.Machine('TEMP'),
             geometry: undefined,
-            toolpath: maybeSavedToolpath,
+            toolpath: undefined,
             windowOpen: props.windowOpen,
             abortOnResumingExecution: false,
-            valueSet: !!maybeSavedToolpath
+            valueSet: !!maybeSavedCamCompilerName
         };
     }
 
@@ -1613,10 +1615,8 @@ class CamCompiler extends LivelitWindow {
             return;
         }
         return new Promise<void>((resolve) => {
-            if (this.state.toolpath) {
-                let serializedToolpath = JSON.stringify(this.state.toolpath,
-                    undefined, 2);
-                localStorage.setItem(this.functionName, serializedToolpath);
+            if (this.state.currentCompilerName) {
+                localStorage.setItem(this.functionName, this.state.currentCompilerName);
                 this.setState(_ => {
                     return {
                         valueSet: true
@@ -1626,21 +1626,13 @@ class CamCompiler extends LivelitWindow {
         });
     }
 
-    loadSavedValue() : verso.Toolpath | undefined {
-        interface RevivedToolpath {
-           geometryUrl: string;
-           instructions: string[];
-        }
-        let serializedToolpath = localStorage.getItem(this.functionName);
-        if (serializedToolpath) {
-            let revivedTp = JSON.parse(serializedToolpath) as RevivedToolpath;
-            let toolpath = new verso.Toolpath(revivedTp.geometryUrl,
-                revivedTp.instructions);
-            return toolpath;
-        }
-        else {
-            return undefined;
-        }
+    loadSavedValue() : CamCompilerName | undefined {
+        let compilerName = localStorage.getItem(this.functionName);
+        if (compilerName) {
+            // TODO: actually verify
+            return compilerName as CamCompilerName;
+        };
+        return undefined;
     }
 
     clearSavedValue() {
@@ -1648,7 +1640,7 @@ class CamCompiler extends LivelitWindow {
             localStorage.removeItem(this.functionName);
             this.setState(_ => {
                 return {
-                    toolpath: undefined,
+                    currentCompilerName: undefined,
                     valueSet: false
                 }
             }, resolve);
@@ -1749,7 +1741,7 @@ class CamCompiler extends LivelitWindow {
     renderValue() {
         let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
         let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
-        let display = `Toolpath(...) from ${this.state.currentCompilerName}`;
+        let display = `${this.state.currentCompilerName}`;
         return (
             <div className={`module-value ${grayedIffUnset}`}
                  key={`${this.titleKey}-value`}>
