@@ -38,6 +38,10 @@ pre code.hljs {
     font-style: normal;
 }
 
+.cam-compiler-item.grayed {
+    cursor: not-allowed;
+}
+
 #root {
     height: 100%;
     width: 100%;
