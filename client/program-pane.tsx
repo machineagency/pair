@@ -1617,22 +1617,24 @@ class CamCompiler extends LivelitWindow {
         // return early if we cannot find an appropriate compiler
         // for the current machine.
         return new Promise<verso.Toolpath>((resolve, reject) => {
-            if (!this.state.geometry) {
-                throw new Error('Geometry not set');
-            }
             let compiler = this.compilers.find(c => c.name
                 === this.state.currentCompilerName);
-            if (!compiler) {
-                throw new Error(`Can't find a compiler named`
+            if (!this.state.geometry) {
+                reject('Geometry not set');
+            }
+            else if (!compiler) {
+                reject(`Can't find a compiler named`
                     + ` ${this.state.currentCompilerName}`);
             }
-            if (compiler.geometryInput !== this.state.geometry.filetype) {
-                throw new Error(`${this.state.currentCompilerName} cannot compile`
+            else if (compiler.geometryInput !== this.state.geometry.filetype) {
+                reject(`${this.state.currentCompilerName} cannot compile`
                     + ` a geometry with filetype ${this.state.geometry.filetype}`);
-            };
-            this.state.machine
-                .compileGeometryToToolpath(this.state.geometry)
-                .then((toolpath) => resolve(toolpath));
+            }
+            else {
+                this.state.machine
+                    .compileGeometryToToolpath(this.state.geometry)
+                    .then((toolpath) => resolve(toolpath));
+            }
         });
     }
 
