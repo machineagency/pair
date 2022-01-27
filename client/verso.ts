@@ -735,47 +735,6 @@ export class Machine {
         }
     }
 
-    /* DEPRECATED */
-    async _fetchPreviewUrl(toolpath: Toolpath) {
-        // Credit: https://github.com/yoksel/url-encoder/ .
-        const urlEncodeSvg = (data: String) : String => {
-            const symbols = /[\r\n%#()<>?[\\\]^`{|}]/g;
-            data = data.replace(/"/g, `'`);
-            data = data.replace(/>\s{1,}</g, `><`);
-            data = data.replace(/\s{2,}/g, ` `);
-            return data.replace(symbols, encodeURIComponent);
-        }
-        if (!this.tabletop) {
-            console.error(`${this.machineName} needs a tabletop before previewing.`);
-            return;
-        }
-        const headerXmlns = 'xmlns="http://www.w3.org/2000/svg"';
-        const headerWidth = `width="${this.tabletop.workEnvelope.width}mm"`;
-        const headerHeight = `height="${this.tabletop.workEnvelope.height}mm"`;
-        const svgHeader = `<svg ${headerXmlns} ${headerWidth} ${headerHeight}>`;
-        const svgFooter = `</svg>`;
-        const visibleGroupCopy = toolpath.vizGroup
-                                    .clone({ insert: false, deep: true })
-                                    .set({ visible: true });
-        const svgPath = visibleGroupCopy.exportSVG({
-            bounds: 'content',
-            asString: true,
-            precision: 2
-        });
-        const svgString = svgHeader + svgPath + svgFooter;
-        const encodedSvg = urlEncodeSvg(svgString);
-        const url = `${BASE_URL}/machine/generatePreview?svgString=${encodedSvg}`;
-        let response = await fetch(url);
-        if (response.ok) {
-            let blob = await response.blob();
-            let url = URL.createObjectURL(blob);
-            return url;
-        }
-        else {
-            console.error('Couldn\'t fetch toolpath preview.');
-        }
-    }
-
     plotToolpathOnTabletop(toolpath: Toolpath, tabletop: Tabletop) {
         let tpGroupCopy = toolpath.vizGroup.clone({
             deep: true,
