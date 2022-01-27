@@ -725,7 +725,10 @@ class GeometryGallery extends LivelitWindow {
             return {
                 selectedUrl: url
             };
-        }, RERUN);
+        }, () => {
+            this.saveValue();
+            RERUN();
+        });
     }
 
     renderGalleryItem(name: string, url: string, itemNumber: number) {
@@ -1650,15 +1653,21 @@ class CamCompiler extends LivelitWindow {
         let compilerItemDom = event.target as HTMLDivElement;
         let compilerName = compilerItemDom.dataset.compilerName;
         if (compilerName) {
-            this.generateToolpathWithCurrentCompiler().
-                then((toolpath) => {
-                    this.setState((prevState) => {
-                        return {
-                            currentCompilerName: compilerName,
-                            toolpath: toolpath
-                        };
-                    }, RERUN);
+            this.setState((prevState) => {
+                return { currentCompilerName: compilerName };
+            }, () => {
+                this.generateToolpathWithCurrentCompiler()
+                    .then((toolpath) => {
+                        this.setState((prevState) => {
+                            return {
+                                toolpath: toolpath
+                            };
+                        }, () => {
+                            this.saveValue();
+                            RERUN();
+                        });
                 });
+            });
         }
     }
 
