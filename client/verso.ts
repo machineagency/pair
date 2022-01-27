@@ -211,6 +211,10 @@ export class Tabletop {
         }
     }
 
+    removeAllViz() {
+        this.vizLayer.removeChildren();
+    }
+
     sendPaperItemToMachine(itemToSend: paper.Item) : Promise<Response> {
         // Credit: https://github.com/yoksel/url-encoder/ .
         const urlEncodeSvg = (data: String) : String => {

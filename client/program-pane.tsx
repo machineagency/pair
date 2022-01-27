@@ -2046,7 +2046,7 @@ class ToolpathVisualizer extends LivelitWindow {
             let maybeHighlight = interpreter.name === this.state.currentInterpreterName
                                 ? 'highlight' : '';
             return (
-                <div className={`cam-interpreter-item ${maybeHighlight}`}
+                <div className={`viz-interpreter-item ${maybeHighlight}`}
                      key={idx}
                      data-interpreter-name={interpreter.name}
                      onClick={this.setCurrentInterpreterName.bind(this)}>
@@ -2075,9 +2075,9 @@ class ToolpathVisualizer extends LivelitWindow {
         let functionText = interpreter ? interpreter.implementation
                                        : '';
         return (
-            <div className="help-text">
-                { functionText }
-            </div>
+            <pre id="viz-implementation-box" className="code-box"><code>
+                {functionText}
+            </code></pre>
         );
     }
 
