@@ -1667,7 +1667,7 @@ class CamCompiler extends LivelitWindow {
                             currentCompilerName: compilerName,
                             toolpath: toolpath
                         };
-                    });
+                    }, RERUN);
                 });
         }
     }
