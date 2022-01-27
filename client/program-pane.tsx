@@ -557,6 +557,21 @@ class LivelitWindow extends React.Component {
         });
     };
 
+    highlightPL(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+        if (this.props.plRef.current) {
+            this.props.plRef.current.setState(_ => {
+                return { highlight: true };
+            });
+        }
+    }
+
+    unhighlightPL(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+        if (this.props.plRef.current) {
+            this.props.plRef.current.setState(_ => {
+                return { highlight: false };
+            });
+        }
+    }
 
     handleAbortExecution() : never {
         throw new ResetExecution();
@@ -609,6 +624,8 @@ class LivelitWindow extends React.Component {
 
     render() {
         return <div className={this.livelitClassName}
+                    onMouseEnter={this.highlightPL.bind(this)}
+                    onMouseLeave={this.unhighlightPL.bind(this)}
                     key={this.livelitClassName}>
                     { this.renderTitle() }
                     { this.renderValue() }
