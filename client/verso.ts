@@ -584,10 +584,18 @@ export class Camera {
     }
 }
 
+export type GeometryFiletype = 'svg' | 'stl';
+
 export class Geometry {
     tabletop: Tabletop;
-    filepath?: string;
     paperGroup?: paper.Group;
+
+    // The name of the file for the geometry in the form <NAME>.<FILETYPE>
+    filename?: string;
+
+    // A filepath or URL for retrieving the geometry's file, note that this
+    // path does not necessarily contain the filetype.
+    filepath?: string;
 
     constructor(tabletop: Tabletop) {
         this.tabletop = tabletop;
@@ -596,6 +604,18 @@ export class Geometry {
     get position() {
         if (this.paperGroup) {
             return this.paperGroup.position;
+        }
+    }
+
+    get filetype() : GeometryFiletype | undefined {
+        if (this.filepath) {
+            let maybePathSegments = this.filename?.split('.');
+            if (maybePathSegments && maybePathSegments.length === 2) {
+                let maybeFiletype = maybePathSegments[1];
+                if (maybeFiletype === 'svg' || maybeFiletype === 'stl') {
+                    return maybeFiletype;
+                }
+            }
         }
     }
 
@@ -616,7 +636,7 @@ export class Geometry {
         // TODO
     }
 
-    async loadFromFilepath(filepath: string) : Promise<paper.Group> {
+    async loadFromFilepath(filename: string, filepath: string) : Promise<paper.Group> {
         return new Promise<paper.Group>((resolve) => {
             this.tabletop.project.importSVG(filepath, {
                 expandShapes: true,
@@ -632,6 +652,7 @@ export class Geometry {
                         item.bounds.height * 0.5 + this.tabletop.workEnvelope.anchor.y
                     );
                     this.paperGroup = item;
+                    this.filename = filename;
                     this.filepath = filepath;
                     resolve(item);
                 }

@@ -644,6 +644,7 @@ interface GeometryGalleryState extends LivelitState {
     selectedUrl: string;
     imageNameUrlPairs: [string, string][];
 };
+
 class GeometryGallery extends LivelitWindow {
     state: GeometryGalleryState;
 
@@ -678,7 +679,8 @@ class GeometryGallery extends LivelitWindow {
         s += `let gg = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `let geomUrl = gg.state.selectedUrl;`;
         s += `let geom = new verso.Geometry(tabletop);`;
-        s += `await geom.loadFromFilepath(geomUrl);`;
+        s += `let geomName = gg.getGeometryNameForUrl(geomUrl);`;
+        s += `await geom.loadFromFilepath(geomName, geomUrl);`;
         s += `return geom;`;
         s += `}`;
         return s;
@@ -733,22 +735,7 @@ class GeometryGallery extends LivelitWindow {
             return {
                 selectedUrl: url
             };
-        }, () => document.getElementById('run-prog-btn')?.click());
-    }
-
-    async saveChosenGeometryAndRerun() : Promise<string>{
-        return new Promise<string>((resolve) => {
-            const chooseDom = document.getElementById('choose-geometry');
-            if (chooseDom) {
-                chooseDom.addEventListener('click', (event) => {
-                    RERUN();
-                    resolve(this.state.selectedUrl);
-                });
-            }
-            else {
-                resolve('');
-            }
-        });
+        }, RERUN);
     }
 
     renderGalleryItem(name: string, url: string, itemNumber: number) {
@@ -1525,12 +1512,11 @@ interface CamCompilerState extends LivelitState {
 
 type CamCompilerName = 'Axidraw EBB Compiler'
     | 'Jasper\'s Wacky Slicer';
-type CamGeometryInput = 'SVG' | 'STL';
 type CamIsaOutput = 'EBB' | 'g-Code';
 
 interface SingleCamCompiler {
     name: CamCompilerName;
-    geometryInput: CamGeometryInput;
+    geometryInput: verso.GeometryFiletype;
     isaOutput: CamIsaOutput;
 }
 
@@ -1545,12 +1531,12 @@ class CamCompiler extends LivelitWindow {
         this.compilers = [
             {
                 name: 'Axidraw EBB Compiler',
-                geometryInput: 'SVG',
+                geometryInput: 'svg',
                 isaOutput: 'EBB'
             },
             {
                 name: 'Jasper\'s Wacky Slicer',
-                geometryInput: 'STL',
+                geometryInput: 'stl',
                 isaOutput: 'g-Code'
             }
         ];
@@ -1641,6 +1627,16 @@ class CamCompiler extends LivelitWindow {
             if (!this.state.geometry) {
                 throw new Error('Geometry not set');
             }
+            let compiler = this.compilers.find(c => c.name
+                === this.state.currentCompilerName);
+            if (!compiler) {
+                throw new Error(`Can't find a compiler named`
+                    + ` ${this.state.currentCompilerName}`);
+            }
+            if (compiler.geometryInput !== this.state.geometry.filetype) {
+                throw new Error(`${this.state.currentCompilerName} cannot compile`
+                    + ` a geometry with filetype ${this.state.geometry.filetype}`);
+            };
             this.state.machine
                 .compileGeometryToToolpath(this.state.geometry)
                 .then((toolpath) => resolve(toolpath));
@@ -1679,10 +1675,13 @@ class CamCompiler extends LivelitWindow {
     renderCompilers() {
         let compilerDoms = this.compilers.map((compiler: SingleCamCompiler,
                                                idx: number) => {
+            let maybeGrayed = compiler.geometryInput !== this.state.geometry?.filetype
+                                ? 'grayed' : '';
             let maybeHighlight = compiler.name === this.state.currentCompilerName
+                                 && !maybeGrayed
                                 ? 'highlight' : '';
             return (
-                <div className={`cam-compiler-item ${maybeHighlight}`}
+                <div className={`cam-compiler-item ${maybeHighlight} ${maybeGrayed}`}
                      key={idx}
                      data-compiler-name={compiler.name}
                      onClick={this.setCurrentCompiler.bind(this)}>
