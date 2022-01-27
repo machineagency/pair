@@ -16,11 +16,9 @@ import { mm, px } from './verso.js';
 (window as any).mm = mm;
 (window as any).px = px;
 
-// Declare two global variables that get assigned when the user program evals.
-// There is probably a better way to do this but working with doubly linked
-// refs has been very confusing.
-let RERUN: () => void;
-let PROGRAM_PANE: ProgramPane;
+function RERUN() {
+    document.getElementById('run-prog-btn')?.click();
+}
 
 interface Props {};
 interface LivelitProps {
@@ -282,8 +280,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
                                       .getElementsByClassName('program-line-text'));
             return programLines.map(el => (el as HTMLElement).innerText).join('\n');
         };
-        PROGRAM_PANE = this;
-        RERUN = this.runAllLines;
+        const PROGRAM_PANE = this;
         let innerProgText = extractProgramText();
         let livelitFunctionDeclarations = this.gatherLivelitsAsFunctionDeclarations();
         let progText  = `${livelitFunctionDeclarations}`;
