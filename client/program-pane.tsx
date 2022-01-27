@@ -1542,10 +1542,6 @@ class CamCompiler extends LivelitWindow {
         super(props);
         this.titleText = 'CAM Compiler';
         this.functionName = '$camCompiler';
-        this.applyButton = <div className="button apply-btn"
-                                id="done-cam-compiler">
-                                Done
-                            </div>
         this.compilers = [
             {
                 name: 'Axidraw EBB Compiler',
@@ -1593,17 +1589,8 @@ class CamCompiler extends LivelitWindow {
         s += `let cc = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `let toolpath;`;
         s += `await cc.setArguments(machine, geometry);`;
-        s += `if (!cc.state.valueSet) {`;
-        s += `await cc.openWindow();`;
-        s += `toolpath = await cc.acceptToolpath();`;
-        s += `await cc.saveValue();`;
-        s += `await cc.closeWindow();`;
-        s += `return toolpath;`;
-        s += `}`;
-        s += `else {`;
         s += `cc.generateToolpathWithCurrentCompiler();`;
         s += `toolpath = cc.state.toolpath;`;
-        s += `}`;
         s += `return toolpath;`;
         s += `}`;
         return s;
@@ -1750,12 +1737,10 @@ class CamCompiler extends LivelitWindow {
     }
 
     renderContent() {
-        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return (
-            <div className={`cam-compiler content ${maybeHidden}`}>
+            <div className="cam-compiler content">
                 { this.renderCompilers() }
                 { this.renderToolpathInstructions() }
-                { this.applyButton }
             </div>
         );
     }
