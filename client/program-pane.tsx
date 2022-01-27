@@ -679,7 +679,6 @@ class GeometryGallery extends LivelitWindow {
         s += `let geomUrl = gg.state.selectedUrl;`;
         s += `let geom = new verso.Geometry(tabletop);`;
         s += `await geom.loadFromFilepath(geomUrl);`;
-        s += `console.log(geom);`;
         s += `return geom;`;
         s += `}`;
         return s;
