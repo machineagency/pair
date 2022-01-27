@@ -1826,6 +1826,7 @@ class ToolpathVisualizer extends LivelitWindow {
 
     saveValue() {
         localStorage.setItem(this.functionName, this.state.currentInterpreterName);
+        this.setState((prevState) => ({ valueSet: true }));
     }
 
     loadSavedValue() {
