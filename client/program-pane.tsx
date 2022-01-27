@@ -1757,24 +1757,49 @@ interface ToolpathVisualizerState extends LivelitState {
     machine: verso.Machine;
     toolpath: verso.Toolpath;
     tabletop?: verso.Tabletop;
+    currentInterpreterName: string;
     selectedInstIndex: number;
+}
+
+interface VisualizerInterpreter {
+    name: string;
+    description: string;
+    implementation: string;
 }
 
 class ToolpathVisualizer extends LivelitWindow {
     state: ToolpathVisualizerState;
+    interpreters: VisualizerInterpreter[];
 
     constructor(props: ToolpathVisualizerProps) {
         super(props);
         this.titleText = 'Toolpath Visualizer';
         this.functionName = '$toolpathVisualizer';
-        this.applyButton = <div className="button apply-btn"
-                                id="done-toolpath-visualizer">
-                                Done
-                            </div>
+        // TODO: move the interpreter methods somewhere else where we can declare
+        // a type and also generate this.interpreters programatically.
+        this.interpreters = [
+            {
+                name: this.basicViz.name,
+                description: 'All movement lines.',
+                implementation: this.basicViz.toString(),
+            },
+            {
+                name: this.colorViz.name,
+                description: 'Travel and plot lines encoded by color.',
+                implementation: this.colorViz.toString(),
+            },
+            {
+                name: this.velocityThicknessViz.name,
+                description: 'Movement lines with thickness proportional to'
+                             + ' velocity.',
+                implementation: this.velocityThicknessViz.toString(),
+            }
+        ];
         this.state = {
             machine: new verso.Machine('TEMP'),
             toolpath: new verso.Toolpath('', []),
             tabletop: undefined,
+            currentInterpreterName: 'basicViz',
             windowOpen: props.windowOpen,
             abortOnResumingExecution: false,
             valueSet: props.valueSet,
@@ -1796,13 +1821,25 @@ class ToolpathVisualizer extends LivelitWindow {
         });
     }
 
+    setCurrentInterpreterName(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+        let interpreterItemDom = event.target as HTMLDivElement;
+        let interpreterName = interpreterItemDom.dataset.interpreterName;
+        if (interpreterName) {
+            this.state.tabletop?.vizLayer.removeChildren();
+            eval(`this.${interpreterName}(this.state.toolpath);`);
+            this.setState((prevState) => {
+                return {
+                    currentInterpreterName: interpreterName,
+                };
+            });
+        }
+    }
+
     expand() : string {
         let s = `async function ${this.functionName}(machine, toolpath, tabletop) {`;
         s += `let td = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `await td.setArguments(machine, toolpath, tabletop);`;
-        s += `await td.openWindow();`;
-        s += `await td.finishDeployment();`;
-        s += `await td.closeWindow();`;
+        s += `td.basicViz(td.state.toolpath);`;
         s += `}`;
         return s;
     }
@@ -2019,26 +2056,43 @@ class ToolpathVisualizer extends LivelitWindow {
     }
 
     renderVizInterpreters() {
+        let interpreterDoms = this.interpreters
+                                  .map((interpreter: VisualizerInterpreter,
+                                        idx: number) => {
+            let maybeHighlight = interpreter.name === this.state.currentInterpreterName
+                                ? 'highlight' : '';
+            return (
+                <div className={`cam-interpreter-item ${maybeHighlight}`}
+                     key={idx}
+                     data-interpreter-name={interpreter.name}
+                     onClick={this.setCurrentInterpreterName.bind(this)}>
+                    <span className="interpreter-name param-key"
+                          data-interpreter-name={interpreter.name}>
+                         { interpreter.name }
+                    </span>
+                    <span className="geometry-input param-value"
+                          data-interpreter-name={interpreter.name}>
+                         { interpreter.description }
+                    </span>
+                </div>
+            );
+        });
         return (
-            <div id="viz-interpreter-list" className="boxed-list">
-                <div className="viz-interpreter-item">
-                    <input type="checkbox"
-                           data-viz-name="plainMovementLines"
-                           onChange={this.toggleViz.bind(this)}/>
-                    Plain movement lines
-                </div>
-                <div className="viz-interpreter-item">
-                    <input type="checkbox"
-                           data-viz-name="coloredMovementLines"
-                           onChange={this.toggleViz.bind(this)}/>
-                    Colored movement lines
-                </div>
-                <div className="viz-interpreter-item">
-                    <input type="checkbox"
-                           data-viz-name="velocityThicknessLines"
-                           onChange={this.toggleViz.bind(this)}/>
-                    Velocity thickness lines
-                </div>
+            <div id="cam-compiler-list" className="boxed-list">
+                { interpreterDoms }
+            </div>
+        );
+    }
+
+    renderImplementation() {
+        let interpreter = this.interpreters.find(i => {
+            return i.name === this.state.currentInterpreterName;
+        });
+        let functionText = interpreter ? interpreter.implementation
+                                       : '';
+        return (
+            <div className="help-text">
+                { functionText }
             </div>
         );
     }
@@ -2047,7 +2101,7 @@ class ToolpathVisualizer extends LivelitWindow {
         let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
         let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
         // TODO: have set visualizations modify state and the render... or not
-        let display = `Visualization(...)`;
+        let display = `Interpreter(${this.state.currentInterpreterName})`;
         return (
             <div className={`module-value ${grayedIffUnset}`}
                  key={`${this.titleKey}-value`}>
@@ -2057,20 +2111,13 @@ class ToolpathVisualizer extends LivelitWindow {
     }
 
     renderContent() {
-        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return (
-            <div className={`toolpath-visualizer content ${maybeHidden}`}
+            <div className="toolpath-visualizer content"
                  key={this.contentKey.toString()}>
-                <div className="bold-text">
-                    Machine Parameters
-                    ({this.state.machine.machineName})
-                </div>
-                { this.renderMachineParams() }
-                <div className="bold-text">Instructions</div>
-                { this.renderToolpathInstructions() }
                 <div className="bold-text">Visualization Interpreters</div>
                 { this.renderVizInterpreters() }
-                { this.applyButton }
+                <div className="bold-text">Implementation</div>
+                { this.renderImplementation() }
            </div>
        );
     }
