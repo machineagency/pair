@@ -2000,35 +2000,6 @@ class ToolpathVisualizer extends LivelitWindow {
         return vizGroup;
     }
 
-    toggleViz(event: React.ChangeEvent<HTMLInputElement>) {
-        let vizName = event.target.dataset.vizName;
-        let checked = event.target.checked;
-        if (!this.state.tabletop
-            || !this.state.toolpath
-            || !vizName) {
-            throw new Error('Tabletop, visualization DOM name, or '
-                            + 'toolpath not set for visualization.');
-        }
-        if (!checked) {
-            this.state.tabletop.removeVizWithName(vizName);
-            return;
-        }
-        let visualization : paper.Group;
-        if (vizName === 'plainMovementLines') {
-            visualization = this.basicViz(this.state.toolpath)
-        }
-        else if (vizName === 'coloredMovementLines') {
-            visualization = this.colorViz(this.state.toolpath)
-        }
-        else if (vizName === 'velocityThicknessLines') {
-            visualization = this.velocityThicknessViz(this.state.toolpath)
-        }
-        else {
-            return;
-        }
-        this.state.tabletop.addVizWithName(visualization, vizName);
-    }
-
     renderToolpathInstructions() {
         let instElements : JSX.Element[] = [];
         if (this.state.toolpath) {
