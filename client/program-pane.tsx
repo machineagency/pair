@@ -1824,6 +1824,14 @@ class ToolpathVisualizer extends LivelitWindow {
         });
     }
 
+    saveValue() {
+        localStorage.setItem(this.functionName, this.state.currentInterpreterName);
+    }
+
+    loadSavedValue() {
+        return localStorage.getItem(this.functionName) || undefined;
+    }
+
     setCurrentInterpreterName(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
         if (!this.state.tabletop) {
             throw Error('Cannot set interpreter without tabletop.');
@@ -1838,7 +1846,7 @@ class ToolpathVisualizer extends LivelitWindow {
                 return {
                     currentInterpreterName: interpreterName,
                 };
-            });
+            }, () => this.saveValue());
         }
     }
 
