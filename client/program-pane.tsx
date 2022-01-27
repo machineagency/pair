@@ -73,7 +73,7 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<GeometryGallery>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false,
+                    windowOpen: true,
                     key: text
                 };
                 return <GeometryGallery {...ggProps}>
@@ -83,7 +83,7 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<PointPicker>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false,
+                    windowOpen: true,
                     key: text
                 };
                 return <PointPicker {...ppProps}>
@@ -115,7 +115,7 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<FaceFinder>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false,
+                    windowOpen: true,
                     key: text
                 };
                 return <FaceFinder {...ffProps}>
@@ -125,7 +125,7 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<CamCompiler>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false,
+                    windowOpen: true,
                     key: text
                 };
                 return <CamCompiler {...camProps}>
@@ -135,7 +135,7 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<ToolpathVisualizer>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false,
+                    windowOpen: true,
                     key: text
                 };
                 return <ToolpathVisualizer {...tdProps}></ToolpathVisualizer>;
@@ -533,20 +533,21 @@ class LivelitWindow extends React.Component {
     }
 
     async closeWindow() {
-        let abortBeforeFunctionReturn = this.state.abortOnResumingExecution;
-        await this.setState((prev: LivelitState) => {
-            return { abortOnResumingExecution: false };
-        });
         if (this.props.plRef.current) {
             await this.props.plRef.current.setState(_ => {
                 return { highlight: false };
             });
         }
-        let windowToClose = await this._setWindowOpenState(false);
-        if (abortBeforeFunctionReturn) {
-            this.handleAbortExecution();
+        return this._setWindowOpenState(false);
+    }
+
+    toggleWindow() {
+        if (this.state.windowOpen) {
+            this.closeWindow();
         }
-        return windowToClose;
+        else {
+            this.openWindow()
+        }
     }
 
     async _setWindowOpenState(open: boolean) {
@@ -611,12 +612,24 @@ class LivelitWindow extends React.Component {
                </div>;
     }
 
+    renderToggleButton() {
+        return (
+            <div className="toggle-window-btn"
+                 onClick={this.toggleWindow.bind(this)}>
+                { this.state.windowOpen ? 'close' : 'open' }
+            </div>
+        );
+    }
+
     render() {
         return <div className={this.livelitClassName}
                     onMouseEnter={this.highlightPL.bind(this)}
                     onMouseLeave={this.unhighlightPL.bind(this)}
                     key={this.livelitClassName}>
-                    { this.renderTitle() }
+                    <div className="title-and-toggle-bar">
+                        { this.renderTitle() }
+                        { this.renderToggleButton() }
+                    </div>
                     { this.renderValue() }
                     { this.renderContent() }
                </div>
@@ -782,7 +795,8 @@ class GeometryGallery extends LivelitWindow {
             let url = nameUrlPair[1];
             return this.renderGalleryItem(name, url, idx);
         });
-        return <div className="content"
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return <div className={`content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
                     <div className="gallery">
                         { galleryItems }
@@ -1737,8 +1751,9 @@ class CamCompiler extends LivelitWindow {
     }
 
     renderContent() {
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return (
-            <div className="cam-compiler content">
+            <div className={`cam-compiler content ${maybeHidden}`}>
                 { this.renderCompilers() }
                 { this.renderToolpathInstructions() }
             </div>
@@ -2108,8 +2123,9 @@ class ToolpathVisualizer extends LivelitWindow {
     }
 
     renderContent() {
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return (
-            <div className="toolpath-visualizer content"
+            <div className={`toolpath-visualizer content ${maybeHidden}`}
                  key={this.contentKey.toString()}>
                 <div className="bold-text">Visualization Interpreters</div>
                 { this.renderVizInterpreters() }
