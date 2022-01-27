@@ -1838,6 +1838,16 @@ class ToolpathVisualizer extends LivelitWindow {
         }
     }
 
+    componentDidUpdate() {
+        let implementationDom = document.getElementById('viz-implementation-box');
+        if (implementationDom) {
+            // FIXME: this results in an unescaped HTML warning from react
+            // which then seems to freeze the implementation shown. See if
+            // we can fix later if there's time.
+            // hljs.highlightElement(implementationDom);
+        }
+    }
+
     expand() : string {
         let s = `async function ${this.functionName}(machine, toolpath, tabletop) {`;
         s += `let td = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
