@@ -650,10 +650,12 @@ class GeometryGallery extends LivelitWindow {
         this.fetchGeometryNames()
             .then((imageNameUrlPairs: [string, string][]) => {
                 let maybeSavedName = this.loadSavedValue();
+                let fallbackSavedName = 'box.svg';
+                let savedName = maybeSavedName || fallbackSavedName;
                 let selectedUrl = '';
                 let valueSet = false;
                 if (maybeSavedName) {
-                    selectedUrl = this.getUrlForGeometryName(maybeSavedName,
+                    selectedUrl = this.getUrlForGeometryName(savedName,
                                     imageNameUrlPairs);
                     valueSet = true;
                 }
@@ -1782,11 +1784,14 @@ class ToolpathVisualizer extends LivelitWindow {
                 implementation: this.velocityThicknessViz.toString(),
             }
         ];
+        let maybeSavedInterpreterName = this.loadSavedValue();
+        let fallbackInterpreterName = 'basicViz';
         this.state = {
             machine: new verso.Machine('TEMP'),
             toolpath: new verso.Toolpath('', []),
             tabletop: undefined,
-            currentInterpreterName: 'basicViz',
+            currentInterpreterName: maybeSavedInterpreterName
+                                    || fallbackInterpreterName,
             windowOpen: props.windowOpen,
             abortOnResumingExecution: false,
             valueSet: props.valueSet,
