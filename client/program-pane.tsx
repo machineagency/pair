@@ -1274,7 +1274,7 @@ class CameraCalibrator extends LivelitWindow {
         return (
             <div className={`module-value ${maybeGrayed}`}
                  key={`${this.titleKey}-value`}>
-                 { `Camera(extrinsicTransform: [${value}], ...)` }
+                 { `Camera(extrinsicTransform: [${value}])` }
             </div>
         );
     }

@@ -129,6 +129,8 @@ pre code.hljs {
 
 .module-value {
     margin-bottom: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .title-and-toggle-bar {
