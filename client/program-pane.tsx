@@ -1821,11 +1821,15 @@ class ToolpathVisualizer extends LivelitWindow {
     }
 
     setCurrentInterpreterName(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+        if (!this.state.tabletop) {
+            throw Error('Cannot set interpreter without tabletop.');
+        }
         let interpreterItemDom = event.target as HTMLDivElement;
         let interpreterName = interpreterItemDom.dataset.interpreterName;
         if (interpreterName) {
-            this.state.tabletop?.vizLayer.removeChildren();
-            eval(`this.${interpreterName}(this.state.toolpath);`);
+            this.state.tabletop.removeAllViz();
+            let vizGroup = eval(`this.${interpreterName}(this.state.toolpath);`);
+            this.state.tabletop.addVizWithName(vizGroup, interpreterName);
             this.setState((prevState) => {
                 return {
                     currentInterpreterName: interpreterName,
