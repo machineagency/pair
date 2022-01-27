@@ -16,6 +16,12 @@ import { mm, px } from './verso.js';
 (window as any).mm = mm;
 (window as any).px = px;
 
+// Declare two global variables that get assigned when the user program evals.
+// There is probably a better way to do this but working with doubly linked
+// refs has been very confusing.
+let RERUN: () => void;
+let PROGRAM_PANE: ProgramPane;
+
 interface Props {};
 interface LivelitProps {
     /* Ref created in the parent that is a React "special" prop included here
@@ -271,31 +277,22 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     }
 
     runAllLines() {
-        if (this.state.running) {
-            return;
-        }
         const extractProgramText = () => {
             const programLines = Array.from(document
                                       .getElementsByClassName('program-line-text'));
             return programLines.map(el => (el as HTMLElement).innerText).join('\n');
         };
-        const PROGRAM_PANE = this;
-        this.setRunning(true, () => {
-            let innerProgText = extractProgramText();
-            let livelitFunctionDeclarations = this.gatherLivelitsAsFunctionDeclarations();
-            let progText  = `${livelitFunctionDeclarations}`;
-            progText += `\n(async function() {`;
-            progText += `paper.project.clear();`;
-            progText += `try {`;
-            progText += `${innerProgText}`;
-            progText += `} catch (e) {`;
-            progText += `if (e.name === 'ResetExecution') { console.log(e.message) }`;
-            progText += `else { throw e; }`;
-            progText += `} finally { PROGRAM_PANE.setRunning(false); }`;
-            progText += `})();`;
-            console.log(progText);
-            eval(progText);
-        });
+        PROGRAM_PANE = this;
+        RERUN = this.runAllLines;
+        let innerProgText = extractProgramText();
+        let livelitFunctionDeclarations = this.gatherLivelitsAsFunctionDeclarations();
+        let progText  = `${livelitFunctionDeclarations}`;
+        progText += `\n(async function() {`;
+        progText += `paper.project.clear();`;
+        progText += `${innerProgText}`;
+        progText += `})();`;
+        console.log(progText);
+        eval(progText);
     }
 
     setRunning(running: boolean, callback: () => void | undefined) {
@@ -368,7 +365,8 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
                              onClick={this.compile.bind(this)}>
                             Generate
                         </div>
-                        <div className={`pc-btn pc-run ${maybeGrayed}`}
+                        <div id="run-prog-btn"
+                             className={`pc-btn pc-run ${maybeGrayed}`}
                              onClick={this.runAllLines.bind(this)}>
                              Run
                         </div>
@@ -634,15 +632,11 @@ interface GeometryGalleryState extends LivelitState {
 };
 class GeometryGallery extends LivelitWindow {
     state: GeometryGalleryState;
-    applyButton: JSX.Element;
 
     constructor(props: GeometryGalleryProps) {
         super(props);
         this.titleText = 'Geometry Gallery';
         this.functionName = '$geometryGallery';
-        this.applyButton = <div className="button apply-btn" id="choose-geometry">
-                                Choose
-                            </div>
         this.state = {
             selectedUrl: '',
             imageNameUrlPairs: [],
@@ -668,18 +662,10 @@ class GeometryGallery extends LivelitWindow {
         let s = `async function ${this.functionName}(machine, tabletop) {`;
         // TODO: filter geometries by machine
         s += `let gg = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
-        s += `let geomUrl;`;
-        s += `if (!gg.state.valueSet) {`;
-        s += `await gg.openWindow();`
-        s += `geomUrl = await gg.waitForGeometryChosen();`;
-        s += `await gg.saveValue();`;
-        s += `await gg.closeWindow();`
-        s += `}`;
-        s += `else {`;
-        s += `geomUrl = gg.state.selectedUrl;`;
-        s += `}`;
+        s += `let geomUrl = gg.state.selectedUrl;`;
         s += `let geom = new verso.Geometry(tabletop);`;
         s += `await geom.loadFromFilepath(geomUrl);`;
+        s += `console.log(geom);`;
         s += `return geom;`;
         s += `}`;
         return s;
@@ -729,19 +715,20 @@ class GeometryGallery extends LivelitWindow {
         });
     }
 
-    setSelectedGeometryUrl(url: string) {
+    setSelectedGeometryUrlAndRerun(url: string) {
         this.setState((state: GeometryGalleryState) => {
             return {
                 selectedUrl: url
             };
-        });
+        }, () => document.getElementById('run-prog-btn')?.click());
     }
 
-    async waitForGeometryChosen() : Promise<string>{
+    async saveChosenGeometryAndRerun() : Promise<string>{
         return new Promise<string>((resolve) => {
             const chooseDom = document.getElementById('choose-geometry');
             if (chooseDom) {
                 chooseDom.addEventListener('click', (event) => {
+                    RERUN();
                     resolve(this.state.selectedUrl);
                 });
             }
@@ -756,7 +743,7 @@ class GeometryGallery extends LivelitWindow {
                                ? 'gallery-highlight' : '';
         return <div className={`gallery-item ${maybeHighlight}`}
                     data-geometry-name={name}
-                    onClick={this.setSelectedGeometryUrl.bind(this, url)}
+                    onClick={this.setSelectedGeometryUrlAndRerun.bind(this, url)}
                     key={itemNumber.toString()}>
                     <img src={url}
                          className="gallery-image"/>
@@ -802,13 +789,11 @@ class GeometryGallery extends LivelitWindow {
             let url = nameUrlPair[1];
             return this.renderGalleryItem(name, url, idx);
         });
-        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
-        return <div className={`content ${maybeHidden}`}
+        return <div className="content"
                     key={this.contentKey.toString()}>
                     <div className="gallery">
                         { galleryItems }
                     </div>
-                    { this.applyButton }
                </div>
     }
 
@@ -1594,8 +1579,8 @@ class CamCompiler extends LivelitWindow {
         let s = `async function ${this.functionName}(machine, geometry) {`;
         s += `let cc = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `let toolpath;`;
-        s += `if (!cc.state.valueSet) {`;
         s += `await cc.setArguments(machine, geometry);`;
+        s += `if (!cc.state.valueSet) {`;
         s += `await cc.openWindow();`;
         s += `toolpath = await cc.acceptToolpath();`;
         s += `await cc.saveValue();`;
@@ -1603,6 +1588,7 @@ class CamCompiler extends LivelitWindow {
         s += `return toolpath;`;
         s += `}`;
         s += `else {`;
+        s += `cc.generateToolpathWithCurrentCompiler();`;
         s += `toolpath = cc.state.toolpath;`;
         s += `}`;
         s += `return toolpath;`;
