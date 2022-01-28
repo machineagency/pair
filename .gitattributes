@@ -1,2 +1,2 @@
 client/lib/* -linguist-detectable
-axidraw/* -linguist-detectable
+axidraw/** -linguist-detectable
