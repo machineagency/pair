@@ -145,6 +145,7 @@ class ProgramUtil {
     }
 }
 
+type ConsoleFn = (msg: string) => void;
 class ProgramPane extends React.Component<Props, ProgramPaneState> {
     livelitRefs: React.RefObject<LivelitWindow>[];
     plRefs: React.RefObject<ProgramLine>[];
@@ -216,21 +217,29 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     }
 
     bindNativeConsoleToProgramConsole() {
+        // FIXME: this entire thing needs to use a monad style because otherwise
+        // we will only show the LAST message per program run. Don't have time
+        // for this now.
         let programConsoleDom = document.getElementById('program-console');
         if (!programConsoleDom) {
             throw new Error('Cannot find program console while loading UI.');
         }
         const consoleHandler = {
-            apply: (target: (msg: string) => void, thisArg: any, argList: any) => {
+            apply: (target: ConsoleFn, thisArg: any, argList: any) => {
                 if (!programConsoleDom) { return; }
-                let msg = argList[0];
+                let msg = argList[0] as string;
                 programConsoleDom.innerText = msg;
                 if (target.name === 'error') {
                     programConsoleDom.classList.add('error-state');
                     // Reflect.apply(console.error, thisArg, argList);
                 }
+                else if (target.name === 'warn') {
+                    programConsoleDom.classList.add('warn-state');
+                    // Reflect.apply(console.error, thisArg, argList);
+                }
                 else {
                     programConsoleDom.classList.remove('error-state');
+                    programConsoleDom.classList.remove('warn-state');
                     // Reflect.apply(console.log, thisArg, argList);
                 }
                 return target(msg);
@@ -238,7 +247,13 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         };
         // FIXME: cannot unbind this uh oh
         console.log = new Proxy(console.log, consoleHandler);
+        console.warn = new Proxy(console.warn, consoleHandler);
         console.error = new Proxy(console.error, consoleHandler);
+        window.onerror = (event: Event | string) => {
+            console.error(event);
+            // Enable default handler
+            return false;
+        };
     }
 
     renderTextLines(textLines: string[]) {
