@@ -215,6 +215,32 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         });
     }
 
+    bindNativeConsoleToProgramConsole() {
+        let programConsoleDom = document.getElementById('program-console');
+        if (!programConsoleDom) {
+            throw new Error('Cannot find program console while loading UI.');
+        }
+        const consoleHandler = {
+            apply: (target: (msg: string) => void, thisArg: any, argList: any) => {
+                if (!programConsoleDom) { return; }
+                let msg = argList[0];
+                programConsoleDom.innerText = msg;
+                if (target.name === 'error') {
+                    programConsoleDom.classList.add('error-state');
+                    // Reflect.apply(console.error, thisArg, argList);
+                }
+                else {
+                    programConsoleDom.classList.remove('error-state');
+                    // Reflect.apply(console.log, thisArg, argList);
+                }
+                return target(msg);
+            }
+        };
+        // FIXME: cannot unbind this uh oh
+        console.log = new Proxy(console.log, consoleHandler);
+        console.error = new Proxy(console.error, consoleHandler);
+    }
+
     renderTextLines(textLines: string[]) {
         this.livelitRefs = [];
         this.plRefs = [];
