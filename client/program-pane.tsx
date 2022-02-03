@@ -372,10 +372,15 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
 
     generateModules() {
         return new Promise<void>((resolve, reject) => {
+            let currentProgLinesDom = document.getElementById('program-lines');
+            if (!currentProgLinesDom) { return; }
+            let currentProgLines = currentProgLinesDom.innerText
+                ? currentProgLinesDom.innerText.split('\n')
+                : this.state.currentWorkflow;
             if (this.modulePaneRef.current) {
                 this.modulePaneRef.current.setState((prevState: ModulePaneState) => {
-                    return { lines: this.state.currentWorkflow }
-                });
+                    return { lines: currentProgLines }
+                }, resolve);
             }
         });
     }
