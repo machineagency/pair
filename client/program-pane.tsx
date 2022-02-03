@@ -249,11 +249,6 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         console.log = new Proxy(console.log, consoleHandler);
         console.warn = new Proxy(console.warn, consoleHandler);
         console.error = new Proxy(console.error, consoleHandler);
-        window.onerror = (event: Event | string) => {
-            console.error(event);
-            // Enable default handler
-            return false;
-        };
     }
 
     renderTextLines(textLines: string[]) {
@@ -325,6 +320,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         let innerProgText = extractProgramText();
         let livelitFunctionDeclarations = this.gatherLivelitsAsFunctionDeclarations();
         let progText  = `${livelitFunctionDeclarations}`;
+        progText += `window.onerror = (e) => { console.error(e); return false; };`
         progText += `\n(async function() {`;
         progText += `paper.project.clear();`;
         progText += `${innerProgText}`;
