@@ -40,7 +40,6 @@ interface ProgramLineProps {
 interface State {}
 interface ProgramPaneState {
     currentWorkflow: string[];
-    running: boolean;
 };
 interface ProgramLineState {
     lineText: string;
@@ -203,7 +202,6 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         super(props);
         this.state = {
             currentWorkflow: this.defaultToolpathPreviewing,
-            running: false
         };
         this.livelitRefs = [];
         this.plRefs = [];
@@ -328,43 +326,6 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         eval(progText);
     }
 
-    setRunning(running: boolean, callback: () => void | undefined) {
-        this.setState(_ => {
-            return { running: running };
-        }, callback);
-    }
-
-    resetExecution() {
-        let modulePane = this.modulePaneRef.current;
-        if (!modulePane) {
-            return;
-        }
-        let openModuleRef = modulePane.moduleRefs.find((moduleRef) => {
-            let currModule = moduleRef.current;
-            if (!currModule) {
-                return;
-            }
-            return currModule.state.windowOpen;
-        });
-        if (openModuleRef) {
-            let openModule = openModuleRef.current;
-            if (!openModule) {
-                return;
-            }
-            openModule.setState(_ => {
-                return { abortOnResumingExecution: true };
-            }, () => {
-                if (openModule && openModule.applyButton) {
-                    // This is a hack... I am aware.
-                    let applyButton = document
-                        .querySelector(':not(.hidden) > .apply-btn') as HTMLElement;
-                    if (applyButton) {
-                        applyButton.click();
-                    }
-                }
-            });
-        }
-    }
 
     generateModules() {
         return new Promise<void>((resolve, reject) => {
@@ -382,8 +343,6 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     }
 
     render() {
-        let maybeGrayed = this.state.running ? 'grayed' : '';
-        let hiddenIffNotRunning = this.state.running ? '' : 'hidden';
         return (
             <div id="program-pane">
                 <div id="program-lines-and-controls">
@@ -392,18 +351,14 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
                     </div>
                     <div id="program-console"></div>
                     <div id="program-controls">
-                        <div className={`pc-btn pc-compile ${maybeGrayed}`}
+                        <div className={`pc-btn pc-compile`}
                              onClick={this.generateModules.bind(this)}>
                             Generate
                         </div>
                         <div id="run-prog-btn"
-                             className={`pc-btn pc-run ${maybeGrayed}`}
+                             className={`pc-btn pc-run}`}
                              onClick={this.runAllLines.bind(this)}>
                              Run
-                        </div>
-                        <div className={`pc-btn pc-reset ${hiddenIffNotRunning}`}
-                             onClick={this.resetExecution.bind(this)}>
-                             Reset
                         </div>
                     </div>
                 </div>
