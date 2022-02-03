@@ -288,7 +288,6 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         progText += `paper.project.clear();`;
         progText += `${innerProgText}`;
         progText += `})();`;
-        console.log(progText);
         eval(progText);
     }
 
@@ -330,22 +329,14 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         }
     }
 
-    compile() {
-        if (this.state.running) {
-            return;
-        }
-        // We will probably want to promise chain off of this, rejecting if
-        // we fail type check.
-        this.typeCheck();
-        if (this.modulePaneRef.current) {
-            this.modulePaneRef.current.setState((prevState: ModulePaneState) => {
-                return { lines: this.state.currentWorkflow }
-            });
-        }
-    }
-
-    typeCheck() {
-        console.log('Looks good to me @_@');
+    generateModules() {
+        return new Promise<void>((resolve, reject) => {
+            if (this.modulePaneRef.current) {
+                this.modulePaneRef.current.setState((prevState: ModulePaneState) => {
+                    return { lines: this.state.currentWorkflow }
+                });
+            }
+        });
     }
 
     render() {
@@ -357,9 +348,10 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
                     <div id="program-lines">
                         { this.renderTextLines(this.state.currentWorkflow) }
                     </div>
+                    <div id="program-console"></div>
                     <div id="program-controls">
                         <div className={`pc-btn pc-compile ${maybeGrayed}`}
-                             onClick={this.compile.bind(this)}>
+                             onClick={this.generateModules.bind(this)}>
                             Generate
                         </div>
                         <div id="run-prog-btn"
