@@ -326,8 +326,13 @@ pre code.hljs {
 }
 
 #program-console.error-state {
-    border: 1px solid red;
-    color: red;
+    border: 1px solid #f92672;
+    color: #f92672;
+}
+
+#program-console.warn-state {
+    border: 1px solid #e6db74;
+    color: #e6db74;
 }
 
 #program-controls {
