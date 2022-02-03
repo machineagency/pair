@@ -145,6 +145,7 @@ class ProgramUtil {
     }
 }
 
+type ConsoleFn = (msg: string) => void;
 class ProgramPane extends React.Component<Props, ProgramPaneState> {
     livelitRefs: React.RefObject<LivelitWindow>[];
     plRefs: React.RefObject<ProgramLine>[];
@@ -213,6 +214,46 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         document.querySelectorAll('pre code').forEach((el) => {
             hljs.highlightElement(el);
         });
+    }
+
+    bindNativeConsoleToProgramConsole() {
+        // FIXME: this entire thing needs to use a monad style because otherwise
+        // we will only show the LAST message per program run. Don't have time
+        // for this now.
+        let programConsoleDom = document.getElementById('program-console');
+        if (!programConsoleDom) {
+            throw new Error('Cannot find program console while loading UI.');
+        }
+        const consoleHandler = {
+            apply: (target: ConsoleFn, thisArg: any, argList: any) => {
+                if (!programConsoleDom) { return; }
+                let msg = argList[0] as string;
+                programConsoleDom.innerText = msg;
+                if (target.name === 'error') {
+                    programConsoleDom.classList.add('error-state');
+                    // Reflect.apply(console.error, thisArg, argList);
+                }
+                else if (target.name === 'warn') {
+                    programConsoleDom.classList.add('warn-state');
+                    // Reflect.apply(console.error, thisArg, argList);
+                }
+                else {
+                    programConsoleDom.classList.remove('error-state');
+                    programConsoleDom.classList.remove('warn-state');
+                    // Reflect.apply(console.log, thisArg, argList);
+                }
+                return target(msg);
+            }
+        };
+        // FIXME: cannot unbind this uh oh
+        console.log = new Proxy(console.log, consoleHandler);
+        console.warn = new Proxy(console.warn, consoleHandler);
+        console.error = new Proxy(console.error, consoleHandler);
+        window.onerror = (event: Event | string) => {
+            console.error(event);
+            // Enable default handler
+            return false;
+        };
     }
 
     renderTextLines(textLines: string[]) {
@@ -288,7 +329,6 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         progText += `paper.project.clear();`;
         progText += `${innerProgText}`;
         progText += `})();`;
-        console.log(progText);
         eval(progText);
     }
 
@@ -330,22 +370,19 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         }
     }
 
-    compile() {
-        if (this.state.running) {
-            return;
-        }
-        // We will probably want to promise chain off of this, rejecting if
-        // we fail type check.
-        this.typeCheck();
-        if (this.modulePaneRef.current) {
-            this.modulePaneRef.current.setState((prevState: ModulePaneState) => {
-                return { lines: this.state.currentWorkflow }
-            });
-        }
-    }
-
-    typeCheck() {
-        console.log('Looks good to me @_@');
+    generateModules() {
+        return new Promise<void>((resolve, reject) => {
+            let currentProgLinesDom = document.getElementById('program-lines');
+            if (!currentProgLinesDom) { return; }
+            let currentProgLines = currentProgLinesDom.innerText
+                ? currentProgLinesDom.innerText.split('\n')
+                : this.state.currentWorkflow;
+            if (this.modulePaneRef.current) {
+                this.modulePaneRef.current.setState((prevState: ModulePaneState) => {
+                    return { lines: currentProgLines }
+                }, resolve);
+            }
+        });
     }
 
     render() {
@@ -357,9 +394,10 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
                     <div id="program-lines">
                         { this.renderTextLines(this.state.currentWorkflow) }
                     </div>
+                    <div id="program-console"></div>
                     <div id="program-controls">
                         <div className={`pc-btn pc-compile ${maybeGrayed}`}
-                             onClick={this.compile.bind(this)}>
+                             onClick={this.generateModules.bind(this)}>
                             Generate
                         </div>
                         <div id="run-prog-btn"
@@ -1274,7 +1312,7 @@ class CameraCalibrator extends LivelitWindow {
         return (
             <div className={`module-value ${maybeGrayed}`}
                  key={`${this.titleKey}-value`}>
-                 { `Camera(extrinsicTransform: [${value}], ...)` }
+                 { `Camera(extrinsicTransform: [${value}])` }
             </div>
         );
     }

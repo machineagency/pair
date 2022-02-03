@@ -129,6 +129,8 @@ pre code.hljs {
 
 .module-value {
     margin-bottom: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .title-and-toggle-bar {
@@ -311,6 +313,26 @@ pre code.hljs {
 .viz-interpreter-item {
     padding: 5px;
     cursor: pointer;
+}
+
+#program-console {
+    border: 1px solid whitesmoke;
+    color: whitesmoke;
+    margin-top: 20px;
+    height: 75px;
+    overflow-y: scroll;
+    font-size: 10px;
+    padding-left: 15px;
+}
+
+#program-console.error-state {
+    border: 1px solid #f92672;
+    color: #f92672;
+}
+
+#program-console.warn-state {
+    border: 1px solid #e6db74;
+    color: #e6db74;
 }
 
 #program-controls {
