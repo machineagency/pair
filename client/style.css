@@ -315,6 +315,21 @@ pre code.hljs {
     cursor: pointer;
 }
 
+#program-console {
+    border: 1px solid whitesmoke;
+    color: whitesmoke;
+    margin-top: 20px;
+    height: 75px;
+    overflow-y: scroll;
+    font-size: 10px;
+    padding-left: 15px;
+}
+
+#program-console.error-state {
+    border: 1px solid red;
+    color: red;
+}
+
 #program-controls {
     margin-top: 20px;
     height: 75px;
