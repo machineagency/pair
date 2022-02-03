@@ -3112,8 +3112,10 @@ class AxiDraw(inkex.Effect):
             # to write the log without depending on file writing functions
             # from the driver itself, so for now we just pass all the commands
             # to the caller. This could not scale well however.
-            return (self.get_output(), self.jasper_log)
-        
+            log_to_return = self.jasper_log[:]
+            self.jasper_log = []
+            return (self.get_output(), log_to_return)
+
     def interactive(self):
         # Initialize AxiDraw options
         # For interactive-mode use as an imported python module

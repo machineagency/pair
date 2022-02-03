@@ -38,6 +38,10 @@ pre code.hljs {
     font-style: normal;
 }
 
+.cam-compiler-item.grayed {
+    cursor: not-allowed;
+}
+
 #root {
     height: 100%;
     width: 100%;
@@ -127,11 +131,17 @@ pre code.hljs {
     margin-bottom: 10px;
 }
 
-.clear-btn {
+.title-and-toggle-bar {
+    display: flex;
+}
+
+.toggle-window-btn {
     background-color: white;
     color: #23241f;
     width: fit-content;
     cursor: pointer;
+    margin-bottom: 10px;
+    margin-left: auto;
 }
 
 .livelit-window .content {
@@ -169,6 +179,12 @@ pre code.hljs {
     height: 100%;
     width: 100%;
     border: 1px solid whitesmoke;
+}
+
+.code-box {
+    max-height: 200px;
+    overflow-y: scroll;
+    border: 1px solid white;
 }
 
 /* Livelit-Specific Styles */
@@ -294,6 +310,7 @@ pre code.hljs {
 
 .viz-interpreter-item {
     padding: 5px;
+    cursor: pointer;
 }
 
 #program-controls {

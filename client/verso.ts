@@ -211,6 +211,10 @@ export class Tabletop {
         }
     }
 
+    removeAllViz() {
+        this.vizLayer.removeChildren();
+    }
+
     sendPaperItemToMachine(itemToSend: paper.Item) : Promise<Response> {
         // Credit: https://github.com/yoksel/url-encoder/ .
         const urlEncodeSvg = (data: String) : String => {
@@ -584,10 +588,18 @@ export class Camera {
     }
 }
 
+export type GeometryFiletype = 'svg' | 'stl';
+
 export class Geometry {
     tabletop: Tabletop;
-    filepath?: string;
     paperGroup?: paper.Group;
+
+    // The name of the file for the geometry in the form <NAME>.<FILETYPE>
+    filename?: string;
+
+    // A filepath or URL for retrieving the geometry's file, note that this
+    // path does not necessarily contain the filetype.
+    filepath?: string;
 
     constructor(tabletop: Tabletop) {
         this.tabletop = tabletop;
@@ -596,6 +608,18 @@ export class Geometry {
     get position() {
         if (this.paperGroup) {
             return this.paperGroup.position;
+        }
+    }
+
+    get filetype() : GeometryFiletype | undefined {
+        if (this.filepath) {
+            let maybePathSegments = this.filename?.split('.');
+            if (maybePathSegments && maybePathSegments.length === 2) {
+                let maybeFiletype = maybePathSegments[1];
+                if (maybeFiletype === 'svg' || maybeFiletype === 'stl') {
+                    return maybeFiletype;
+                }
+            }
         }
     }
 
@@ -616,7 +640,7 @@ export class Geometry {
         // TODO
     }
 
-    async loadFromFilepath(filepath: string) : Promise<paper.Group> {
+    async loadFromFilepath(filename: string, filepath: string) : Promise<paper.Group> {
         return new Promise<paper.Group>((resolve) => {
             this.tabletop.project.importSVG(filepath, {
                 expandShapes: true,
@@ -632,6 +656,7 @@ export class Geometry {
                         item.bounds.height * 0.5 + this.tabletop.workEnvelope.anchor.y
                     );
                     this.paperGroup = item;
+                    this.filename = filename;
                     this.filepath = filepath;
                     resolve(item);
                 }
@@ -711,47 +736,6 @@ export class Machine {
         }
         else {
             throw new Error('Couldn\'t fetch toolpath instructions.');
-        }
-    }
-
-    /* DEPRECATED */
-    async _fetchPreviewUrl(toolpath: Toolpath) {
-        // Credit: https://github.com/yoksel/url-encoder/ .
-        const urlEncodeSvg = (data: String) : String => {
-            const symbols = /[\r\n%#()<>?[\\\]^`{|}]/g;
-            data = data.replace(/"/g, `'`);
-            data = data.replace(/>\s{1,}</g, `><`);
-            data = data.replace(/\s{2,}/g, ` `);
-            return data.replace(symbols, encodeURIComponent);
-        }
-        if (!this.tabletop) {
-            console.error(`${this.machineName} needs a tabletop before previewing.`);
-            return;
-        }
-        const headerXmlns = 'xmlns="http://www.w3.org/2000/svg"';
-        const headerWidth = `width="${this.tabletop.workEnvelope.width}mm"`;
-        const headerHeight = `height="${this.tabletop.workEnvelope.height}mm"`;
-        const svgHeader = `<svg ${headerXmlns} ${headerWidth} ${headerHeight}>`;
-        const svgFooter = `</svg>`;
-        const visibleGroupCopy = toolpath.vizGroup
-                                    .clone({ insert: false, deep: true })
-                                    .set({ visible: true });
-        const svgPath = visibleGroupCopy.exportSVG({
-            bounds: 'content',
-            asString: true,
-            precision: 2
-        });
-        const svgString = svgHeader + svgPath + svgFooter;
-        const encodedSvg = urlEncodeSvg(svgString);
-        const url = `${BASE_URL}/machine/generatePreview?svgString=${encodedSvg}`;
-        let response = await fetch(url);
-        if (response.ok) {
-            let blob = await response.blob();
-            let url = URL.createObjectURL(blob);
-            return url;
-        }
-        else {
-            console.error('Couldn\'t fetch toolpath preview.');
         }
     }
 

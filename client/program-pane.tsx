@@ -16,6 +16,10 @@ import { mm, px } from './verso.js';
 (window as any).mm = mm;
 (window as any).px = px;
 
+function RERUN() {
+    document.getElementById('run-prog-btn')?.click();
+}
+
 interface Props {};
 interface LivelitProps {
     /* Ref created in the parent that is a React "special" prop included here
@@ -25,6 +29,7 @@ interface LivelitProps {
     plRef: React.RefObject<ProgramLine>;
     windowOpen: boolean;
     valueSet: boolean;
+    key: string;
 
 };
 interface ProgramLineProps {
@@ -68,7 +73,8 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<GeometryGallery>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false
+                    windowOpen: true,
+                    key: text
                 };
                 return <GeometryGallery {...ggProps}>
                        </GeometryGallery>;
@@ -77,7 +83,8 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<PointPicker>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false
+                    windowOpen: true,
+                    key: text
                 };
                 return <PointPicker {...ppProps}>
                        </PointPicker>;
@@ -88,7 +95,8 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<TabletopCalibrator>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false
+                    windowOpen: false,
+                    key: text
                 };
                 return <TabletopCalibrator {...tcProps}>
                        </TabletopCalibrator>;
@@ -97,7 +105,8 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<CameraCalibrator>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false
+                    windowOpen: false,
+                    key: text
                 }
                 return <CameraCalibrator {...ccProps}></CameraCalibrator>;
             case 'faceFinder':
@@ -106,7 +115,8 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<FaceFinder>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false
+                    windowOpen: true,
+                    key: text
                 };
                 return <FaceFinder {...ffProps}>
                        </FaceFinder>;
@@ -115,7 +125,8 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<CamCompiler>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false
+                    windowOpen: true,
+                    key: text
                 };
                 return <CamCompiler {...camProps}>
                        </CamCompiler>
@@ -124,7 +135,8 @@ class ProgramUtil {
                     ref: livelitRef as React.RefObject<ToolpathVisualizer>,
                     plRef: plRef,
                     valueSet: false,
-                    windowOpen: false
+                    windowOpen: true,
+                    key: text
                 };
                 return <ToolpathVisualizer {...tdProps}></ToolpathVisualizer>;
             default:
@@ -263,31 +275,21 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     }
 
     runAllLines() {
-        if (this.state.running) {
-            return;
-        }
         const extractProgramText = () => {
             const programLines = Array.from(document
                                       .getElementsByClassName('program-line-text'));
             return programLines.map(el => (el as HTMLElement).innerText).join('\n');
         };
         const PROGRAM_PANE = this;
-        this.setRunning(true, () => {
-            let innerProgText = extractProgramText();
-            let livelitFunctionDeclarations = this.gatherLivelitsAsFunctionDeclarations();
-            let progText  = `${livelitFunctionDeclarations}`;
-            progText += `\n(async function() {`;
-            progText += `paper.project.clear();`;
-            progText += `try {`;
-            progText += `${innerProgText}`;
-            progText += `} catch (e) {`;
-            progText += `if (e.name === 'ResetExecution') { console.log(e.message) }`;
-            progText += `else { throw e; }`;
-            progText += `} finally { PROGRAM_PANE.setRunning(false); }`;
-            progText += `})();`;
-            console.log(progText);
-            eval(progText);
-        });
+        let innerProgText = extractProgramText();
+        let livelitFunctionDeclarations = this.gatherLivelitsAsFunctionDeclarations();
+        let progText  = `${livelitFunctionDeclarations}`;
+        progText += `\n(async function() {`;
+        progText += `paper.project.clear();`;
+        progText += `${innerProgText}`;
+        progText += `})();`;
+        console.log(progText);
+        eval(progText);
     }
 
     setRunning(running: boolean, callback: () => void | undefined) {
@@ -360,7 +362,8 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
                              onClick={this.compile.bind(this)}>
                             Generate
                         </div>
-                        <div className={`pc-btn pc-run ${maybeGrayed}`}
+                        <div id="run-prog-btn"
+                             className={`pc-btn pc-run ${maybeGrayed}`}
                              onClick={this.runAllLines.bind(this)}>
                              Run
                         </div>
@@ -530,20 +533,21 @@ class LivelitWindow extends React.Component {
     }
 
     async closeWindow() {
-        let abortBeforeFunctionReturn = this.state.abortOnResumingExecution;
-        await this.setState((prev: LivelitState) => {
-            return { abortOnResumingExecution: false };
-        });
         if (this.props.plRef.current) {
             await this.props.plRef.current.setState(_ => {
                 return { highlight: false };
             });
         }
-        let windowToClose = await this._setWindowOpenState(false);
-        if (abortBeforeFunctionReturn) {
-            this.handleAbortExecution();
+        return this._setWindowOpenState(false);
+    }
+
+    toggleWindow() {
+        if (this.state.windowOpen) {
+            this.closeWindow();
         }
-        return windowToClose;
+        else {
+            this.openWindow()
+        }
     }
 
     async _setWindowOpenState(open: boolean) {
@@ -554,6 +558,21 @@ class LivelitWindow extends React.Component {
         });
     };
 
+    highlightPL(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+        if (this.props.plRef.current) {
+            this.props.plRef.current.setState(_ => {
+                return { highlight: true };
+            });
+        }
+    }
+
+    unhighlightPL(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+        if (this.props.plRef.current) {
+            this.props.plRef.current.setState(_ => {
+                return { highlight: false };
+            });
+        }
+    }
 
     handleAbortExecution() : never {
         throw new ResetExecution();
@@ -593,24 +612,26 @@ class LivelitWindow extends React.Component {
                </div>;
     }
 
-    renderClearButton() {
-        let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
+    renderToggleButton() {
         return (
-            <div className={`clear-btn ${hiddenIffUnset}`}
-                 onClick={this.clearSavedValue.bind(this)}
-                 key={`${this.titleKey}-clear-value`}>
-                Clear
+            <div className="toggle-window-btn"
+                 onClick={this.toggleWindow.bind(this)}>
+                { this.state.windowOpen ? 'close' : 'open' }
             </div>
         );
     }
 
     render() {
         return <div className={this.livelitClassName}
+                    onMouseEnter={this.highlightPL.bind(this)}
+                    onMouseLeave={this.unhighlightPL.bind(this)}
                     key={this.livelitClassName}>
-                    {[ this.renderTitle(),
-                       this.renderValue(),
-                       this.renderClearButton(),
-                       this.renderContent() ]}
+                    <div className="title-and-toggle-bar">
+                        { this.renderTitle() }
+                        { this.renderToggleButton() }
+                    </div>
+                    { this.renderValue() }
+                    { this.renderContent() }
                </div>
     }
 };
@@ -624,17 +645,14 @@ interface GeometryGalleryState extends LivelitState {
     selectedUrl: string;
     imageNameUrlPairs: [string, string][];
 };
+
 class GeometryGallery extends LivelitWindow {
     state: GeometryGalleryState;
-    applyButton: JSX.Element;
 
     constructor(props: GeometryGalleryProps) {
         super(props);
         this.titleText = 'Geometry Gallery';
         this.functionName = '$geometryGallery';
-        this.applyButton = <div className="button apply-btn" id="choose-geometry">
-                                Choose
-                            </div>
         this.state = {
             selectedUrl: '',
             imageNameUrlPairs: [],
@@ -645,10 +663,12 @@ class GeometryGallery extends LivelitWindow {
         this.fetchGeometryNames()
             .then((imageNameUrlPairs: [string, string][]) => {
                 let maybeSavedName = this.loadSavedValue();
+                let fallbackSavedName = 'box.svg';
+                let savedName = maybeSavedName || fallbackSavedName;
                 let selectedUrl = '';
                 let valueSet = false;
                 if (maybeSavedName) {
-                    selectedUrl = this.getUrlForGeometryName(maybeSavedName,
+                    selectedUrl = this.getUrlForGeometryName(savedName,
                                     imageNameUrlPairs);
                     valueSet = true;
                 }
@@ -660,18 +680,10 @@ class GeometryGallery extends LivelitWindow {
         let s = `async function ${this.functionName}(machine, tabletop) {`;
         // TODO: filter geometries by machine
         s += `let gg = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
-        s += `let geomUrl;`;
-        s += `if (!gg.state.valueSet) {`;
-        s += `await gg.openWindow();`
-        s += `geomUrl = await gg.waitForGeometryChosen();`;
-        s += `await gg.saveValue();`;
-        s += `await gg.closeWindow();`
-        s += `}`;
-        s += `else {`;
-        s += `geomUrl = gg.state.selectedUrl;`;
-        s += `}`;
+        s += `let geomUrl = gg.state.selectedUrl;`;
         s += `let geom = new verso.Geometry(tabletop);`;
-        s += `await geom.loadFromFilepath(geomUrl);`;
+        s += `let geomName = gg.getGeometryNameForUrl(geomUrl);`;
+        s += `await geom.loadFromFilepath(geomName, geomUrl);`;
         s += `return geom;`;
         s += `}`;
         return s;
@@ -721,25 +733,14 @@ class GeometryGallery extends LivelitWindow {
         });
     }
 
-    setSelectedGeometryUrl(url: string) {
+    setSelectedGeometryUrlAndRerun(url: string) {
         this.setState((state: GeometryGalleryState) => {
             return {
                 selectedUrl: url
             };
-        });
-    }
-
-    async waitForGeometryChosen() : Promise<string>{
-        return new Promise<string>((resolve) => {
-            const chooseDom = document.getElementById('choose-geometry');
-            if (chooseDom) {
-                chooseDom.addEventListener('click', (event) => {
-                    resolve(this.state.selectedUrl);
-                });
-            }
-            else {
-                resolve('');
-            }
+        }, () => {
+            this.saveValue();
+            RERUN();
         });
     }
 
@@ -748,32 +749,32 @@ class GeometryGallery extends LivelitWindow {
                                ? 'gallery-highlight' : '';
         return <div className={`gallery-item ${maybeHighlight}`}
                     data-geometry-name={name}
-                    onClick={this.setSelectedGeometryUrl.bind(this, url)}
+                    onClick={this.setSelectedGeometryUrlAndRerun.bind(this, url)}
                     key={itemNumber.toString()}>
                     <img src={url}
                          className="gallery-image"/>
                </div>;
     }
 
-    getUrlForGeometryName(desiredName: string, versos?: [string, string][]) {
-        let versoList = versos || this.state.imageNameUrlPairs;
-        let versoWithName = versoList.find((verso) => {
-            let geomName = verso[0];
-            let geomUrl = verso[1];
+    getUrlForGeometryName(desiredName: string, pairs?: [string, string][]) {
+        let pairList = pairs || this.state.imageNameUrlPairs;
+        let pairWithName = pairList.find((pair) => {
+            let geomName = pair[0];
+            let geomUrl = pair[1];
             return geomName === desiredName;
         });
-        let currentUrl = versoWithName ? versoWithName[1] : '';
+        let currentUrl = pairWithName ? pairWithName[1] : '';
         return currentUrl;
     }
 
-    getGeometryNameForUrl(url: string, versos?: [string, string][]) {
-        let versoList = versos || this.state.imageNameUrlPairs;
-        let versoWithSelectedUrl = versoList.find((verso) => {
-            let geomName = verso[0];
-            let geomUrl = verso[1];
+    getGeometryNameForUrl(url: string, pairs?: [string, string][]) {
+        let pairList = pairs || this.state.imageNameUrlPairs;
+        let pairWithSelectedUrl = pairList.find((pair) => {
+            let geomName = pair[0];
+            let geomUrl = pair[1];
             return geomUrl === this.state.selectedUrl;
         });
-        let geomName = versoWithSelectedUrl ? versoWithSelectedUrl[0] : '';
+        let geomName = pairWithSelectedUrl ? pairWithSelectedUrl[0] : '';
         return geomName;
     }
 
@@ -795,14 +796,11 @@ class GeometryGallery extends LivelitWindow {
             return this.renderGalleryItem(name, url, idx);
         });
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
-        // TODO: if we hide options, instead show a preview of the currently
-        // saved geometry
         return <div className={`content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
                     <div className="gallery">
                         { galleryItems }
                     </div>
-                    { this.applyButton }
                </div>
     }
 
@@ -1513,18 +1511,19 @@ interface CamCompilerProps extends LivelitProps {
 }
 
 interface CamCompilerState extends LivelitState {
-    currentCompilerName: string;
+    currentCompilerName?: CamCompilerName;
     machine: verso.Machine;
     geometry?: verso.Geometry;
     toolpath?: verso.Toolpath;
 }
 
-type CamGeometryInput = 'SVG' | 'STL';
+type CamCompilerName = 'Axidraw EBB Compiler'
+    | 'Jasper\'s Wacky Slicer';
 type CamIsaOutput = 'EBB' | 'g-Code';
 
 interface SingleCamCompiler {
-    name: string;
-    geometryInput: CamGeometryInput;
+    name: CamCompilerName;
+    geometryInput: verso.GeometryFiletype;
     isaOutput: CamIsaOutput;
 }
 
@@ -1536,31 +1535,27 @@ class CamCompiler extends LivelitWindow {
         super(props);
         this.titleText = 'CAM Compiler';
         this.functionName = '$camCompiler';
-        this.applyButton = <div className="button apply-btn"
-                                id="done-cam-compiler">
-                                Done
-                            </div>
         this.compilers = [
             {
                 name: 'Axidraw EBB Compiler',
-                geometryInput: 'SVG',
+                geometryInput: 'svg',
                 isaOutput: 'EBB'
             },
             {
                 name: 'Jasper\'s Wacky Slicer',
-                geometryInput: 'STL',
+                geometryInput: 'stl',
                 isaOutput: 'g-Code'
             }
         ];
-        let maybeSavedToolpath = this.loadSavedValue();
+        let maybeSavedCamCompilerName = this.loadSavedValue();
         this.state = {
-            currentCompilerName: 'Axidraw EBB Compiler',
+            currentCompilerName: maybeSavedCamCompilerName,
             machine: new verso.Machine('TEMP'),
             geometry: undefined,
-            toolpath: maybeSavedToolpath,
+            toolpath: undefined,
             windowOpen: props.windowOpen,
             abortOnResumingExecution: false,
-            valueSet: !!maybeSavedToolpath
+            valueSet: !!maybeSavedCamCompilerName
         };
     }
 
@@ -1586,17 +1581,9 @@ class CamCompiler extends LivelitWindow {
         let s = `async function ${this.functionName}(machine, geometry) {`;
         s += `let cc = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `let toolpath;`;
-        s += `if (!cc.state.valueSet) {`;
         s += `await cc.setArguments(machine, geometry);`;
-        s += `await cc.openWindow();`;
-        s += `toolpath = await cc.acceptToolpath();`;
-        s += `await cc.saveValue();`;
-        s += `await cc.closeWindow();`;
-        s += `return toolpath;`;
-        s += `}`;
-        s += `else {`;
+        s += `cc.generateToolpathWithCurrentCompiler();`;
         s += `toolpath = cc.state.toolpath;`;
-        s += `}`;
         s += `return toolpath;`;
         s += `}`;
         return s;
@@ -1607,10 +1594,8 @@ class CamCompiler extends LivelitWindow {
             return;
         }
         return new Promise<void>((resolve) => {
-            if (this.state.toolpath) {
-                let serializedToolpath = JSON.stringify(this.state.toolpath,
-                    undefined, 2);
-                localStorage.setItem(this.functionName, serializedToolpath);
+            if (this.state.currentCompilerName) {
+                localStorage.setItem(this.functionName, this.state.currentCompilerName);
                 this.setState(_ => {
                     return {
                         valueSet: true
@@ -1620,21 +1605,13 @@ class CamCompiler extends LivelitWindow {
         });
     }
 
-    loadSavedValue() : verso.Toolpath | undefined {
-        interface RevivedToolpath {
-           geometryUrl: string;
-           instructions: string[];
-        }
-        let serializedToolpath = localStorage.getItem(this.functionName);
-        if (serializedToolpath) {
-            let revivedTp = JSON.parse(serializedToolpath) as RevivedToolpath;
-            let toolpath = new verso.Toolpath(revivedTp.geometryUrl,
-                revivedTp.instructions);
-            return toolpath;
-        }
-        else {
-            return undefined;
-        }
+    loadSavedValue() : CamCompilerName | undefined {
+        let compilerName = localStorage.getItem(this.functionName);
+        if (compilerName) {
+            // TODO: actually verify
+            return compilerName as CamCompilerName;
+        };
+        return undefined;
     }
 
     clearSavedValue() {
@@ -1642,7 +1619,7 @@ class CamCompiler extends LivelitWindow {
             localStorage.removeItem(this.functionName);
             this.setState(_ => {
                 return {
-                    toolpath: undefined,
+                    currentCompilerName: undefined,
                     valueSet: false
                 }
             }, resolve);
@@ -1654,12 +1631,24 @@ class CamCompiler extends LivelitWindow {
         // return early if we cannot find an appropriate compiler
         // for the current machine.
         return new Promise<verso.Toolpath>((resolve, reject) => {
+            let compiler = this.compilers.find(c => c.name
+                === this.state.currentCompilerName);
             if (!this.state.geometry) {
-                throw new Error('Geometry not set');
+                reject('Geometry not set');
             }
-            this.state.machine
-                .compileGeometryToToolpath(this.state.geometry)
-                .then((toolpath) => resolve(toolpath));
+            else if (!compiler) {
+                reject(`Can't find a compiler named`
+                    + ` ${this.state.currentCompilerName}`);
+            }
+            else if (compiler.geometryInput !== this.state.geometry.filetype) {
+                reject(`${this.state.currentCompilerName} cannot compile`
+                    + ` a geometry with filetype ${this.state.geometry.filetype}`);
+            }
+            else {
+                this.state.machine
+                    .compileGeometryToToolpath(this.state.geometry)
+                    .then((toolpath) => resolve(toolpath));
+            }
         });
     }
 
@@ -1680,24 +1669,35 @@ class CamCompiler extends LivelitWindow {
         let compilerItemDom = event.target as HTMLDivElement;
         let compilerName = compilerItemDom.dataset.compilerName;
         if (compilerName) {
-            this.generateToolpathWithCurrentCompiler().
-                then((toolpath) => {
-                    this.setState((prevState) => {
-                        return {
-                            currentCompilerName: compilerName,
-                            toolpath: toolpath
-                        };
-                    });
+            this.setState((prevState) => {
+                return { currentCompilerName: compilerName };
+            }, () => {
+                this.generateToolpathWithCurrentCompiler()
+                    .then((toolpath) => {
+                        this.setState((prevState) => {
+                            return {
+                                toolpath: toolpath
+                            };
+                        }, () => {
+                            this.saveValue();
+                            RERUN();
+                        });
                 });
+            });
         }
     }
 
     renderCompilers() {
-        let compilerDoms = this.compilers.map((compiler: SingleCamCompiler) => {
+        let compilerDoms = this.compilers.map((compiler: SingleCamCompiler,
+                                               idx: number) => {
+            let maybeGrayed = compiler.geometryInput !== this.state.geometry?.filetype
+                                ? 'grayed' : '';
             let maybeHighlight = compiler.name === this.state.currentCompilerName
+                                 && !maybeGrayed
                                 ? 'highlight' : '';
             return (
-                <div className={`cam-compiler-item ${maybeHighlight}`}
+                <div className={`cam-compiler-item ${maybeHighlight} ${maybeGrayed}`}
+                     key={idx}
                      data-compiler-name={compiler.name}
                      onClick={this.setCurrentCompiler.bind(this)}>
                     <span className="compiler-name param-key"
@@ -1741,7 +1741,7 @@ class CamCompiler extends LivelitWindow {
     renderValue() {
         let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
         let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
-        let display = `Toolpath(...) from ${this.state.currentCompilerName}`;
+        let display = `${this.state.currentCompilerName}`;
         return (
             <div className={`module-value ${grayedIffUnset}`}
                  key={`${this.titleKey}-value`}>
@@ -1756,7 +1756,6 @@ class CamCompiler extends LivelitWindow {
             <div className={`cam-compiler content ${maybeHidden}`}>
                 { this.renderCompilers() }
                 { this.renderToolpathInstructions() }
-                { this.applyButton }
             </div>
         );
     }
@@ -1773,24 +1772,52 @@ interface ToolpathVisualizerState extends LivelitState {
     machine: verso.Machine;
     toolpath: verso.Toolpath;
     tabletop?: verso.Tabletop;
+    currentInterpreterName: string;
     selectedInstIndex: number;
+}
+
+interface VisualizerInterpreter {
+    name: string;
+    description: string;
+    implementation: string;
 }
 
 class ToolpathVisualizer extends LivelitWindow {
     state: ToolpathVisualizerState;
+    interpreters: VisualizerInterpreter[];
 
     constructor(props: ToolpathVisualizerProps) {
         super(props);
         this.titleText = 'Toolpath Visualizer';
         this.functionName = '$toolpathVisualizer';
-        this.applyButton = <div className="button apply-btn"
-                                id="done-toolpath-visualizer">
-                                Done
-                            </div>
+        // TODO: move the interpreter methods somewhere else where we can declare
+        // a type and also generate this.interpreters programatically.
+        this.interpreters = [
+            {
+                name: this.basicViz.name,
+                description: 'All movement lines.',
+                implementation: this.basicViz.toString(),
+            },
+            {
+                name: this.colorViz.name,
+                description: 'Travel and plot lines encoded by color.',
+                implementation: this.colorViz.toString(),
+            },
+            {
+                name: this.velocityThicknessViz.name,
+                description: 'Movement lines with thickness proportional to'
+                             + ' velocity.',
+                implementation: this.velocityThicknessViz.toString(),
+            }
+        ];
+        let maybeSavedInterpreterName = this.loadSavedValue();
+        let fallbackInterpreterName = 'basicViz';
         this.state = {
             machine: new verso.Machine('TEMP'),
             toolpath: new verso.Toolpath('', []),
             tabletop: undefined,
+            currentInterpreterName: maybeSavedInterpreterName
+                                    || fallbackInterpreterName,
             windowOpen: props.windowOpen,
             abortOnResumingExecution: false,
             valueSet: props.valueSet,
@@ -1812,13 +1839,48 @@ class ToolpathVisualizer extends LivelitWindow {
         });
     }
 
+    saveValue() {
+        localStorage.setItem(this.functionName, this.state.currentInterpreterName);
+        this.setState((prevState) => ({ valueSet: true }));
+    }
+
+    loadSavedValue() {
+        return localStorage.getItem(this.functionName) || undefined;
+    }
+
+    setCurrentInterpreterName(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+        if (!this.state.tabletop) {
+            throw Error('Cannot set interpreter without tabletop.');
+        }
+        let interpreterItemDom = event.target as HTMLDivElement;
+        let interpreterName = interpreterItemDom.dataset.interpreterName;
+        if (interpreterName) {
+            this.state.tabletop.removeAllViz();
+            let vizGroup = eval(`this.${interpreterName}(this.state.toolpath);`);
+            this.state.tabletop.addVizWithName(vizGroup, interpreterName);
+            this.setState((prevState) => {
+                return {
+                    currentInterpreterName: interpreterName,
+                };
+            }, () => this.saveValue());
+        }
+    }
+
+    componentDidUpdate() {
+        let implementationDom = document.getElementById('viz-implementation-box');
+        if (implementationDom) {
+            // FIXME: this results in an unescaped HTML warning from react
+            // which then seems to freeze the implementation shown. See if
+            // we can fix later if there's time.
+            // hljs.highlightElement(implementationDom);
+        }
+    }
+
     expand() : string {
         let s = `async function ${this.functionName}(machine, toolpath, tabletop) {`;
         s += `let td = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `await td.setArguments(machine, toolpath, tabletop);`;
-        s += `await td.openWindow();`;
-        s += `await td.finishDeployment();`;
-        s += `await td.closeWindow();`;
+        s += `td.basicViz(td.state.toolpath);`;
         s += `}`;
         return s;
     }
@@ -1976,35 +2038,6 @@ class ToolpathVisualizer extends LivelitWindow {
         return vizGroup;
     }
 
-    toggleViz(event: React.ChangeEvent<HTMLInputElement>) {
-        let vizName = event.target.dataset.vizName;
-        let checked = event.target.checked;
-        if (!this.state.tabletop
-            || !this.state.toolpath
-            || !vizName) {
-            throw new Error('Tabletop, visualization DOM name, or '
-                            + 'toolpath not set for visualization.');
-        }
-        if (!checked) {
-            this.state.tabletop.removeVizWithName(vizName);
-            return;
-        }
-        let visualization : paper.Group;
-        if (vizName === 'plainMovementLines') {
-            visualization = this.basicViz(this.state.toolpath)
-        }
-        else if (vizName === 'coloredMovementLines') {
-            visualization = this.colorViz(this.state.toolpath)
-        }
-        else if (vizName === 'velocityThicknessLines') {
-            visualization = this.velocityThicknessViz(this.state.toolpath)
-        }
-        else {
-            return;
-        }
-        this.state.tabletop.addVizWithName(visualization, vizName);
-    }
-
     renderToolpathInstructions() {
         let instElements : JSX.Element[] = [];
         if (this.state.toolpath) {
@@ -2035,27 +2068,44 @@ class ToolpathVisualizer extends LivelitWindow {
     }
 
     renderVizInterpreters() {
+        let interpreterDoms = this.interpreters
+                                  .map((interpreter: VisualizerInterpreter,
+                                        idx: number) => {
+            let maybeHighlight = interpreter.name === this.state.currentInterpreterName
+                                ? 'highlight' : '';
+            return (
+                <div className={`viz-interpreter-item ${maybeHighlight}`}
+                     key={idx}
+                     data-interpreter-name={interpreter.name}
+                     onClick={this.setCurrentInterpreterName.bind(this)}>
+                    <span className="interpreter-name param-key"
+                          data-interpreter-name={interpreter.name}>
+                         { interpreter.name }
+                    </span>
+                    <span className="geometry-input param-value"
+                          data-interpreter-name={interpreter.name}>
+                         { interpreter.description }
+                    </span>
+                </div>
+            );
+        });
         return (
-            <div id="viz-interpreter-list" className="boxed-list">
-                <div className="viz-interpreter-item">
-                    <input type="checkbox"
-                           data-viz-name="plainMovementLines"
-                           onChange={this.toggleViz.bind(this)}/>
-                    Plain movement lines
-                </div>
-                <div className="viz-interpreter-item">
-                    <input type="checkbox"
-                           data-viz-name="coloredMovementLines"
-                           onChange={this.toggleViz.bind(this)}/>
-                    Colored movement lines
-                </div>
-                <div className="viz-interpreter-item">
-                    <input type="checkbox"
-                           data-viz-name="velocityThicknessLines"
-                           onChange={this.toggleViz.bind(this)}/>
-                    Velocity thickness lines
-                </div>
+            <div id="cam-compiler-list" className="boxed-list">
+                { interpreterDoms }
             </div>
+        );
+    }
+
+    renderImplementation() {
+        let interpreter = this.interpreters.find(i => {
+            return i.name === this.state.currentInterpreterName;
+        });
+        let functionText = interpreter ? interpreter.implementation
+                                       : '';
+        return (
+            <pre id="viz-implementation-box" className="code-box"><code>
+                {functionText}
+            </code></pre>
         );
     }
 
@@ -2063,7 +2113,7 @@ class ToolpathVisualizer extends LivelitWindow {
         let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
         let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
         // TODO: have set visualizations modify state and the render... or not
-        let display = `Visualization(...)`;
+        let display = `Interpreter(${this.state.currentInterpreterName})`;
         return (
             <div className={`module-value ${grayedIffUnset}`}
                  key={`${this.titleKey}-value`}>
@@ -2077,16 +2127,10 @@ class ToolpathVisualizer extends LivelitWindow {
         return (
             <div className={`toolpath-visualizer content ${maybeHidden}`}
                  key={this.contentKey.toString()}>
-                <div className="bold-text">
-                    Machine Parameters
-                    ({this.state.machine.machineName})
-                </div>
-                { this.renderMachineParams() }
-                <div className="bold-text">Instructions</div>
-                { this.renderToolpathInstructions() }
                 <div className="bold-text">Visualization Interpreters</div>
                 { this.renderVizInterpreters() }
-                { this.applyButton }
+                <div className="bold-text">Implementation</div>
+                { this.renderImplementation() }
            </div>
        );
     }
