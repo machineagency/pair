@@ -209,6 +209,10 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     }
 
     componentDidMount() {
+        this.syntaxHighlightProgramLines();
+    }
+
+    syntaxHighlightProgramLines() {
         document.querySelectorAll('pre code').forEach((el) => {
             hljs.highlightElement(el);
         });
@@ -227,18 +231,23 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
                 if (!programConsoleDom) { return; }
                 let msg = argList[0] as string;
                 programConsoleDom.innerText = msg;
+                programConsoleDom.classList.remove('error-state');
+                programConsoleDom.classList.remove('warn-state');
                 if (target.name === 'error') {
                     programConsoleDom.classList.add('error-state');
-                    // Reflect.apply(console.error, thisArg, argList);
                 }
                 else if (target.name === 'warn') {
                     programConsoleDom.classList.add('warn-state');
-                    // Reflect.apply(console.error, thisArg, argList);
                 }
-                else {
-                    programConsoleDom.classList.remove('error-state');
-                    programConsoleDom.classList.remove('warn-state');
-                    // Reflect.apply(console.log, thisArg, argList);
+                programConsoleDom.innerText = msg;
+                // Slight hack: if our messages was an error message, prepend
+                // the true line number to the beginning of the console DOM
+                // ONLY—not logging the number plus the error object because
+                // then we lose stacktrace info in the native inspector.
+                if (argList[0].lineNumber) {
+                    let lineNumber = argList[0].lineNumber;
+                    programConsoleDom.innerText = `Line ${lineNumber}: `
+                        + programConsoleDom.innerText;
                 }
                 return target(msg);
             }
@@ -318,10 +327,11 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         let innerProgText = extractProgramText();
         let livelitFunctionDeclarations = this.gatherLivelitsAsFunctionDeclarations();
         let progText  = `${livelitFunctionDeclarations}`;
-        progText += `window.onerror = (e) => { console.error(e); return false; };`
         progText += `\n(async function() {`;
         progText += `paper.project.clear();`;
+        progText += `try {`;
         progText += `${innerProgText}`;
+        progText += `} catch (e) { console.error(e); }`;
         progText += `})();`;
         eval(progText);
     }

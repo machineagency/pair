@@ -53,6 +53,9 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
         let programPane = programPaneRef.current;
         const delay = 1000;
         const rerun = () => {
+            // Again syntax highlighting produces a security warning when
+            // loaded dynamically...
+            // programPane.syntaxHighlightProgramLines();
             programPane.generateModules()
             .then(() => {
                 programPane.runAllLines();
