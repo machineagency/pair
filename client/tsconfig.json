@@ -11,6 +11,7 @@
     "allowUmdGlobalAccess": true
   },
   "files": [
-      "main.ts", "verso.ts", "ui-root.tsx", "program-pane.tsx"
+      "main.ts", "verso.ts", "ui-root.tsx", "program-pane.tsx",
+      "visualization-space.tsx"
   ]
 }
