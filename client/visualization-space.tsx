@@ -9,15 +9,41 @@ class VisualizationSpace extends React.Component {
     controls?: THREE.OrbitControls;
     threeRenderer?: THREE.Renderer;
     envelopeGroup: THREE.Group;
+    toolpathGroup: THREE.Group;
 
     constructor(props: VisualizationSpaceProps) {
         super(props);
         this.scene = this.initScene();
         this.camera = this.initCamera(this.scene, true);
         this.envelopeGroup = this.createEnvelopeGroup();
+        this.toolpathGroup = new THREE.Group();
         this.scene.add(this.envelopeGroup);
+        this.scene.add(this.toolpathGroup);
+        let exampleToolpath = this.createExampleToolpath();
+        this.toolpathGroup.add(exampleToolpath);
         // For debugging
         (window as any).vs = this;
+    }
+
+    clearToolpath() {
+        this.toolpathGroup.children.forEach((child: THREE.Object3D) => {
+            child.remove();
+        });
+        this.toolpathGroup.children = [];
+    }
+
+    createExampleToolpath() {
+        let line = new THREE.LineCurve3(
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(100, 100, 40),
+        );
+        let geom = new THREE.TubeBufferGeometry(line, 64, 1, 64, false);
+        let material = new THREE.MeshToonMaterial({
+            color: 0xe44242,
+            side: THREE.DoubleSide
+        });
+        let mesh = new THREE.Mesh(geom, material);
+        return mesh;
     }
 
     componentDidMount() {
