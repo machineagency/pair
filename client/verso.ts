@@ -761,13 +761,13 @@ export class VisualizationSpace {
 
     constructor() {
         this.scene = this.initScene();
-        this.camera = this.initCamera(this.scene, true);
         this.envelopeGroup = this.createEnvelopeGroup();
         this.vizGroup = new THREE.Group();
         this.scene.add(this.envelopeGroup);
         this.scene.add(this.vizGroup);
         let exampleToolpath = this.createExampleToolpath();
         this.vizGroup.add(exampleToolpath);
+        this.camera = this.initCamera(this.scene, this.envelopeGroup.position, true);
         this.initPostDomLoadLogistics();
         // For debugging
         (window as any).vs = this;
@@ -829,7 +829,7 @@ export class VisualizationSpace {
         return scene;
     }
 
-    initCamera(scene: THREE.Scene, isOrtho: boolean) {
+    initCamera(scene: THREE.Scene, centerPoint: THREE.Vector3, isOrtho: boolean) {
         let camera;
         let aspect = window.innerWidth / window.innerHeight;
         let viewSize = 150;
@@ -841,12 +841,12 @@ export class VisualizationSpace {
             camera.updateProjectionMatrix();
             camera.frustumCulled = false;
             camera.position.set(-500, 500, 500); // I don't know why this works
-            camera.lookAt(scene.position);
+            camera.lookAt(centerPoint);
         }
         else {
             let fov = 50;
             camera = new THREE.PerspectiveCamera(fov, aspect, 0.01, 30000);
-            camera.lookAt(scene.position);
+            camera.lookAt(centerPoint);
             camera.position.set(-500, 500, 500);
             camera.updateProjectionMatrix();
         }
@@ -886,9 +886,9 @@ export class VisualizationSpace {
 
     createEnvelopeGroup() : THREE.Group {
         let dimensions = {
-            width: 280,
-            height: 50,
-            length: 180
+            width: 300,
+            height: 17,
+            length: 218
         };
         let whitesmoke = 0xf5f5f5;
         let boxGeom = new THREE.BoxBufferGeometry(dimensions.width,
@@ -905,7 +905,11 @@ export class VisualizationSpace {
         mesh.computeLineDistances();
         let envelopeGroup = new THREE.Group();
         envelopeGroup.add(mesh);
+        envelopeGroup.position.set(
+            dimensions.width / 2,
+            dimensions.height / 2,
+            dimensions.length / 2
+        );
         return envelopeGroup;
     }
 }
-
