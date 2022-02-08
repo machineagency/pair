@@ -16,6 +16,14 @@ class VisualizationSpace extends React.Component {
 
     componentDidMount() {
         this.threeRenderer = this.initThreeRenderer();
+        let animate = () => {
+            let maxFramerate = 20;
+            setTimeout(() => {
+                requestAnimationFrame(animate);
+            }, 1000 / maxFramerate);
+            this.threeRenderScene();
+        };
+        animate();
     }
 
     initScene() {
@@ -67,7 +75,19 @@ class VisualizationSpace extends React.Component {
         if (maybeDom) {
             maybeDom.appendChild(renderer.domElement);
         }
+        else {
+            throw new Error('bad');
+        }
         return renderer;
+    }
+
+    threeRenderScene() {
+        // this.controls.update();
+        // let deltaSeconds = this.clock.getDelta();
+        // this.mixers.forEach((mixer) => {
+        //     mixer.update(deltaSeconds);
+        // });
+        this.threeRenderer?.render(this.scene, this.camera);
     }
 
     render() {
