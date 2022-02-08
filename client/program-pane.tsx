@@ -12,7 +12,6 @@
 
 /// <reference path="lib/perspective-transform.d.ts" />
 import * as verso from './verso.js';
-import { VisualizationSpace } from './visualization-space.js';
 import { mm, px } from './verso.js';
 (window as any).mm = mm;
 (window as any).px = px;
@@ -196,7 +195,8 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         '// TODO: use either camera or toolpath direct manipulator',
         'let placedMustache = mustache.placeAt(point, tabletop);',
         'let toolpath = await $camCompiler(machine, placedMustache);',
-        'let visualizer = await $toolpathVisualizer(machine, toolpath, tabletop);'
+        'let vizSpace = new verso.VisualizationSpace();',
+        'let visualizer = await $toolpathVisualizer(machine, toolpath, vizSpace);'
     ];
 
     constructor(props: Props) {
@@ -1771,7 +1771,7 @@ interface ToolpathVisualizerProps extends LivelitProps {
 interface ToolpathVisualizerState extends LivelitState {
     machine: verso.Machine;
     toolpath: verso.Toolpath;
-    visualizationSpace?: VisualizationSpace;
+    visualizationSpace?: verso.VisualizationSpace;
     currentInterpreterName: string;
     selectedInstIndex: number;
 }
@@ -1827,7 +1827,7 @@ class ToolpathVisualizer extends LivelitWindow {
 
     async setArguments(machine: verso.Machine,
                        toolpath: verso.Toolpath,
-                       visualizationSpace: VisualizationSpace) {
+                       visualizationSpace: verso.VisualizationSpace) {
         return new Promise<void>((resolve) => {
             this.setState(_ => {
                 return {

@@ -1,5 +1,4 @@
 import { ProgramPane } from "./program-pane.js";
-import { VisualizationSpace } from "./visualization-space.js";
 
 interface Props {};
 interface State {};
@@ -80,7 +79,7 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
                     <ProgramPane ref={this.state.programPaneRef}></ProgramPane>
                 </div>
                 <div id="visualization-space-container">
-                    <VisualizationSpace></VisualizationSpace>
+                    <div id="visualization-space"></div>
                 </div>
                 <div id="canvas-container">
                     <PaperCanvas></PaperCanvas>
