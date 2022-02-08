@@ -375,6 +375,12 @@ pre code.hljs {
     height: 100%;
 }
 
+#visualization-space canvas {
+    width: 70% !important;
+    height: 50% !important;
+    border: 1px solid whitesmoke;
+}
+
 #main-canvas {
     height: 100%;
     width: 100%;

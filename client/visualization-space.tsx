@@ -7,28 +7,36 @@ class VisualizationSpace extends React.Component {
     scene: THREE.Scene;
     camera: THREE.Camera;
     threeRenderer?: THREE.Renderer;
+    envelopeGroup: THREE.Group;
 
     constructor(props: VisualizationSpaceProps) {
         super(props);
         this.scene = this.initScene();
         this.camera = this.initCamera(this.scene, true);
+        this.envelopeGroup = this.createEnvelopeGroup();
+        this.scene.add(this.envelopeGroup);
+        // For debugging
+        (window as any).scene = this.scene;
     }
 
     componentDidMount() {
         this.threeRenderer = this.initThreeRenderer();
-        let animate = () => {
-            let maxFramerate = 20;
-            setTimeout(() => {
-                requestAnimationFrame(animate);
-            }, 1000 / maxFramerate);
-            this.threeRenderScene();
-        };
-        animate();
+        // Leave this commented for now in case we need real-time rendering
+        // later on, but for now just render when we receive click events.
+        // let animate = () => {
+        //     let maxFramerate = 20;
+        //     setTimeout(() => {
+        //         requestAnimationFrame(animate);
+        //     }, 1000 / maxFramerate);
+        //     this.threeRenderScene();
+        // };
+        // animate();
+        this.threeRenderScene();
     }
 
     initScene() {
         let scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xf5f6f8);
+        scene.background = new THREE.Color(0x23241f);
         let topDirectionalLight = new THREE.DirectionalLight(0xffffff, 0.75);
         let leftDirectionalLight = new THREE.DirectionalLight(0xffffff, 0.50);
         let rightDirectionalLight = new THREE.DirectionalLight(0xffffff, 0.25);
@@ -50,12 +58,11 @@ class VisualizationSpace extends React.Component {
             camera = new THREE.OrthographicCamera(-viewSize * aspect,
                 viewSize * aspect,
                 viewSize, -viewSize, -1000, 10000);
-            camera.zoom = 0.35;
+            camera.zoom = 0.95;
             camera.updateProjectionMatrix();
             camera.frustumCulled = false;
             camera.position.set(-500, 500, 500); // I don't know why this works
             camera.lookAt(scene.position);
-            camera.position.set(-400, 500, 800); // Pan away to move machine to left
         }
         else {
             let fov = 50;
@@ -88,6 +95,30 @@ class VisualizationSpace extends React.Component {
         //     mixer.update(deltaSeconds);
         // });
         this.threeRenderer?.render(this.scene, this.camera);
+    }
+
+    createEnvelopeGroup() : THREE.Group {
+        let dimensions = {
+            width: 280,
+            height: 50,
+            length: 180
+        };
+        let whitesmoke = 0xf5f5f5;
+        let boxGeom = new THREE.BoxBufferGeometry(dimensions.width,
+                    dimensions.height, dimensions.length, 2, 2, 2);
+        let edgesGeom = new THREE.EdgesGeometry(boxGeom);
+        let material = new THREE.LineDashedMaterial({
+            color : whitesmoke,
+            linewidth: 1,
+            scale: 1,
+            dashSize: 3,
+            gapSize: 3
+        });
+        let mesh = new THREE.LineSegments(edgesGeom, material);
+        mesh.computeLineDistances();
+        let envelopeGroup = new THREE.Group();
+        envelopeGroup.add(mesh);
+        return envelopeGroup;
     }
 
     render() {
