@@ -79,7 +79,7 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
                 <div id="program-container">
                     <ProgramPane ref={this.state.programPaneRef}></ProgramPane>
                 </div>
-                <div id="visualization-space">
+                <div id="visualization-space-container">
                     <VisualizationSpace></VisualizationSpace>
                 </div>
                 <div id="canvas-container">
