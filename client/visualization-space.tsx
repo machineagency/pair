@@ -6,6 +6,7 @@ interface VisualizationSpaceState {};
 class VisualizationSpace extends React.Component {
     scene: THREE.Scene;
     camera: THREE.Camera;
+    controls?: THREE.OrbitControls;
     threeRenderer?: THREE.Renderer;
     envelopeGroup: THREE.Group;
 
@@ -16,22 +17,20 @@ class VisualizationSpace extends React.Component {
         this.envelopeGroup = this.createEnvelopeGroup();
         this.scene.add(this.envelopeGroup);
         // For debugging
-        (window as any).scene = this.scene;
+        (window as any).vs = this;
     }
 
     componentDidMount() {
         this.threeRenderer = this.initThreeRenderer();
-        // Leave this commented for now in case we need real-time rendering
-        // later on, but for now just render when we receive click events.
-        // let animate = () => {
-        //     let maxFramerate = 20;
-        //     setTimeout(() => {
-        //         requestAnimationFrame(animate);
-        //     }, 1000 / maxFramerate);
-        //     this.threeRenderScene();
-        // };
-        // animate();
-        this.threeRenderScene();
+        this.controls = this.initControls(this.camera, this.threeRenderer);
+        let animate = () => {
+            let maxFramerate = 20;
+            setTimeout(() => {
+                requestAnimationFrame(animate);
+            }, 1000 / maxFramerate);
+            this.threeRenderScene();
+        };
+        animate();
     }
 
     initScene() {
@@ -72,6 +71,14 @@ class VisualizationSpace extends React.Component {
             camera.updateProjectionMatrix();
         }
         return camera;
+    }
+
+    initControls(camera: THREE.Camera, renderer: THREE.Renderer) {
+        let controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.rotateSpeed = 1.0;
+        controls.zoomSpeed = 0.8;
+        controls.panSpeed = 0.8;
+        return controls;
     }
 
     initThreeRenderer() {
