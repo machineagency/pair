@@ -12,6 +12,7 @@
 
 /// <reference path="lib/perspective-transform.d.ts" />
 import * as verso from './verso.js';
+import { VisualizationSpace } from './visualization-space.js';
 import { mm, px } from './verso.js';
 (window as any).mm = mm;
 (window as any).px = px;
@@ -1770,7 +1771,7 @@ interface ToolpathVisualizerProps extends LivelitProps {
 interface ToolpathVisualizerState extends LivelitState {
     machine: verso.Machine;
     toolpath: verso.Toolpath;
-    tabletop?: verso.Tabletop;
+    visualizationSpace?: VisualizationSpace;
     currentInterpreterName: string;
     selectedInstIndex: number;
 }
@@ -1814,7 +1815,7 @@ class ToolpathVisualizer extends LivelitWindow {
         this.state = {
             machine: new verso.Machine('TEMP'),
             toolpath: new verso.Toolpath('', []),
-            tabletop: undefined,
+            visualizationSpace: undefined,
             currentInterpreterName: maybeSavedInterpreterName
                                     || fallbackInterpreterName,
             windowOpen: props.windowOpen,
@@ -1826,13 +1827,13 @@ class ToolpathVisualizer extends LivelitWindow {
 
     async setArguments(machine: verso.Machine,
                        toolpath: verso.Toolpath,
-                       tabletop: verso.Tabletop) {
+                       visualizationSpace: VisualizationSpace) {
         return new Promise<void>((resolve) => {
             this.setState(_ => {
                 return {
                     machine: machine,
                     toolpath: toolpath,
-                    tabletop: tabletop
+                    visualizationSpace: visualizationSpace
                 };
             }, resolve);
         });
@@ -1848,15 +1849,15 @@ class ToolpathVisualizer extends LivelitWindow {
     }
 
     setCurrentInterpreterName(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
-        if (!this.state.tabletop) {
-            throw Error('Cannot set interpreter without tabletop.');
+        if (!this.state.visualizationSpace) {
+            throw Error('Cannot set interpreter without viz space.');
         }
         let interpreterItemDom = event.target as HTMLDivElement;
         let interpreterName = interpreterItemDom.dataset.interpreterName;
         if (interpreterName) {
-            this.state.tabletop.removeAllViz();
+            this.state.visualizationSpace.removeAllViz();
             let vizGroup = eval(`this.${interpreterName}(this.state.toolpath);`);
-            this.state.tabletop.addVizWithName(vizGroup, interpreterName);
+            this.state.visualizationSpace.addVizWithName(vizGroup, interpreterName);
             this.setState((prevState) => {
                 return {
                     currentInterpreterName: interpreterName,
@@ -1876,9 +1877,9 @@ class ToolpathVisualizer extends LivelitWindow {
     }
 
     expand() : string {
-        let s = `async function ${this.functionName}(machine, toolpath, tabletop) {`;
+        let s = `async function ${this.functionName}(machine, toolpath, vizSpace) {`;
         s += `let td = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
-        s += `await td.setArguments(machine, toolpath, tabletop);`;
+        s += `await td.setArguments(machine, toolpath, vizSpace);`;
         s += `td.basicViz(td.state.toolpath);`;
         s += `}`;
         return s;
@@ -1896,29 +1897,18 @@ class ToolpathVisualizer extends LivelitWindow {
     }
 
     basicViz(toolpath: verso.Toolpath) {
-        if (!this.state.tabletop) {
-            throw new Error('Cannot visualize without tabletop linked.');
-        }
-        let vizPath = new paper.Path({
-            strokeWidth: 1,
-            strokeColor: new paper.Color(0x0000ff)
-        });
+        let vizPath = new THREE.Path();
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
             let x = 0.5 * (aSteps + bSteps);
             let y = -0.5 * (aSteps - bSteps);
             // TODO: read this from an EM instruction
             let stepsPerMm = 80;
-            return new paper.Point(
+            return new THREE.Vector2(
                 mm(x / stepsPerMm),
                 mm(y / stepsPerMm)
             );
         };
-        let currentPosition = new paper.Point(
-            this.state.tabletop.workEnvelope.anchor.x,
-            this.state.tabletop.workEnvelope.anchor.y
-        );
-        let newPosition : paper.Point;
-        vizPath.segments.push(new paper.Segment(currentPosition));
+        let newPosition : THREE.Vector2;
         let tokens, opcode, duration, aSteps, bSteps, xyChange;
         toolpath.instructions.forEach((instruction) => {
             tokens = instruction.split(',');
@@ -1927,114 +1917,119 @@ class ToolpathVisualizer extends LivelitWindow {
                 aSteps = parseInt(tokens[2]);
                 bSteps = parseInt(tokens[3]);
                 xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
-                newPosition = currentPosition.add(xyChange);
-                vizPath.segments.push(new paper.Segment(newPosition));
-                currentPosition = newPosition;
+                newPosition = vizPath.currentPoint.add(xyChange);
+                vizPath.lineTo(newPosition.x, newPosition.y);
+                vizPath.currentPoint = newPosition;
             }
         });
-        let wrapperGroup = new paper.Group([vizPath]);
+        let material = new THREE.LineBasicMaterial({
+            color: 0xe44242
+        });
+        let geom = new THREE.BufferGeometry().setFromPoints(vizPath.getPoints());
+        let mesh = new THREE.Mesh(geom, material);
+        let wrapperGroup = new THREE.Group();
+        wrapperGroup.add(mesh);
         return wrapperGroup;
     }
 
     // TODO: is there a way to do this without copy paste? Maybe not because
     // each must be its own standalone interpreter
     colorViz(toolpath: verso.Toolpath) {
-        if (!this.state.tabletop) {
-            throw new Error('Cannot visualize without tabletop linked.');
-        }
-        let vizGroup = new paper.Group();
-        let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
-            let x = 0.5 * (aSteps + bSteps);
-            let y = -0.5 * (aSteps - bSteps);
-            // TODO: read this from an EM instruction
-            let stepsPerMm = 80;
-            return new paper.Point(
-                mm(x / stepsPerMm),
-                mm(y / stepsPerMm)
-            );
-        };
-        let currentPosition = new paper.Point(
-            this.state.tabletop.workEnvelope.anchor.x,
-            this.state.tabletop.workEnvelope.anchor.y
-        );
-        type countColor = 'red' | 'green';
-        let currentColor : countColor = 'green';
-        let newPosition : paper.Point;
-        let tokens, opcode, duration, aSteps, bSteps, xyChange;
-        toolpath.instructions.forEach((instruction) => {
-            tokens = instruction.split(',');
-            opcode = tokens[0];
-            if (opcode === 'SM') {
-                aSteps = parseInt(tokens[2]);
-                bSteps = parseInt(tokens[3]);
-                xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
-                newPosition = currentPosition.add(xyChange);
-                let seg0 = new paper.Segment(currentPosition);
-                let seg1 = new paper.Segment(newPosition);
-                let newPath = new paper.Path({
-                    segments: [ seg0, seg1 ],
-                    strokeWidth: 1,
-                    strokeColor: new paper.Color(currentColor)
-                });
-                vizGroup.addChild(newPath);
-                currentPosition = newPosition;
-            }
-            if (opcode === 'SP') {
-                currentColor = currentColor === 'red'
-                               ? 'green' : 'red';
-            }
-        });
-        return vizGroup;
+        return new THREE.Group();
+        // let vizGroup = new paper.Group();
+        // let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
+        //     let x = 0.5 * (aSteps + bSteps);
+        //     let y = -0.5 * (aSteps - bSteps);
+        //     // TODO: read this from an EM instruction
+        //     let stepsPerMm = 80;
+        //     return new paper.Point(
+        //         mm(x / stepsPerMm),
+        //         mm(y / stepsPerMm)
+        //     );
+        // };
+        // let currentPosition = new paper.Point(
+        //     this.state.tabletop.workEnvelope.anchor.x,
+        //     this.state.tabletop.workEnvelope.anchor.y
+        // );
+        // type countColor = 'red' | 'green';
+        // let currentColor : countColor = 'green';
+        // let newPosition : paper.Point;
+        // let tokens, opcode, duration, aSteps, bSteps, xyChange;
+        // toolpath.instructions.forEach((instruction) => {
+        //     tokens = instruction.split(',');
+        //     opcode = tokens[0];
+        //     if (opcode === 'SM') {
+        //         aSteps = parseInt(tokens[2]);
+        //         bSteps = parseInt(tokens[3]);
+        //         xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
+        //         newPosition = currentPosition.add(xyChange);
+        //         let seg0 = new paper.Segment(currentPosition);
+        //         let seg1 = new paper.Segment(newPosition);
+        //         let newPath = new paper.Path({
+        //             segments: [ seg0, seg1 ],
+        //             strokeWidth: 1,
+        //             strokeColor: new paper.Color(currentColor)
+        //         });
+        //         vizGroup.addChild(newPath);
+        //         currentPosition = newPosition;
+        //     }
+        //     if (opcode === 'SP') {
+        //         currentColor = currentColor === 'red'
+        //                        ? 'green' : 'red';
+        //     }
+        // });
+        // return vizGroup;
     }
 
     velocityThicknessViz(toolpath: verso.Toolpath) {
-        if (!this.state.tabletop) {
-            throw new Error('Cannot visualize without tabletop linked.');
-        }
-        let vizGroup = new paper.Group();
-        let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
-            let x = 0.5 * (aSteps + bSteps);
-            let y = -0.5 * (aSteps - bSteps);
-            // TODO: read this from an EM instruction
-            let stepsPerMm = 80;
-            return new paper.Point(
-                mm(x / stepsPerMm),
-                mm(y / stepsPerMm)
-            );
-        };
-        let currentPosition = new paper.Point(
-            this.state.tabletop.workEnvelope.anchor.x,
-            this.state.tabletop.workEnvelope.anchor.y
-        );
-        let newPosition : paper.Point;
-        let axidrawMaxMMPerSec = 380;
-        let maxStrokeWidth = 20;
-        let tokens, opcode, duration, aSteps, bSteps, xyChange;
-        toolpath.instructions.forEach((instruction) => {
-            tokens = instruction.split(',');
-            opcode = tokens[0];
-            if (opcode === 'SM') {
-                duration = parseInt(tokens[1]);
-                aSteps = parseInt(tokens[2]);
-                bSteps = parseInt(tokens[3]);
-                xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
-                let durationSec = duration / 100;
-                let norm = Math.sqrt(Math.pow(xyChange.x, 2) + Math.pow(xyChange.y,2));
-                let mmPerSec = norm / durationSec;
-                let velWidth = (mmPerSec / axidrawMaxMMPerSec) * maxStrokeWidth;
-                newPosition = currentPosition.add(xyChange);
-                let seg0 = new paper.Segment(currentPosition);
-                let seg1 = new paper.Segment(newPosition);
-                let newPath = new paper.Path({
-                    segments: [ seg0, seg1 ],
-                    strokeWidth: velWidth,
-                    strokeColor: new paper.Color('white')
-                });
-                vizGroup.addChild(newPath);
-                currentPosition = newPosition;
-            }
-        });
-        return vizGroup;
+        return new THREE.Group();
+        // if (!this.state.tabletop) {
+        //     throw new Error('Cannot visualize without tabletop linked.');
+        // }
+        // let vizGroup = new paper.Group();
+        // let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
+        //     let x = 0.5 * (aSteps + bSteps);
+        //     let y = -0.5 * (aSteps - bSteps);
+        //     // TODO: read this from an EM instruction
+        //     let stepsPerMm = 80;
+        //     return new paper.Point(
+        //         mm(x / stepsPerMm),
+        //         mm(y / stepsPerMm)
+        //     );
+        // };
+        // let currentPosition = new paper.Point(
+        //     this.state.tabletop.workEnvelope.anchor.x,
+        //     this.state.tabletop.workEnvelope.anchor.y
+        // );
+        // let newPosition : paper.Point;
+        // let axidrawMaxMMPerSec = 380;
+        // let maxStrokeWidth = 20;
+        // let tokens, opcode, duration, aSteps, bSteps, xyChange;
+        // toolpath.instructions.forEach((instruction) => {
+        //     tokens = instruction.split(',');
+        //     opcode = tokens[0];
+        //     if (opcode === 'SM') {
+        //         duration = parseInt(tokens[1]);
+        //         aSteps = parseInt(tokens[2]);
+        //         bSteps = parseInt(tokens[3]);
+        //         xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
+        //         let durationSec = duration / 100;
+        //         let norm = Math.sqrt(Math.pow(xyChange.x, 2) + Math.pow(xyChange.y,2));
+        //         let mmPerSec = norm / durationSec;
+        //         let velWidth = (mmPerSec / axidrawMaxMMPerSec) * maxStrokeWidth;
+        //         newPosition = currentPosition.add(xyChange);
+        //         let seg0 = new paper.Segment(currentPosition);
+        //         let seg1 = new paper.Segment(newPosition);
+        //         let newPath = new paper.Path({
+        //             segments: [ seg0, seg1 ],
+        //             strokeWidth: velWidth,
+        //             strokeColor: new paper.Color('white')
+        //         });
+        //         vizGroup.addChild(newPath);
+        //         currentPosition = newPosition;
+        //     }
+        // });
+        // return vizGroup;
     }
 
     renderToolpathInstructions() {

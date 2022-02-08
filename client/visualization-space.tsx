@@ -9,27 +9,33 @@ class VisualizationSpace extends React.Component {
     controls?: THREE.OrbitControls;
     threeRenderer?: THREE.Renderer;
     envelopeGroup: THREE.Group;
-    toolpathGroup: THREE.Group;
+    vizGroup: THREE.Group;
 
     constructor(props: VisualizationSpaceProps) {
         super(props);
         this.scene = this.initScene();
         this.camera = this.initCamera(this.scene, true);
         this.envelopeGroup = this.createEnvelopeGroup();
-        this.toolpathGroup = new THREE.Group();
+        this.vizGroup = new THREE.Group();
         this.scene.add(this.envelopeGroup);
-        this.scene.add(this.toolpathGroup);
+        this.scene.add(this.vizGroup);
         let exampleToolpath = this.createExampleToolpath();
-        this.toolpathGroup.add(exampleToolpath);
+        this.vizGroup.add(exampleToolpath);
         // For debugging
         (window as any).vs = this;
     }
 
-    clearToolpath() {
-        this.toolpathGroup.children.forEach((child: THREE.Object3D) => {
+    addVizWithName(vizGroup: THREE.Group, interpreterName: string) {
+        vizGroup.name = interpreterName;
+        this.vizGroup.add(vizGroup);
+    }
+
+    removeAllViz() {
+        // TODO: cast as THREE.Mesh and call dispose on geom and mat
+        this.vizGroup.children.forEach((child: THREE.Object3D) => {
             child.remove();
         });
-        this.toolpathGroup.children = [];
+        this.vizGroup.children = [];
     }
 
     createExampleToolpath() {
