@@ -331,6 +331,8 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         let progText  = `${livelitFunctionDeclarations}`;
         progText += `\n(async function() {`;
         progText += `paper.project.clear();`;
+        progText += `let maybeVizSpaceDom = document.getElementById('visualization-space');`;
+        progText += `if (maybeVizSpaceDom) { maybeVizSpaceDom.innerHTML = ''; }`;
         progText += `try {`;
         progText += `${innerProgText}`;
         progText += `} catch (e) { console.error(e); }`;
