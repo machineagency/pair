@@ -663,26 +663,38 @@ class GeometryGallery extends LivelitWindow {
             abortOnResumingExecution: false,
             valueSet: props.valueSet
         };
-        this.fetchGeometryNames()
-            .then((imageNameUrlPairs: [string, string][]) => {
-                let maybeSavedName = this.loadSavedValue();
-                let fallbackSavedName = 'box.svg';
-                let savedName = maybeSavedName || fallbackSavedName;
-                let selectedUrl = '';
-                let valueSet = false;
-                if (maybeSavedName) {
-                    selectedUrl = this.getUrlForGeometryName(savedName,
-                                    imageNameUrlPairs);
-                    valueSet = true;
-                }
-                this.setState(_ => ({ selectedUrl, imageNameUrlPairs, valueSet }));
-            });
+    }
+
+    async init() {
+        return new Promise<void>((resolve, reject) => {
+            if (this.state.imageNameUrlPairs.length) {
+                // NOTE: Disable this early return if we cannot assume that
+                // image/3d model files on the server remain static.
+                resolve();
+            }
+            this.fetchGeometryNames()
+                .then((imageNameUrlPairs: [string, string][]) => {
+                    let maybeSavedName = this.loadSavedValue();
+                    let fallbackSavedName = 'box.svg';
+                    let savedName = maybeSavedName || fallbackSavedName;
+                    let selectedUrl = '';
+                    let valueSet = false;
+                    if (maybeSavedName) {
+                        selectedUrl = this.getUrlForGeometryName(savedName,
+                                        imageNameUrlPairs);
+                        valueSet = true;
+                    }
+                    this.setState(_ => ({ selectedUrl, imageNameUrlPairs, valueSet }),
+                        resolve);
+                });
+        });
     }
 
     expand() : string {
         let s = `async function ${this.functionName}(machine, tabletop) {`;
         // TODO: filter geometries by machine
         s += `let gg = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `await gg.init();`;
         s += `let geomUrl = gg.state.selectedUrl;`;
         s += `let geom = new verso.Geometry(tabletop);`;
         s += `let geomName = gg.getGeometryNameForUrl(geomUrl);`;
@@ -696,9 +708,6 @@ class GeometryGallery extends LivelitWindow {
      * Save the name of the geometry since URLs are volatile.
      */
     saveValue() {
-        if (this.state.abortOnResumingExecution) {
-            return;
-        }
         return new Promise<void>((resolve) => {
             if (this.state.selectedUrl) {
                 let geomName = this.getGeometryNameForUrl(this.state.selectedUrl);
