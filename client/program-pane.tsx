@@ -190,13 +190,14 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         '// TODO: pen up calibrator with preview',
         'let tabletop = await $tabletopCalibrator(machine);',
         'let camera = await $cameraCalibrator(tabletop);',
-        'let point = new verso.Point(mm(75), mm(25));',
-        'let mustache = await $geometryGallery(machine, tabletop);',
+        'let geometry = await $geometryGallery(machine, tabletop);',
         '// TODO: use either camera or toolpath direct manipulator',
-        'let placedMustache = mustache.placeAt(point, tabletop);',
-        'let toolpath = await $camCompiler(machine, placedMustache);',
+        'let point = new verso.Point(mm(75), mm(25));',
+        'geometry.placeAt(point, tabletop);',
+        'let toolpath = await $camCompiler(machine, geometry);',
         'let vizSpace = new verso.VisualizationSpace();',
-        'let visualizer = await $toolpathVisualizer(machine, toolpath, vizSpace);'
+        'vizSpace = await $toolpathVisualizer(machine, toolpath, vizSpace);',
+        'console.log(vizSpace);'
     ];
 
     constructor(props: Props) {
