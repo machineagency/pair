@@ -1832,7 +1832,7 @@ class ToolpathVisualizer extends LivelitWindow {
                                     || fallbackInterpreterName,
             windowOpen: props.windowOpen,
             abortOnResumingExecution: false,
-            valueSet: props.valueSet,
+            valueSet: !!maybeSavedInterpreterName,
             selectedInstIndex: -1
         };
     }
@@ -1860,22 +1860,26 @@ class ToolpathVisualizer extends LivelitWindow {
         return localStorage.getItem(this.functionName) || undefined;
     }
 
-    setCurrentInterpreterName(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
-        if (!this.state.visualizationSpace) {
-            throw Error('Cannot set interpreter without viz space.');
-        }
+    setInterpreterFromClick (event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
         let interpreterItemDom = event.target as HTMLDivElement;
         let interpreterName = interpreterItemDom.dataset.interpreterName;
         if (interpreterName) {
-            this.state.visualizationSpace.removeAllViz();
-            let vizGroup = eval(`this.${interpreterName}(this.state.toolpath);`);
-            this.state.visualizationSpace.addVizWithName(vizGroup, interpreterName);
-            this.setState((prevState) => {
-                return {
-                    currentInterpreterName: interpreterName,
-                };
-            }, () => this.saveValue());
+            this.renderWithInterpreter(interpreterName);
         }
+    }
+
+    renderWithInterpreter(interpreterName: string) {
+        if (!this.state.visualizationSpace) {
+            throw Error('Cannot set interpreter without viz space.');
+        }
+        this.state.visualizationSpace.removeAllViz();
+        let vizGroup = eval(`this.${interpreterName}(this.state.toolpath);`);
+        this.state.visualizationSpace.addVizWithName(vizGroup, interpreterName);
+        this.setState((prevState) => {
+            return {
+                currentInterpreterName: interpreterName,
+            };
+        }, () => this.saveValue());
     }
 
     componentDidUpdate() {
@@ -1892,7 +1896,8 @@ class ToolpathVisualizer extends LivelitWindow {
         let s = `async function ${this.functionName}(machine, toolpath, vizSpace) {`;
         s += `let td = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `await td.setArguments(machine, toolpath, vizSpace);`;
-        s += `td.basicViz(td.state.toolpath);`;
+        s += `td.renderWithInterpreter(td.state.currentInterpreterName);`;
+        s += `return vizSpace;`;
         s += `}`;
         return s;
     }
@@ -2094,7 +2099,7 @@ class ToolpathVisualizer extends LivelitWindow {
                 <div className={`viz-interpreter-item ${maybeHighlight}`}
                      key={idx}
                      data-interpreter-name={interpreter.name}
-                     onClick={this.setCurrentInterpreterName.bind(this)}>
+                     onClick={this.setInterpreterFromClick.bind(this)}>
                     <span className="interpreter-name param-key"
                           data-interpreter-name={interpreter.name}>
                          { interpreter.name }

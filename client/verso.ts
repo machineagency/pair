@@ -765,8 +765,6 @@ export class VisualizationSpace {
         this.vizGroup = new THREE.Group();
         this.scene.add(this.envelopeGroup);
         this.scene.add(this.vizGroup);
-        let exampleToolpath = this.createExampleToolpath();
-        this.vizGroup.add(exampleToolpath);
         this.camera = this.initCamera(this.scene, this.envelopeGroup.position, true);
         this.initPostDomLoadLogistics();
         // For debugging
@@ -776,6 +774,13 @@ export class VisualizationSpace {
     addVizWithName(vizGroup: THREE.Group, interpreterName: string) {
         vizGroup.name = interpreterName;
         this.vizGroup.add(vizGroup);
+        this.threeRenderScene();
+    }
+
+    getCurrentVizNames() {
+        return this.vizGroup.children.map((alsoCalledVizGroup) => {
+            return alsoCalledVizGroup.name;
+        });
     }
 
     removeAllViz() {
@@ -784,6 +789,7 @@ export class VisualizationSpace {
             child.remove();
         });
         this.vizGroup.children = [];
+        this.threeRenderScene();
     }
 
     createExampleToolpath() {
@@ -803,14 +809,16 @@ export class VisualizationSpace {
     initPostDomLoadLogistics() {
         this.threeRenderer = this.initThreeRenderer();
         this.controls = this.initControls(this.camera, this.threeRenderer);
-        let animate = () => {
-            let maxFramerate = 20;
-            setTimeout(() => {
-                requestAnimationFrame(animate);
-            }, 1000 / maxFramerate);
-            this.threeRenderScene();
-        };
-        animate();
+        this.controls.addEventListener('change', this.threeRenderScene.bind(this));
+        this.threeRenderScene();
+        // let animate = () => {
+        //     let maxFramerate = 20;
+        //     setTimeout(() => {
+        //         requestAnimationFrame(animate);
+        //     }, 1000 / maxFramerate);
+        //     this.threeRenderScene();
+        // };
+        // animate();
     }
 
     initScene() {
@@ -911,5 +919,17 @@ export class VisualizationSpace {
             dimensions.length / 2
         );
         return envelopeGroup;
+    }
+
+    computeOverheadView() {
+        // TODO
+    }
+
+    computeARScene() {
+        // TODO
+    }
+
+    toString() : string {
+        return `<VS with: ${this.getCurrentVizNames()}>`;
     }
 }
