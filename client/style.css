@@ -72,6 +72,20 @@ pre code.hljs {
     width: 100%;
 }
 
+#program-names {
+    width: 100%;
+    height: 35px;
+    margin-bottom: 10px;
+    background-color: #23241f;
+    border: 1px solid whitesmoke;
+    color: whitesmoke;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+#program-names option {
+    font-family: 'JetBrains Mono', monospace;
+}
+
 #module-pane {
     height: 100%;
     width: 360pt;

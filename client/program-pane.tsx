@@ -360,6 +360,11 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         return (
             <div id="program-pane">
                 <div id="program-lines-and-controls">
+                    <select id="program-names" name="">
+                        <option value="plotting/simple-place">plotting/simple-place</option>
+                        <option value="virtual/test-features">virtual/test-features</option>
+                        <option value="gel-extrusion/interactive-swatch">gel-extrusion/interactive-swatch</option>
+                    </select>
                     <div id="program-lines">
                         { this.renderTextLines(this.state.currentWorkflow) }
                     </div>
