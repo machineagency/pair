@@ -9,12 +9,35 @@ const bodyParser     = require('body-parser');
 const path           = require('path');
 const fs             = require('fs');
 const ps             = require('python-shell');
+const sqlite3        = require('sqlite3').verbose();
 
 // configuration ===========================================
 let port = process.env.PORT || 3000; // set our port
 app.use(bodyParser.json()); // for parsing application/json
 app.use(express.static(__dirname + '/client')); // set the static files location /public/img will be /img for users
 const shell = new ps.PythonShell('./cp_interpreter.py', {});
+
+// database ===========================================
+const db = new sqlite3.Database(':memory:');
+let initDb = (db) => {
+    let query = 'CREATE TABLE Workflows ('
+        + 'progName TEXT NOT NULL,'
+        + 'progText TEXT NOT NULL'
+        + ');'
+    db.run(query);
+};
+
+let addWorkflow = (db, workflowName, workflowText) => {
+    let query = 'INSERT INTO Workflows '
+        + `VALUES ('${workflowName}', '${workflowText}');`;
+    db.run(query);
+};
+
+db.serialize(() => {
+    initDb(db);
+    addWorkflow(db, 'test_workflow', '2 + 2;');
+    addWorkflow(db, 'test_workflow2', 'foo();');
+});
 
 /* Keep references to the name and Express response object for the current
  * RPC and set the shell.on handler once only, using a lookup table that
@@ -90,6 +113,19 @@ shell.on('message', (message) => {
 // routes and start ========================================
 
 let attachRoutesAndStart = () => {
+
+    app.get('/workflows', (req, res) => {
+        db.all('SELECT * FROM Workflows', [], (err, rows) => {
+            if (err) {
+                res.status(404).send();
+            }
+            else {
+                res.status(200).json({
+                    stuff: rows
+                });
+            }
+        });
+    });
 
     app.get('/machine/drawEnvelope', (req, res) => {
         shell.send('draw_envelope');
