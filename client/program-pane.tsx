@@ -190,12 +190,14 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         '// TODO: pen up calibrator with preview',
         'let tabletop = await $tabletopCalibrator(machine);',
         'let camera = await $cameraCalibrator(tabletop);',
-        'let point = new verso.Point(mm(75), mm(25));',
-        'let mustache = await $geometryGallery(machine, tabletop);',
+        'let geometry = await $geometryGallery(machine, tabletop);',
         '// TODO: use either camera or toolpath direct manipulator',
-        'let placedMustache = mustache.placeAt(point, tabletop);',
-        'let toolpath = await $camCompiler(machine, placedMustache);',
-        'let visualizer = await $toolpathVisualizer(machine, toolpath, tabletop);'
+        'let point = new verso.Point(mm(75), mm(25));',
+        'geometry.placeAt(point, tabletop);',
+        'let toolpath = await $camCompiler(machine, geometry);',
+        'let vizSpace = new verso.VisualizationSpace();',
+        'vizSpace = await $toolpathVisualizer(machine, toolpath, vizSpace);',
+        'console.log(vizSpace);'
     ];
 
     constructor(props: Props) {
@@ -329,6 +331,8 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         let progText  = `${livelitFunctionDeclarations}`;
         progText += `\n(async function() {`;
         progText += `paper.project.clear();`;
+        progText += `let maybeVizSpaceDom = document.getElementById('visualization-space');`;
+        progText += `if (maybeVizSpaceDom) { maybeVizSpaceDom.innerHTML = ''; }`;
         progText += `try {`;
         progText += `${innerProgText}`;
         progText += `} catch (e) { console.error(e); }`;
@@ -659,26 +663,38 @@ class GeometryGallery extends LivelitWindow {
             abortOnResumingExecution: false,
             valueSet: props.valueSet
         };
-        this.fetchGeometryNames()
-            .then((imageNameUrlPairs: [string, string][]) => {
-                let maybeSavedName = this.loadSavedValue();
-                let fallbackSavedName = 'box.svg';
-                let savedName = maybeSavedName || fallbackSavedName;
-                let selectedUrl = '';
-                let valueSet = false;
-                if (maybeSavedName) {
-                    selectedUrl = this.getUrlForGeometryName(savedName,
-                                    imageNameUrlPairs);
-                    valueSet = true;
-                }
-                this.setState(_ => ({ selectedUrl, imageNameUrlPairs, valueSet }));
-            });
+    }
+
+    async init() {
+        return new Promise<void>((resolve, reject) => {
+            if (this.state.imageNameUrlPairs.length) {
+                // NOTE: Disable this early return if we cannot assume that
+                // image/3d model files on the server remain static.
+                resolve();
+            }
+            this.fetchGeometryNames()
+                .then((imageNameUrlPairs: [string, string][]) => {
+                    let maybeSavedName = this.loadSavedValue();
+                    let fallbackSavedName = 'box.svg';
+                    let savedName = maybeSavedName || fallbackSavedName;
+                    let selectedUrl = '';
+                    let valueSet = false;
+                    if (maybeSavedName) {
+                        selectedUrl = this.getUrlForGeometryName(savedName,
+                                        imageNameUrlPairs);
+                        valueSet = true;
+                    }
+                    this.setState(_ => ({ selectedUrl, imageNameUrlPairs, valueSet }),
+                        resolve);
+                });
+        });
     }
 
     expand() : string {
         let s = `async function ${this.functionName}(machine, tabletop) {`;
         // TODO: filter geometries by machine
         s += `let gg = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `await gg.init();`;
         s += `let geomUrl = gg.state.selectedUrl;`;
         s += `let geom = new verso.Geometry(tabletop);`;
         s += `let geomName = gg.getGeometryNameForUrl(geomUrl);`;
@@ -692,9 +708,6 @@ class GeometryGallery extends LivelitWindow {
      * Save the name of the geometry since URLs are volatile.
      */
     saveValue() {
-        if (this.state.abortOnResumingExecution) {
-            return;
-        }
         return new Promise<void>((resolve) => {
             if (this.state.selectedUrl) {
                 let geomName = this.getGeometryNameForUrl(this.state.selectedUrl);
@@ -1770,7 +1783,7 @@ interface ToolpathVisualizerProps extends LivelitProps {
 interface ToolpathVisualizerState extends LivelitState {
     machine: verso.Machine;
     toolpath: verso.Toolpath;
-    tabletop?: verso.Tabletop;
+    visualizationSpace?: verso.VisualizationSpace;
     currentInterpreterName: string;
     selectedInstIndex: number;
 }
@@ -1814,25 +1827,25 @@ class ToolpathVisualizer extends LivelitWindow {
         this.state = {
             machine: new verso.Machine('TEMP'),
             toolpath: new verso.Toolpath('', []),
-            tabletop: undefined,
+            visualizationSpace: undefined,
             currentInterpreterName: maybeSavedInterpreterName
                                     || fallbackInterpreterName,
             windowOpen: props.windowOpen,
             abortOnResumingExecution: false,
-            valueSet: props.valueSet,
+            valueSet: !!maybeSavedInterpreterName,
             selectedInstIndex: -1
         };
     }
 
     async setArguments(machine: verso.Machine,
                        toolpath: verso.Toolpath,
-                       tabletop: verso.Tabletop) {
+                       visualizationSpace: verso.VisualizationSpace) {
         return new Promise<void>((resolve) => {
             this.setState(_ => {
                 return {
                     machine: machine,
                     toolpath: toolpath,
-                    tabletop: tabletop
+                    visualizationSpace: visualizationSpace
                 };
             }, resolve);
         });
@@ -1847,22 +1860,26 @@ class ToolpathVisualizer extends LivelitWindow {
         return localStorage.getItem(this.functionName) || undefined;
     }
 
-    setCurrentInterpreterName(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
-        if (!this.state.tabletop) {
-            throw Error('Cannot set interpreter without tabletop.');
-        }
+    setInterpreterFromClick (event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
         let interpreterItemDom = event.target as HTMLDivElement;
         let interpreterName = interpreterItemDom.dataset.interpreterName;
         if (interpreterName) {
-            this.state.tabletop.removeAllViz();
-            let vizGroup = eval(`this.${interpreterName}(this.state.toolpath);`);
-            this.state.tabletop.addVizWithName(vizGroup, interpreterName);
-            this.setState((prevState) => {
-                return {
-                    currentInterpreterName: interpreterName,
-                };
-            }, () => this.saveValue());
+            this.renderWithInterpreter(interpreterName);
         }
+    }
+
+    renderWithInterpreter(interpreterName: string) {
+        if (!this.state.visualizationSpace) {
+            throw Error('Cannot set interpreter without viz space.');
+        }
+        this.state.visualizationSpace.removeAllViz();
+        let vizGroup = eval(`this.${interpreterName}(this.state.toolpath);`);
+        this.state.visualizationSpace.addVizWithName(vizGroup, interpreterName);
+        this.setState((prevState) => {
+            return {
+                currentInterpreterName: interpreterName,
+            };
+        }, () => this.saveValue());
     }
 
     componentDidUpdate() {
@@ -1876,10 +1893,11 @@ class ToolpathVisualizer extends LivelitWindow {
     }
 
     expand() : string {
-        let s = `async function ${this.functionName}(machine, toolpath, tabletop) {`;
+        let s = `async function ${this.functionName}(machine, toolpath, vizSpace) {`;
         s += `let td = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
-        s += `await td.setArguments(machine, toolpath, tabletop);`;
-        s += `td.basicViz(td.state.toolpath);`;
+        s += `await td.setArguments(machine, toolpath, vizSpace);`;
+        s += `td.renderWithInterpreter(td.state.currentInterpreterName);`;
+        s += `return vizSpace;`;
         s += `}`;
         return s;
     }
@@ -1896,29 +1914,21 @@ class ToolpathVisualizer extends LivelitWindow {
     }
 
     basicViz(toolpath: verso.Toolpath) {
-        if (!this.state.tabletop) {
-            throw new Error('Cannot visualize without tabletop linked.');
-        }
-        let vizPath = new paper.Path({
-            strokeWidth: 1,
-            strokeColor: new paper.Color(0x0000ff)
-        });
+        let moveCurves : THREE.LineCurve3[] = [];
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
             let x = 0.5 * (aSteps + bSteps);
             let y = -0.5 * (aSteps - bSteps);
             // TODO: read this from an EM instruction
             let stepsPerMm = 80;
-            return new paper.Point(
-                mm(x / stepsPerMm),
-                mm(y / stepsPerMm)
+            return new THREE.Vector3(
+                (x / stepsPerMm),
+                (y / stepsPerMm),
+                0.0
             );
         };
-        let currentPosition = new paper.Point(
-            this.state.tabletop.workEnvelope.anchor.x,
-            this.state.tabletop.workEnvelope.anchor.y
-        );
-        let newPosition : paper.Point;
-        vizPath.segments.push(new paper.Segment(currentPosition));
+        let currentPosition = new THREE.Vector3();
+        let newPosition : THREE.Vector3;
+        let moveCurve: THREE.LineCurve3;
         let tokens, opcode, duration, aSteps, bSteps, xyChange;
         toolpath.instructions.forEach((instruction) => {
             tokens = instruction.split(',');
@@ -1927,40 +1937,60 @@ class ToolpathVisualizer extends LivelitWindow {
                 aSteps = parseInt(tokens[2]);
                 bSteps = parseInt(tokens[3]);
                 xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
-                newPosition = currentPosition.add(xyChange);
-                vizPath.segments.push(new paper.Segment(newPosition));
+                newPosition = currentPosition.clone().add(xyChange);
+                moveCurve = new THREE.LineCurve3(currentPosition, newPosition);
+                moveCurves.push(moveCurve);
                 currentPosition = newPosition;
             }
         });
-        let wrapperGroup = new paper.Group([vizPath]);
+        let material = new THREE.MeshToonMaterial({
+            color: 0xe44242,
+            side: THREE.DoubleSide
+        });
+        let pathRadius = 0.25
+        let geometries = moveCurves.map((curve) => {
+            return new THREE.TubeBufferGeometry(curve, 64, pathRadius, 64, false);
+        });
+        let meshes = geometries.map((geom) => {
+            return new THREE.Mesh(geom, material);
+        });
+        let wrapperGroup = new THREE.Group();
+        meshes.forEach((mesh) => wrapperGroup.add(mesh));
+        wrapperGroup.rotateX(Math.PI / 2);
         return wrapperGroup;
     }
 
     // TODO: is there a way to do this without copy paste? Maybe not because
     // each must be its own standalone interpreter
     colorViz(toolpath: verso.Toolpath) {
-        if (!this.state.tabletop) {
-            throw new Error('Cannot visualize without tabletop linked.');
-        }
-        let vizGroup = new paper.Group();
+        let moveCurves : THREE.LineCurve3[] = [];
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
             let x = 0.5 * (aSteps + bSteps);
             let y = -0.5 * (aSteps - bSteps);
             // TODO: read this from an EM instruction
             let stepsPerMm = 80;
-            return new paper.Point(
-                mm(x / stepsPerMm),
-                mm(y / stepsPerMm)
+            return new THREE.Vector3(
+                (x / stepsPerMm),
+                (y / stepsPerMm),
+                0.0
             );
         };
-        let currentPosition = new paper.Point(
-            this.state.tabletop.workEnvelope.anchor.x,
-            this.state.tabletop.workEnvelope.anchor.y
-        );
-        type countColor = 'red' | 'green';
-        let currentColor : countColor = 'green';
-        let newPosition : paper.Point;
-        let tokens, opcode, duration, aSteps, bSteps, xyChange;
+        let currentPosition = new THREE.Vector3();
+        let newPosition = new THREE.Vector3();
+        let moveCurve: THREE.LineCurve3;
+        let curveMaterials: THREE.Material[] = [];
+        enum Colors {
+            Red = 0xe44242,
+            Green = 0x2ecc71
+        }
+        enum PenHeight {
+            Up = -7,
+            Down = 0
+        }
+        let currentColor = Colors.Green;
+        let currentPenHeight = PenHeight.Up;
+        let tokens, opcode, duration, aSteps, bSteps, xyChange, material;
+        let materialColor : Colors;
         toolpath.instructions.forEach((instruction) => {
             tokens = instruction.split(',');
             opcode = tokens[0];
@@ -1968,48 +1998,59 @@ class ToolpathVisualizer extends LivelitWindow {
                 aSteps = parseInt(tokens[2]);
                 bSteps = parseInt(tokens[3]);
                 xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
-                newPosition = currentPosition.add(xyChange);
-                let seg0 = new paper.Segment(currentPosition);
-                let seg1 = new paper.Segment(newPosition);
-                let newPath = new paper.Path({
-                    segments: [ seg0, seg1 ],
-                    strokeWidth: 1,
-                    strokeColor: new paper.Color(currentColor)
-                });
-                vizGroup.addChild(newPath);
-                currentPosition = newPosition;
+                newPosition = currentPosition.clone().add(xyChange);
+                materialColor = currentColor;
             }
             if (opcode === 'SP') {
-                currentColor = currentColor === 'red'
-                               ? 'green' : 'red';
+                currentColor = currentColor === Colors.Red
+                               ? Colors.Green : Colors.Red;
+                currentPenHeight = currentPenHeight === PenHeight.Up
+                                   ? PenHeight.Down : PenHeight.Up;
+                newPosition = currentPosition.clone().setZ(currentPenHeight);
+                materialColor = Colors.Green;
             }
+            moveCurve = new THREE.LineCurve3(currentPosition, newPosition);
+            moveCurves.push(moveCurve);
+            currentPosition = newPosition;
+            material = new THREE.MeshToonMaterial({
+                color: materialColor,
+                side: THREE.DoubleSide
+            });
+            curveMaterials.push(material);
         });
-        return vizGroup;
+        let pathRadius = 0.25
+        let geometries = moveCurves.map((curve) => {
+            return new THREE.TubeBufferGeometry(curve, 64, pathRadius, 64, false);
+        });
+        let meshes = geometries.map((geom, idx) => {
+            return new THREE.Mesh(geom, curveMaterials[idx]);
+        });
+        let wrapperGroup = new THREE.Group();
+        meshes.forEach((mesh) => wrapperGroup.add(mesh));
+        wrapperGroup.rotateX(Math.PI / 2);
+        return wrapperGroup;
     }
 
     velocityThicknessViz(toolpath: verso.Toolpath) {
-        if (!this.state.tabletop) {
-            throw new Error('Cannot visualize without tabletop linked.');
-        }
-        let vizGroup = new paper.Group();
+        let moveCurves : THREE.LineCurve3[] = [];
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
             let x = 0.5 * (aSteps + bSteps);
             let y = -0.5 * (aSteps - bSteps);
             // TODO: read this from an EM instruction
             let stepsPerMm = 80;
-            return new paper.Point(
-                mm(x / stepsPerMm),
-                mm(y / stepsPerMm)
+            return new THREE.Vector3(
+                (x / stepsPerMm),
+                (y / stepsPerMm),
+                0.0
             );
         };
-        let currentPosition = new paper.Point(
-            this.state.tabletop.workEnvelope.anchor.x,
-            this.state.tabletop.workEnvelope.anchor.y
-        );
-        let newPosition : paper.Point;
         let axidrawMaxMMPerSec = 380;
-        let maxStrokeWidth = 20;
+        let maxStrokeRadius = 10;
+        let currentPosition = new THREE.Vector3();
+        let newPosition : THREE.Vector3;
+        let moveCurve: THREE.LineCurve3;
         let tokens, opcode, duration, aSteps, bSteps, xyChange;
+        let velRadii : number[] = [];
         toolpath.instructions.forEach((instruction) => {
             tokens = instruction.split(',');
             opcode = tokens[0];
@@ -2018,23 +2059,32 @@ class ToolpathVisualizer extends LivelitWindow {
                 aSteps = parseInt(tokens[2]);
                 bSteps = parseInt(tokens[3]);
                 xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
+                newPosition = currentPosition.clone().add(xyChange);
+                moveCurve = new THREE.LineCurve3(currentPosition, newPosition);
+                moveCurves.push(moveCurve);
+                currentPosition = newPosition;
                 let durationSec = duration / 100;
                 let norm = Math.sqrt(Math.pow(xyChange.x, 2) + Math.pow(xyChange.y,2));
                 let mmPerSec = norm / durationSec;
-                let velWidth = (mmPerSec / axidrawMaxMMPerSec) * maxStrokeWidth;
-                newPosition = currentPosition.add(xyChange);
-                let seg0 = new paper.Segment(currentPosition);
-                let seg1 = new paper.Segment(newPosition);
-                let newPath = new paper.Path({
-                    segments: [ seg0, seg1 ],
-                    strokeWidth: velWidth,
-                    strokeColor: new paper.Color('white')
-                });
-                vizGroup.addChild(newPath);
-                currentPosition = newPosition;
+                let velRadius = (mmPerSec / axidrawMaxMMPerSec) * maxStrokeRadius;
+                velRadii.push(velRadius);
             }
         });
-        return vizGroup;
+        let material = new THREE.MeshToonMaterial({
+            color: 0xe44242,
+            side: THREE.DoubleSide
+        });
+        let geometries = moveCurves.map((curve, idx) => {
+            let velRadius = velRadii[idx];
+            return new THREE.TubeBufferGeometry(curve, 64, velRadius, 64, false);
+        });
+        let meshes = geometries.map((geom) => {
+            return new THREE.Mesh(geom, material);
+        });
+        let wrapperGroup = new THREE.Group();
+        meshes.forEach((mesh) => wrapperGroup.add(mesh));
+        wrapperGroup.rotateX(Math.PI / 2);
+        return wrapperGroup;
     }
 
     renderToolpathInstructions() {
@@ -2076,7 +2126,7 @@ class ToolpathVisualizer extends LivelitWindow {
                 <div className={`viz-interpreter-item ${maybeHighlight}`}
                      key={idx}
                      data-interpreter-name={interpreter.name}
-                     onClick={this.setCurrentInterpreterName.bind(this)}>
+                     onClick={this.setInterpreterFromClick.bind(this)}>
                     <span className="interpreter-name param-key"
                           data-interpreter-name={interpreter.name}>
                          { interpreter.name }
