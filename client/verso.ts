@@ -752,12 +752,13 @@ export class Machine {
 }
 
 export class VisualizationSpace {
-    scene: THREE.Scene;
-    camera: THREE.Camera;
-    controls?: THREE.OrbitControls;
-    threeRenderer?: THREE.Renderer;
-    envelopeGroup: THREE.Group;
-    vizGroup: THREE.Group;
+    protected scene: THREE.Scene;
+    protected camera: THREE.Camera;
+    protected controls?: THREE.OrbitControls;
+    protected threeRenderer?: THREE.Renderer;
+    protected envelopeGroup: THREE.Group;
+    protected vizGroup: THREE.Group;
+    protected renderRequested: boolean;
 
     constructor() {
         this.scene = this.initScene();
