@@ -115,16 +115,34 @@ shell.on('message', (message) => {
 let attachRoutesAndStart = () => {
 
     app.get('/workflows', (req, res) => {
-        db.all('SELECT * FROM Workflows', [], (err, rows) => {
-            if (err) {
-                res.status(404).send();
-            }
-            else {
-                res.status(200).json({
-                    stuff: rows
-                });
-            }
-        });
+        let query;
+        if (req.query.workflowName) {
+            query = 'SELECT * FROM Workflows '
+                + `WHERE progName='${req.query.workflowName}'`;
+            db.get(query, (err, row) => {
+                if (err) {
+                    res.status(404).send();
+                }
+                else {
+                    res.status(200).json({
+                        workflow: row
+                    });
+                }
+            });
+        }
+        else {
+            query = 'SELECT * FROM Workflows';
+            db.all(query, [], (err, rows) => {
+                if (err) {
+                    res.status(404).send();
+                }
+                else {
+                    res.status(200).json({
+                        workflows: rows
+                    });
+                }
+            });
+        }
     });
 
     app.get('/machine/drawEnvelope', (req, res) => {
