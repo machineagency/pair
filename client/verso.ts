@@ -767,6 +767,7 @@ export class VisualizationSpace {
         this.scene.add(this.envelopeGroup);
         this.scene.add(this.vizGroup);
         this.camera = this.initCamera(this.scene, this.envelopeGroup.position, true);
+        this.renderRequested = false;
         this.initPostDomLoadLogistics();
         // For debugging
         (window as any).vs = this;
@@ -810,7 +811,6 @@ export class VisualizationSpace {
     initPostDomLoadLogistics() {
         this.threeRenderer = this.initThreeRenderer();
         this.controls = this.initControls(this.camera, this.threeRenderer);
-        this.controls.addEventListener('change', this.threeRenderScene.bind(this));
         this.threeRenderScene();
         // let animate = () => {
         //     let maxFramerate = 20;
@@ -867,6 +867,9 @@ export class VisualizationSpace {
         controls.rotateSpeed = 1.0;
         controls.zoomSpeed = 0.8;
         controls.panSpeed = 0.8;
+        controls.addEventListener('change', this.requestRenderScene.bind(this));
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.5;
         return controls;
     }
 
@@ -884,12 +887,21 @@ export class VisualizationSpace {
         return renderer;
     }
 
+    requestRenderScene() {
+        if (!this.renderRequested) {
+            this.renderRequested = true;
+            requestAnimationFrame(this.threeRenderScene.bind(this));
+        }
+    }
+
     threeRenderScene() {
         // this.controls.update();
         // let deltaSeconds = this.clock.getDelta();
         // this.mixers.forEach((mixer) => {
         //     mixer.update(deltaSeconds);
         // });
+        this.renderRequested = false;
+        this.controls?.update();
         this.threeRenderer?.render(this.scene, this.camera);
     }
 
