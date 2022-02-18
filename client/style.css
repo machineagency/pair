@@ -58,7 +58,7 @@ pre code.hljs {
     color: whitesmoke;
     font-family: 'JetBrains Mono', monospace;
     padding-top: 10px;
-    display: flex;
+    display: block;
     flex-direction: row;
     margin-top: 20px;
     margin-left: 20px;
@@ -73,7 +73,7 @@ pre code.hljs {
 }
 
 #program-names {
-    width: 100%;
+    width: 35%;
     height: 35px;
     margin-bottom: 10px;
     background-color: #23241f;
