@@ -35,8 +35,7 @@ let addWorkflow = (db, workflowName, workflowText) => {
 
 db.serialize(() => {
     initDb(db);
-    addWorkflow(db, 'test_workflow', '2 + 2;');
-    addWorkflow(db, 'test_workflow2', 'foo();');
+    seedDatabase(db);
 });
 
 /* Keep references to the name and Express response object for the current
@@ -209,6 +208,46 @@ let attachRoutesAndStart = () => {
         exports = module.exports = app;
     });
 }
+
+function seedDatabase(db) {
+    const workflowHeadersDir = 'workflows/headers/';
+    const workflowImplementationDir = 'workflows/implementations/';
+    fs.readdir(workflowHeadersDir, (err, files) => {
+        if (err) {
+            throw err;
+        }
+        files.forEach((filename) => {
+            if (filename[0] === '.') {
+                return;
+            }
+            if (filename.split('.')[1] === 'json') {
+                let fullFilename = workflowHeadersDir + filename;
+                let jsFilename = filename.split('.')[0] + '.js';
+                let jsFullFileName = workflowImplementationDir + jsFilename;
+                fs.readFile(fullFilename, (err, headerData) => {
+                    if (err) {
+                        throw err;
+                    }
+                    let headerObj = JSON.parse(headerData);
+                    fs.readFile(jsFullFileName, (err, jsData) => {
+                        if (err) {
+                            console.error(`Missing JS for: ${filename}.`);
+                            throw err;
+                        }
+                        let progName = headerObj['progName'];
+                        let progText = jsData.toString();
+                        // Hacky: just replace double quotes with single quotes
+                        // in the programs so that we can run our SQL query.
+                        progText = progText.replace('"', '\'');
+                        let query = 'INSERT INTO Workflows '
+                            + `VALUES ("${progName}", "${progText}");`;
+                        db.run(query);
+                    });
+                });
+            }
+        });
+    });
+};
 
 attachRoutesAndStart();
 
