@@ -130,7 +130,7 @@ let attachRoutesAndStart = () => {
             });
         }
         else {
-            query = 'SELECT * FROM Workflows';
+            query = 'SELECT * FROM Workflows ORDER BY progName ASC;';
             db.all(query, [], (err, rows) => {
                 if (err) {
                     res.status(404).send();
