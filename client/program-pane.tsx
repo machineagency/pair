@@ -38,9 +38,10 @@ interface ProgramLineProps {
     refForLivelit: React.Ref<LivelitWindow>;
 };
 interface State {}
-interface ProgramPaneState {
-    currentWorkflow: string[];
+interface ProgramPaneProps {
+    loadedWorkflowLines: string[];
 };
+interface ProgramPaneState {};
 interface ProgramLineState {
     lineText: string;
     expandedLineText: string;
@@ -145,7 +146,7 @@ class ProgramUtil {
 }
 
 type ConsoleFn = (msg: string) => void;
-class ProgramPane extends React.Component<Props, ProgramPaneState> {
+class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     livelitRefs: React.RefObject<LivelitWindow>[];
     plRefs: React.RefObject<ProgramLine>[];
     modulePaneRef: React.RefObject<ModulePane>;
@@ -200,11 +201,8 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'console.log(vizSpace);'
     ];
 
-    constructor(props: Props) {
+    constructor(props: ProgramPaneProps) {
         super(props);
-        this.state = {
-            currentWorkflow: this.defaultToolpathPreviewing,
-        };
         this.livelitRefs = [];
         this.plRefs = [];
         this.modulePaneRef = React.createRef<ModulePane>();
@@ -347,7 +345,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
             if (!currentProgLinesDom) { return; }
             let currentProgLines = currentProgLinesDom.innerText
                 ? currentProgLinesDom.innerText.split('\n')
-                : this.state.currentWorkflow;
+                : this.props.loadedWorkflowLines;
             if (this.modulePaneRef.current) {
                 this.modulePaneRef.current.setState((prevState: ModulePaneState) => {
                     return { lines: currentProgLines }
@@ -360,13 +358,8 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         return (
             <div id="program-pane">
                 <div id="program-lines-and-controls">
-                    <select id="program-names" name="">
-                        <option value="plotting/simple-place">plotting/simple-place</option>
-                        <option value="virtual/test-features">virtual/test-features</option>
-                        <option value="gel-extrusion/interactive-swatch">gel-extrusion/interactive-swatch</option>
-                    </select>
                     <div id="program-lines">
-                        { this.renderTextLines(this.state.currentWorkflow) }
+                        { this.renderTextLines(this.props.loadedWorkflowLines) }
                     </div>
                     <div id="program-console"></div>
                     <div id="program-controls">
