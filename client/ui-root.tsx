@@ -60,15 +60,13 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
         }
     }
 
-    get currentWorkflowLines() {
+    get currentWorkflowText() {
         let key = this.state.currentWorkflowName;
         let maybeWorkflow = this.state.workflowDict[key];
         if (maybeWorkflow) {
-            let lines = maybeWorkflow.split('\n');
-            lines = lines.filter(line => line !== '');
-            return lines;
+            return maybeWorkflow.trim();
         }
-        return [];
+        return '';
     }
 
     populateWorkflows() {
@@ -89,8 +87,8 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
                     workflowDict: workflowDict
                 };
             }, () => {
-                let programPaneLines = this.currentWorkflowLines;
-                programPane.renderTextLines(programPaneLines);
+                let programPaneLines = this.currentWorkflowText;
+                programPane.injectText(programPaneLines);
                 this.rerun();
             });
         });
@@ -142,6 +140,8 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
         this.setState(prevState => {
             return { currentWorkflowName: workflowName };
         }, () => {
+            let programPaneLines = this.currentWorkflowText;
+            programPane.injectText(programPaneLines);
             this.rerun();
         });
     }
@@ -174,7 +174,7 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
             <div id="main-container">
                 <div id="program-container">
                     { this.renderWorkflowSelect() }
-                    <ProgramPane loadedWorkflowLines={this.currentWorkflowLines}
+                    <ProgramPane loadedWorkflowText={this.currentWorkflowText}
                         ref={this.state.programPaneRef}></ProgramPane>
                 </div>
                 <div id="visualization-space-container">
