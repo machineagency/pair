@@ -9,12 +9,34 @@ const bodyParser     = require('body-parser');
 const path           = require('path');
 const fs             = require('fs');
 const ps             = require('python-shell');
+const sqlite3        = require('sqlite3').verbose();
 
 // configuration ===========================================
 let port = process.env.PORT || 3000; // set our port
 app.use(bodyParser.json()); // for parsing application/json
 app.use(express.static(__dirname + '/client')); // set the static files location /public/img will be /img for users
 const shell = new ps.PythonShell('./cp_interpreter.py', {});
+
+// database ===========================================
+const db = new sqlite3.Database(':memory:');
+let initDb = (db) => {
+    let query = 'CREATE TABLE Workflows ('
+        + 'progName TEXT NOT NULL,'
+        + 'progText TEXT NOT NULL'
+        + ');'
+    db.run(query);
+};
+
+let addWorkflow = (db, workflowName, workflowText) => {
+    let query = 'INSERT INTO Workflows '
+        + `VALUES ('${workflowName}', '${workflowText}');`;
+    db.run(query);
+};
+
+db.serialize(() => {
+    initDb(db);
+    seedDatabase(db);
+});
 
 /* Keep references to the name and Express response object for the current
  * RPC and set the shell.on handler once only, using a lookup table that
@@ -91,6 +113,37 @@ shell.on('message', (message) => {
 
 let attachRoutesAndStart = () => {
 
+    app.get('/workflows', (req, res) => {
+        let query;
+        if (req.query.workflowName) {
+            query = 'SELECT * FROM Workflows '
+                + `WHERE progName='${req.query.workflowName}'`;
+            db.get(query, (err, row) => {
+                if (err) {
+                    res.status(404).send();
+                }
+                else {
+                    res.status(200).json({
+                        workflow: row
+                    });
+                }
+            });
+        }
+        else {
+            query = 'SELECT * FROM Workflows ORDER BY progName ASC;';
+            db.all(query, [], (err, rows) => {
+                if (err) {
+                    res.status(404).send();
+                }
+                else {
+                    res.status(200).json({
+                        workflows: rows
+                    });
+                }
+            });
+        }
+    });
+
     app.get('/machine/drawEnvelope', (req, res) => {
         shell.send('draw_envelope');
         res.status(200).send();
@@ -155,6 +208,46 @@ let attachRoutesAndStart = () => {
         exports = module.exports = app;
     });
 }
+
+function seedDatabase(db) {
+    const workflowHeadersDir = 'workflows/headers/';
+    const workflowImplementationDir = 'workflows/implementations/';
+    fs.readdir(workflowHeadersDir, (err, files) => {
+        if (err) {
+            throw err;
+        }
+        files.forEach((filename) => {
+            if (filename[0] === '.') {
+                return;
+            }
+            if (filename.split('.')[1] === 'json') {
+                let fullFilename = workflowHeadersDir + filename;
+                let jsFilename = filename.split('.')[0] + '.js';
+                let jsFullFileName = workflowImplementationDir + jsFilename;
+                fs.readFile(fullFilename, (err, headerData) => {
+                    if (err) {
+                        throw err;
+                    }
+                    let headerObj = JSON.parse(headerData);
+                    fs.readFile(jsFullFileName, (err, jsData) => {
+                        if (err) {
+                            console.error(`Missing JS for: ${filename}.`);
+                            throw err;
+                        }
+                        let progName = headerObj['progName'];
+                        let progText = jsData.toString();
+                        // Hacky: just replace double quotes with single quotes
+                        // in the programs so that we can run our SQL query.
+                        progText = progText.replace('"', '\'');
+                        let query = 'INSERT INTO Workflows '
+                            + `VALUES ("${progName}", "${progText}");`;
+                        db.run(query);
+                    });
+                });
+            }
+        });
+    });
+};
 
 attachRoutesAndStart();
 

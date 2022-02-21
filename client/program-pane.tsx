@@ -26,27 +26,16 @@ interface LivelitProps {
      * such that the parent (e.g. ModulePane) has a reference to the component
      * to which this Ref has been passed as "ref." */
     ref: React.RefObject<LivelitWindow>;
-    plRef: React.RefObject<ProgramLine>;
     windowOpen: boolean;
     valueSet: boolean;
     key: string;
 
 };
-interface ProgramLineProps {
-    lineNumber: number;
-    lineText: string;
-    refForLivelit: React.Ref<LivelitWindow>;
-};
 interface State {}
-interface ProgramPaneState {
-    currentWorkflow: string[];
+interface ProgramPaneProps {
+    loadedWorkflowText: string;
 };
-interface ProgramLineState {
-    lineText: string;
-    expandedLineText: string;
-    highlight: boolean;
-};
-
+interface ProgramPaneState {};
 class ResetExecution extends Error {
     constructor() {
         let message = 'Resetting execution.';
@@ -56,7 +45,6 @@ class ResetExecution extends Error {
 
 class ProgramUtil {
     static parseTextForLivelit(text: string,
-                               plRef: React.RefObject<ProgramLine>,
                                livelitRef: React.RefObject<LivelitWindow>)
                                : JSX.Element | null {
         const re = /\$\w+/;
@@ -70,7 +58,6 @@ class ProgramUtil {
             case 'geometryGallery':
                 const ggProps: GeometryGalleryProps = {
                     ref: livelitRef as React.RefObject<GeometryGallery>,
-                    plRef: plRef,
                     valueSet: false,
                     windowOpen: true,
                     key: text
@@ -80,7 +67,6 @@ class ProgramUtil {
             case 'pointPicker':
                 const ppProps: PointPickerProps = {
                     ref: livelitRef as React.RefObject<PointPicker>,
-                    plRef: plRef,
                     valueSet: false,
                     windowOpen: true,
                     key: text
@@ -92,7 +78,6 @@ class ProgramUtil {
                     machine: undefined,
                     tabletop: undefined,
                     ref: livelitRef as React.RefObject<TabletopCalibrator>,
-                    plRef: plRef,
                     valueSet: false,
                     windowOpen: false,
                     key: text
@@ -102,7 +87,6 @@ class ProgramUtil {
             case 'cameraCalibrator':
                 const ccProps: CameraCalibratorProps = {
                     ref: livelitRef as React.RefObject<CameraCalibrator>,
-                    plRef: plRef,
                     valueSet: false,
                     windowOpen: false,
                     key: text
@@ -112,7 +96,6 @@ class ProgramUtil {
                 const ffProps: FaceFinderProps = {
                     camera: undefined,
                     ref: livelitRef as React.RefObject<FaceFinder>,
-                    plRef: plRef,
                     valueSet: false,
                     windowOpen: true,
                     key: text
@@ -122,7 +105,6 @@ class ProgramUtil {
             case 'camCompiler':
                 const camProps: CamCompilerProps = {
                     ref: livelitRef as React.RefObject<CamCompiler>,
-                    plRef: plRef,
                     valueSet: false,
                     windowOpen: true,
                     key: text
@@ -132,7 +114,6 @@ class ProgramUtil {
             case 'toolpathVisualizer':
                 const tdProps: ToolpathVisualizerProps = {
                     ref: livelitRef as React.RefObject<ToolpathVisualizer>,
-                    plRef: plRef,
                     valueSet: false,
                     windowOpen: true,
                     key: text
@@ -145,9 +126,8 @@ class ProgramUtil {
 }
 
 type ConsoleFn = (msg: string) => void;
-class ProgramPane extends React.Component<Props, ProgramPaneState> {
+class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     livelitRefs: React.RefObject<LivelitWindow>[];
-    plRefs: React.RefObject<ProgramLine>[];
     modulePaneRef: React.RefObject<ModulePane>;
 
     defaultLinesSignature = [
@@ -200,13 +180,9 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         'console.log(vizSpace);'
     ];
 
-    constructor(props: Props) {
+    constructor(props: ProgramPaneProps) {
         super(props);
-        this.state = {
-            currentWorkflow: this.defaultToolpathPreviewing,
-        };
         this.livelitRefs = [];
-        this.plRefs = [];
         this.modulePaneRef = React.createRef<ModulePane>();
     }
 
@@ -215,7 +191,7 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
     }
 
     syntaxHighlightProgramLines() {
-        document.querySelectorAll('pre code').forEach((el) => {
+        document.querySelectorAll('.program-line').forEach((el) => {
             hljs.highlightElement(el);
         });
     }
@@ -260,25 +236,24 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
         console.error = new Proxy(console.error, consoleHandler);
     }
 
-    renderTextLines(textLines: string[]) {
+    injectText(text: string) {
+        let programLinesDom = document.getElementById('program-lines');
+        if (!programLinesDom) { return; }
+        programLinesDom.innerHTML = '';
         this.livelitRefs = [];
-        this.plRefs = [];
-        const lines = textLines.map((line, index) => {
-            const lineNumber = index + 1;
-            const livelitRef = React.createRef<LivelitWindow>();
-            const plRef = React.createRef<ProgramLine>();
-            this.plRefs.push(plRef);
-            this.livelitRefs.push(livelitRef);
-            return <ProgramLine lineNumber={lineNumber}
-                                key={index}
-                                refForLivelit={livelitRef}
-                                ref={plRef}
-                                lineText={line}></ProgramLine>
-        }).flat();
-        if (this.modulePaneRef.current) {
-            this.modulePaneRef.current.updateProgramLineRefs(this.plRefs);
-        }
-        return lines;
+        let textLines = text.split('\n').filter(line => line !== '');
+        let plDom;
+        textLines.forEach((line, index) => {
+            if (programLinesDom) {
+                const livelitRef = React.createRef<LivelitWindow>();
+                this.livelitRefs.push(livelitRef);
+                plDom = document.createElement('div');
+                plDom.classList.add('program-line');
+                plDom.classList.add('language-typescript');
+                plDom.innerText = line;
+                programLinesDom.appendChild(plDom);
+            }
+        });
     }
 
     __getModules() : LivelitWindow[] {
@@ -321,9 +296,11 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
 
     runAllLines() {
         const extractProgramText = () => {
-            const programLines = Array.from(document
-                                      .getElementsByClassName('program-line-text'));
-            return programLines.map(el => (el as HTMLElement).innerText).join('\n');
+            let progLinesDom = document.getElementById('program-lines');
+            if (progLinesDom) {
+                return progLinesDom.innerText;
+            }
+            return '';
         };
         const PROGRAM_PANE = this;
         let innerProgText = extractProgramText();
@@ -346,11 +323,11 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
             let currentProgLinesDom = document.getElementById('program-lines');
             if (!currentProgLinesDom) { return; }
             let currentProgLines = currentProgLinesDom.innerText
-                ? currentProgLinesDom.innerText.split('\n')
-                : this.state.currentWorkflow;
+                ? currentProgLinesDom.innerText
+                : this.props.loadedWorkflowText;
             if (this.modulePaneRef.current) {
                 this.modulePaneRef.current.setState((prevState: ModulePaneState) => {
-                    return { lines: currentProgLines }
+                    return { text: currentProgLines }
                 }, resolve);
             }
         });
@@ -361,7 +338,6 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
             <div id="program-pane">
                 <div id="program-lines-and-controls">
                     <div id="program-lines">
-                        { this.renderTextLines(this.state.currentWorkflow) }
                     </div>
                     <div id="program-console"></div>
                     <div id="program-controls">
@@ -376,31 +352,27 @@ class ProgramPane extends React.Component<Props, ProgramPaneState> {
                         </div>
                     </div>
                 </div>
-                <ModulePane plRefs={this.plRefs}
-                            ref={this.modulePaneRef}></ModulePane>
+                <ModulePane ref={this.modulePaneRef}></ModulePane>
             </div>
         );
     }
 }
 
 interface ModulePaneProps extends Props {
-    plRefs: React.RefObject<ProgramLine>[];
 }
 
 interface ModulePaneState extends State {
-    lines: string[];
+    text: string;
 }
 
 class ModulePane extends React.Component<ModulePaneProps, ModulePaneState> {
     moduleRefs: React.RefObject<LivelitWindow>[];
-    plRefs: React.RefObject<ProgramLine>[];
 
     constructor(props: ModulePaneProps) {
         super(props);
         this.moduleRefs = [];
-        this.plRefs = props.plRefs;
         this.state = {
-            lines: []
+            text: ''
         };
     }
 
@@ -413,29 +385,16 @@ class ModulePane extends React.Component<ModulePaneProps, ModulePaneState> {
     }
 
     mapLinesToLivelits() : JSX.Element[] {
-        let livelits = this.state.lines.map((lineText, lineIndex) => {
-            let plRef = this.plRefs[lineIndex];
+        let lines = this.state.text.split(';').filter(line => line !== '');
+        let livelits = lines.map((lineText, lineIndex) => {
             let moduleRef = React.createRef<LivelitWindow>();
             this.moduleRefs.push(moduleRef);
-            return ProgramUtil.parseTextForLivelit(lineText, plRef, moduleRef);
+            return ProgramUtil.parseTextForLivelit(lineText, moduleRef);
         });
         let nonNullLiveLits = livelits.filter((ll): ll is JSX.Element => {
             return ll !== null;
         });
         return nonNullLiveLits;
-    }
-
-    updateProgramLineRefs(plRefs: React.RefObject<ProgramLine>[]) {
-        this.plRefs = plRefs;
-        this.moduleRefs.forEach((ref, refIndex) => {
-            if (!ref.current) {
-                return;
-            }
-            let moduleWindow = ref.current;
-            let moduleLineNumber = refIndex;
-            let correspondingPlRef = this.plRefs[moduleLineNumber];
-            moduleWindow.plRef = correspondingPlRef;
-        });
     }
 
     render() {
@@ -447,52 +406,9 @@ class ModulePane extends React.Component<ModulePaneProps, ModulePaneState> {
     }
 }
 
-class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
-
-    colorSetLivelit = 0x888888;
-
-    constructor(props: ProgramLineProps) {
-        super(props);
-        this.state = {
-            lineText: props.lineText,
-            expandedLineText: '',
-            highlight: false
-        };
-    }
-
-    hasLivelitExpansion() {
-        return this.state.expandedLineText !== '';
-    }
-
-    toggleLivelitWindow() {
-        this.setState((prevState) => {
-            // TODO: set livelit state.windowOpen
-            let newState: ProgramLineState = {
-                lineText: prevState.lineText,
-                expandedLineText: prevState.lineText,
-                highlight: prevState.highlight
-            };
-            return newState;
-        })
-    }
-
-    render() {
-        const highlightClass = this.state.highlight ? 'pl-highlight' : '';
-        const lineNumber = this.props.lineNumber || 0;
-        return <div className={`program-line ${highlightClass}`}
-                    id={`line-${lineNumber - 1}`}
-                    onClick={this.toggleLivelitWindow.bind(this)}>
-                    <pre className="program-line-text language-typescript"><code>
-                        {this.state.lineText}
-                    </code></pre>
-               </div>
-    }
-}
-
 interface LivelitState {
     windowOpen: boolean;
     valueSet: boolean;
-    abortOnResumingExecution: boolean;
 }
 
 class LivelitWindow extends React.Component {
@@ -501,7 +417,6 @@ class LivelitWindow extends React.Component {
     livelitClassName: string;
     titleKey: number;
     contentKey: number;
-    plRef: React.RefObject<ProgramLine>;
     applyButton?: JSX.Element;
     props: LivelitProps;
     state: LivelitState;
@@ -514,10 +429,8 @@ class LivelitWindow extends React.Component {
         this.livelitClassName = 'livelit-window';
         this.titleKey = 0;
         this.contentKey = 1;
-        this.plRef = props.plRef;
         this.state = {
             windowOpen: props.windowOpen,
-            abortOnResumingExecution: false,
             valueSet: props.valueSet,
         }
     }
@@ -527,20 +440,10 @@ class LivelitWindow extends React.Component {
     }
 
     async openWindow() {
-        if (this.props.plRef.current) {
-            await this.props.plRef.current.setState(_ => {
-                return { highlight: true };
-            });
-        }
         return this._setWindowOpenState(true);
     }
 
     async closeWindow() {
-        if (this.props.plRef.current) {
-            await this.props.plRef.current.setState(_ => {
-                return { highlight: false };
-            });
-        }
         return this._setWindowOpenState(false);
     }
 
@@ -560,26 +463,6 @@ class LivelitWindow extends React.Component {
             }, resolve);
         });
     };
-
-    highlightPL(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
-        if (this.props.plRef.current) {
-            this.props.plRef.current.setState(_ => {
-                return { highlight: true };
-            });
-        }
-    }
-
-    unhighlightPL(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
-        if (this.props.plRef.current) {
-            this.props.plRef.current.setState(_ => {
-                return { highlight: false };
-            });
-        }
-    }
-
-    handleAbortExecution() : never {
-        throw new ResetExecution();
-    }
 
     saveValue() : any {
         return undefined;
@@ -626,8 +509,6 @@ class LivelitWindow extends React.Component {
 
     render() {
         return <div className={this.livelitClassName}
-                    onMouseEnter={this.highlightPL.bind(this)}
-                    onMouseLeave={this.unhighlightPL.bind(this)}
                     key={this.livelitClassName}>
                     <div className="title-and-toggle-bar">
                         { this.renderTitle() }
@@ -660,7 +541,6 @@ class GeometryGallery extends LivelitWindow {
             selectedUrl: '',
             imageNameUrlPairs: [],
             windowOpen: props.windowOpen,
-            abortOnResumingExecution: false,
             valueSet: props.valueSet
         };
     }
@@ -906,7 +786,6 @@ class TabletopCalibrator extends LivelitWindow {
         this.state = {
             tabletop: undefined,
             windowOpen: props.windowOpen,
-            abortOnResumingExecution: false,
             pixelToPhysical: maybeSavedHomography,
             valueSet: !!maybeSavedHomography
         };
@@ -949,9 +828,7 @@ class TabletopCalibrator extends LivelitWindow {
             const applyButtonDom = document.getElementById('apply-tabletop-homography');
             if (applyButtonDom) {
                 applyButtonDom.addEventListener('click', (event) => {
-                    if (!this.state.abortOnResumingExecution) {
-                        this.tabletop?.setHomographyFromCalibration();
-                    }
+                    this.tabletop?.setHomographyFromCalibration();
                     resolve();
                 });
             }
@@ -959,9 +836,6 @@ class TabletopCalibrator extends LivelitWindow {
     }
 
     saveValue() {
-        if (this.state.abortOnResumingExecution) {
-            return;
-        }
         return new Promise<void>((resolve) => {
             if (this.tabletop) {
                 let h = this.tabletop.workEnvelope.homography;
@@ -1101,7 +975,6 @@ class CameraCalibrator extends LivelitWindow {
             warpedImageUrl: '',
             extrinsicTransform: maybeSavedExtrinsicTransform,
             windowOpen: this.props.windowOpen,
-            abortOnResumingExecution: false,
             valueSet: !!maybeSavedExtrinsicTransform,
             selectedPoints: []
         };
@@ -1364,7 +1237,6 @@ class FaceFinder extends LivelitWindow {
             imagePath: './img/seattle-times.jpg',
             detectedRegions: [],
             windowOpen: props.windowOpen,
-            abortOnResumingExecution: false,
             valueSet: props.valueSet
         }
         this.photoButton = <div onClick={this.takePhoto.bind(this)}
@@ -1517,7 +1389,6 @@ class ToolpathDirectManipulator extends LivelitWindow {
 
 interface CamCompilerProps extends LivelitProps {
     ref: React.RefObject<CamCompiler>;
-    plRef: React.RefObject<ProgramLine>;
     valueSet: boolean;
     windowOpen: boolean;
 }
@@ -1566,7 +1437,6 @@ class CamCompiler extends LivelitWindow {
             geometry: undefined,
             toolpath: undefined,
             windowOpen: props.windowOpen,
-            abortOnResumingExecution: false,
             valueSet: !!maybeSavedCamCompilerName
         };
     }
@@ -1602,9 +1472,6 @@ class CamCompiler extends LivelitWindow {
     }
 
     saveValue() {
-        if (this.state.abortOnResumingExecution) {
-            return;
-        }
         return new Promise<void>((resolve) => {
             if (this.state.currentCompilerName) {
                 localStorage.setItem(this.functionName, this.state.currentCompilerName);
@@ -1775,7 +1642,6 @@ class CamCompiler extends LivelitWindow {
 
 interface ToolpathVisualizerProps extends LivelitProps {
     ref: React.RefObject<ToolpathVisualizer>;
-    plRef: React.RefObject<ProgramLine>;
     valueSet: boolean;
     windowOpen: boolean;
 }
@@ -1831,7 +1697,6 @@ class ToolpathVisualizer extends LivelitWindow {
             currentInterpreterName: maybeSavedInterpreterName
                                     || fallbackInterpreterName,
             windowOpen: props.windowOpen,
-            abortOnResumingExecution: false,
             valueSet: !!maybeSavedInterpreterName,
             selectedInstIndex: -1
         };
