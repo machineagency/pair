@@ -31,22 +31,11 @@ interface LivelitProps {
     key: string;
 
 };
-interface ProgramLineProps {
-    lineNumber: number;
-    lineText: string;
-    refForLivelit: React.Ref<LivelitWindow>;
-};
 interface State {}
 interface ProgramPaneProps {
     loadedWorkflowText: string;
 };
 interface ProgramPaneState {};
-interface ProgramLineState {
-    lineText: string;
-    expandedLineText: string;
-    highlight: boolean;
-};
-
 class ResetExecution extends Error {
     constructor() {
         let message = 'Resetting execution.';
@@ -408,68 +397,12 @@ class ModulePane extends React.Component<ModulePaneProps, ModulePaneState> {
         return nonNullLiveLits;
     }
 
-    // FIXME: deprecated?
-    // updateProgramLineRefs(plRefs: React.RefObject<ProgramLine>[]) {
-    //     this.plRefs = plRefs;
-    //     this.moduleRefs.forEach((ref, refIndex) => {
-    //         if (!ref.current) {
-    //             return;
-    //         }
-    //         let moduleWindow = ref.current;
-    //         let moduleLineNumber = refIndex;
-    //         let correspondingPlRef = this.plRefs[moduleLineNumber];
-    //         moduleWindow.plRef = correspondingPlRef;
-    //     });
-    // }
-
     render() {
         return (
             <div id="module-pane" key="module-pane">
                 { this.mapLinesToLivelits() }
             </div>
         );
-    }
-}
-
-class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
-
-    colorSetLivelit = 0x888888;
-
-    constructor(props: ProgramLineProps) {
-        super(props);
-        this.state = {
-            lineText: props.lineText,
-            expandedLineText: '',
-            highlight: false
-        };
-    }
-
-    hasLivelitExpansion() {
-        return this.state.expandedLineText !== '';
-    }
-
-    toggleLivelitWindow() {
-        this.setState((prevState) => {
-            // TODO: set livelit state.windowOpen
-            let newState: ProgramLineState = {
-                lineText: prevState.lineText,
-                expandedLineText: prevState.lineText,
-                highlight: prevState.highlight
-            };
-            return newState;
-        })
-    }
-
-    render() {
-        const highlightClass = this.state.highlight ? 'pl-highlight' : '';
-        const lineNumber = this.props.lineNumber || 0;
-        return <div className={`program-line ${highlightClass}`}
-                    id={`line-${lineNumber - 1}`}
-                    onClick={this.toggleLivelitWindow.bind(this)}>
-                    <pre className="program-line-text language-typescript"><code>
-                        {this.state.lineText}
-                    </code></pre>
-               </div>
     }
 }
 
@@ -509,20 +442,10 @@ class LivelitWindow extends React.Component {
     }
 
     async openWindow() {
-        // if (this.props.plRef.current) {
-        //     await this.props.plRef.current.setState(_ => {
-        //         return { highlight: true };
-        //     });
-        // }
         return this._setWindowOpenState(true);
     }
 
     async closeWindow() {
-        // if (this.props.plRef.current) {
-        //     await this.props.plRef.current.setState(_ => {
-        //         return { highlight: false };
-        //     });
-        // }
         return this._setWindowOpenState(false);
     }
 
@@ -542,22 +465,6 @@ class LivelitWindow extends React.Component {
             }, resolve);
         });
     };
-
-    // highlightPL(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
-    //     if (this.props.plRef.current) {
-    //         this.props.plRef.current.setState(_ => {
-    //             return { highlight: true };
-    //         });
-    //     }
-    // }
-
-    // unhighlightPL(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
-    //     if (this.props.plRef.current) {
-    //         this.props.plRef.current.setState(_ => {
-    //             return { highlight: false };
-    //         });
-    //     }
-    // }
 
     saveValue() : any {
         return undefined;
