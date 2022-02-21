@@ -409,7 +409,6 @@ class ModulePane extends React.Component<ModulePaneProps, ModulePaneState> {
 interface LivelitState {
     windowOpen: boolean;
     valueSet: boolean;
-    abortOnResumingExecution: boolean;
 }
 
 class LivelitWindow extends React.Component {
@@ -432,7 +431,6 @@ class LivelitWindow extends React.Component {
         this.contentKey = 1;
         this.state = {
             windowOpen: props.windowOpen,
-            abortOnResumingExecution: false,
             valueSet: props.valueSet,
         }
     }
@@ -543,7 +541,6 @@ class GeometryGallery extends LivelitWindow {
             selectedUrl: '',
             imageNameUrlPairs: [],
             windowOpen: props.windowOpen,
-            abortOnResumingExecution: false,
             valueSet: props.valueSet
         };
     }
@@ -789,7 +786,6 @@ class TabletopCalibrator extends LivelitWindow {
         this.state = {
             tabletop: undefined,
             windowOpen: props.windowOpen,
-            abortOnResumingExecution: false,
             pixelToPhysical: maybeSavedHomography,
             valueSet: !!maybeSavedHomography
         };
@@ -832,9 +828,7 @@ class TabletopCalibrator extends LivelitWindow {
             const applyButtonDom = document.getElementById('apply-tabletop-homography');
             if (applyButtonDom) {
                 applyButtonDom.addEventListener('click', (event) => {
-                    if (!this.state.abortOnResumingExecution) {
-                        this.tabletop?.setHomographyFromCalibration();
-                    }
+                    this.tabletop?.setHomographyFromCalibration();
                     resolve();
                 });
             }
@@ -842,9 +836,6 @@ class TabletopCalibrator extends LivelitWindow {
     }
 
     saveValue() {
-        if (this.state.abortOnResumingExecution) {
-            return;
-        }
         return new Promise<void>((resolve) => {
             if (this.tabletop) {
                 let h = this.tabletop.workEnvelope.homography;
@@ -984,7 +975,6 @@ class CameraCalibrator extends LivelitWindow {
             warpedImageUrl: '',
             extrinsicTransform: maybeSavedExtrinsicTransform,
             windowOpen: this.props.windowOpen,
-            abortOnResumingExecution: false,
             valueSet: !!maybeSavedExtrinsicTransform,
             selectedPoints: []
         };
@@ -1247,7 +1237,6 @@ class FaceFinder extends LivelitWindow {
             imagePath: './img/seattle-times.jpg',
             detectedRegions: [],
             windowOpen: props.windowOpen,
-            abortOnResumingExecution: false,
             valueSet: props.valueSet
         }
         this.photoButton = <div onClick={this.takePhoto.bind(this)}
@@ -1448,7 +1437,6 @@ class CamCompiler extends LivelitWindow {
             geometry: undefined,
             toolpath: undefined,
             windowOpen: props.windowOpen,
-            abortOnResumingExecution: false,
             valueSet: !!maybeSavedCamCompilerName
         };
     }
@@ -1484,9 +1472,6 @@ class CamCompiler extends LivelitWindow {
     }
 
     saveValue() {
-        if (this.state.abortOnResumingExecution) {
-            return;
-        }
         return new Promise<void>((resolve) => {
             if (this.state.currentCompilerName) {
                 localStorage.setItem(this.functionName, this.state.currentCompilerName);
@@ -1712,7 +1697,6 @@ class ToolpathVisualizer extends LivelitWindow {
             currentInterpreterName: maybeSavedInterpreterName
                                     || fallbackInterpreterName,
             windowOpen: props.windowOpen,
-            abortOnResumingExecution: false,
             valueSet: !!maybeSavedInterpreterName,
             selectedInstIndex: -1
         };
