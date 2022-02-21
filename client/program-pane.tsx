@@ -202,8 +202,8 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     }
 
     syntaxHighlightProgramLines() {
-        document.querySelectorAll('pre code').forEach((el) => {
-            // hljs.highlightElement(el);
+        document.querySelectorAll('.program-line').forEach((el) => {
+            hljs.highlightElement(el);
         });
     }
 
@@ -260,6 +260,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
                 this.livelitRefs.push(livelitRef);
                 plDom = document.createElement('div');
                 plDom.classList.add('program-line');
+                plDom.classList.add('language-typescript');
                 plDom.innerText = line;
                 programLinesDom.appendChild(plDom);
             }
