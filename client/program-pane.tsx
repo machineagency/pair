@@ -571,8 +571,7 @@ class GeometryGallery extends LivelitWindow {
     }
 
     expand() : string {
-        let s = `async function ${this.functionName}(machine, tabletop) {`;
-        // TODO: filter geometries by machine
+        let s = `async function ${this.functionName}(tabletop) {`;
         s += `let gg = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `await gg.init();`;
         s += `let geomUrl = gg.state.selectedUrl;`;
