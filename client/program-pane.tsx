@@ -327,7 +327,10 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         progText += `${innerProgText}`;
         progText += `} catch (e) { console.error(e); }`;
         progText += `})();`;
-        eval(progText);
+        return new Promise<void>((resolve) => {
+            eval(progText);
+            resolve();
+        });
     }
 
 
@@ -353,7 +356,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
                     <div id="program-lines">
                     </div>
                     <div id="program-console"></div>
-                    <div id="program-controls">
+                    <div id="program-controls" className="hidden">
                         <div className={`pc-btn pc-compile`}
                              onClick={this.generateModules.bind(this)}>
                             Generate

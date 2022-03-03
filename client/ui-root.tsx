@@ -103,7 +103,7 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
     }
 
     setProgramLinesRerunHandler() {
-        const delay = 1000;
+        const delay = 250;
         let programLinesDom = document.getElementById('program-lines');
         if (programLinesDom) {
             programLinesDom.addEventListener('keyup', (event: Event) => {
@@ -123,6 +123,7 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
         let programPane = programPaneRef.current;
         // This might throw a massive security warning. It seems to happen when
         // we highlight lines that were not procedurally generated.
+        programPane.clearProgramConsole();
         programPane.syntaxHighlightProgramLines();
         programPane.generateModules()
         .then(() => {
