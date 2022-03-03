@@ -13,6 +13,7 @@
 /// <reference path="lib/perspective-transform.d.ts" />
 import * as verso from './verso.js';
 import { mm, px } from './verso.js';
+import { FormatUtil } from './format-util.js'
 (window as any).mm = mm;
 (window as any).px = px;
 
@@ -191,9 +192,21 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     }
 
     syntaxHighlightProgramLines() {
-        document.querySelectorAll('.program-line').forEach((el) => {
-            hljs.highlightElement(el);
-        });
+        let programLinesDom = document.getElementById('program-lines');
+        if (!programLinesDom) { return; }
+        const pos = FormatUtil.caret(programLinesDom);
+        FormatUtil.highlight(programLinesDom);
+        FormatUtil.setCaret(pos, programLinesDom);
+    }
+
+    clearProgramConsole() {
+        let programConsoleDom = document.getElementById('program-console');
+        if (!programConsoleDom) {
+            throw new Error('Cannot find program console while loading UI.');
+        }
+        programConsoleDom.innerText = '';
+        programConsoleDom.classList.remove('error-state');
+        programConsoleDom.classList.remove('warn-state');
     }
 
     bindNativeConsoleToProgramConsole() {
