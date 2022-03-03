@@ -1869,7 +1869,7 @@ class ToolpathVisualizer extends LivelitWindow {
         let currentColor = Colors.Green;
         let currentPenHeight = PenHeight.Up;
         let tokens, opcode, duration, aSteps, bSteps, xyChange, material;
-        let materialColor : Colors;
+        let materialColor = Colors.Green;
         toolpath.instructions.forEach((instruction) => {
             tokens = instruction.split(',');
             opcode = tokens[0];
