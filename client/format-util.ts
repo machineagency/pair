@@ -6,11 +6,12 @@ export class FormatUtil {
             const s = (node as HTMLElement).innerText
                 .replace(/(\/\/.*)/g, '<em>$1</em>')
                 .replace(
-                  /\b(new|if|else|do|while|switch|for|in|of|continue|break|return|typeof|function|var|const|let|\.length|\.\w+)(?=[^\w])/g,
+                  /\b(await|async|new|if|else|do|while|switch|for|in|of|continue|break|return|typeof|function|var|const|let|\.length|\.\w+)(?=[^\w])/g,
                   '<strong>$1</strong>',
                 )
                 .replace(/(".*?"|'.*?'|`.*?`)/g, '<em>$1</em>')
-                .replace(/\b(\d+)/g, '<em><strong>$1</strong></em>');
+                .replace(/\b(\d+)/g, '<em><strong>$1</strong></em>')
+                .replace(/(\$\w+)/g, '<div class="red">$1</div>');
             node.innerHTML = s.split('\n').join('<br/>');
         }
     }

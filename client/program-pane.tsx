@@ -262,7 +262,6 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
                 this.livelitRefs.push(livelitRef);
                 plDom = document.createElement('div');
                 plDom.classList.add('program-line');
-                plDom.classList.add('language-typescript');
                 plDom.innerText = line;
                 programLinesDom.appendChild(plDom);
             }

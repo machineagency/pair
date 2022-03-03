@@ -106,6 +106,7 @@ pre code.hljs {
 
 .program-line {
     counter-increment: line;
+    color: #dedede;
 }
 
 .program-line-text {
@@ -122,6 +123,16 @@ pre code.hljs {
     text-align: right;
     width: 20px;
     color: #ffffffab;
+}
+
+.program-line strong {
+    font-weight: bold;
+    color: #ffffff;
+}
+
+.program-line .red {
+    color: #EA2027;
+    display: inline-block;
 }
 
 /* Shared Livelit Styles */
@@ -223,7 +234,7 @@ pre code.hljs {
 }
 
 .gallery .gallery-item.gallery-highlight {
-    background-color: red;
+    background-color: #EA2027;
 }
 
 .gallery-image {
