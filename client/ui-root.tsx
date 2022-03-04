@@ -1,4 +1,5 @@
 import { ProgramPane } from "./program-pane.js";
+import { FormatUtil } from './format-util.js'
 
 interface Props {};
 interface State {};
@@ -44,6 +45,7 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
         .then(() => {
             programPane.runAllLines();
             this.setProgramLinesContentEditable();
+            this.setTabKeypressHandler();
             this.setProgramLinesRerunHandler();
         });
     }
@@ -106,11 +108,24 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
         const delay = 250;
         let programLinesDom = document.getElementById('program-lines');
         if (programLinesDom) {
-            programLinesDom.addEventListener('keyup', (event: Event) => {
-                clearTimeout(this.rerunTimeout);
-                this.rerunTimeout = setTimeout(() => {
-                    this.rerun();
-                }, delay);
+            programLinesDom.addEventListener('keyup', (event: KeyboardEvent) => {
+                if (FormatUtil.isCharKeypress(event)) {
+                    clearTimeout(this.rerunTimeout);
+                    this.rerunTimeout = setTimeout(() => {
+                        this.rerun();
+                    }, delay);
+                }
+            });
+        }
+    }
+
+    setTabKeypressHandler() {
+        let programLinesDom = document.getElementById('program-lines');
+        if (programLinesDom) {
+            programLinesDom.addEventListener('keydown', (e: KeyboardEvent) => {
+                if (programLinesDom && FormatUtil.isTabKeypress(e)) {
+                    FormatUtil.handleTabKeypress(e, programLinesDom);
+                }
             });
         }
     }

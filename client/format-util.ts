@@ -1,6 +1,10 @@
 // From: https://zserge.com/posts/js-editor/
 export class FormatUtil {
 
+    static isCharKeypress(e: KeyboardEvent) {
+        return e.keyCode >= 0x30 || e.keyCode == 0x20;
+    }
+
     static highlight(programLinesDom: HTMLElement) {
         for (const node of programLinesDom.children) {
             const s = (node as HTMLElement).innerText
@@ -16,7 +20,7 @@ export class FormatUtil {
         }
     }
 
-    static caret(lineDom: HTMLElement) : number {
+    static caret(programLinesDom: HTMLElement) : number {
         const sel = window.getSelection();
         if (!sel) { return 0; }
         let range;
@@ -27,13 +31,13 @@ export class FormatUtil {
             return 0;
         }
         const prefix = range.cloneRange();
-        prefix.selectNodeContents(lineDom);
+        prefix.selectNodeContents(programLinesDom);
         prefix.setEnd(range.endContainer, range.endOffset);
         return prefix.toString().length;
     }
 
-    static setCaret(pos: number, parent: HTMLElement) {
-        for (const node of parent.childNodes) {
+    static setCaret(pos: number, programLinesDom: HTMLElement) {
+        for (const node of programLinesDom.childNodes) {
             if (node.nodeType == Node.TEXT_NODE) {
                 let currNode = node as Text;
                 if (currNode.length >= pos) {
@@ -58,5 +62,22 @@ export class FormatUtil {
         }
         return pos;
     };
+
+    static isTabKeypress(e: KeyboardEvent) {
+        return e.which == 9;
+    }
+
+    static handleTabKeypress(e: KeyboardEvent, programLinesDom: HTMLElement) {
+        const tab = '    ';
+        const pos = FormatUtil.caret(programLinesDom) + tab.length;
+        const sel = window.getSelection();
+        if (!sel) { return; }
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+        range.insertNode(document.createTextNode(tab));
+        FormatUtil.highlight(programLinesDom);
+        FormatUtil.setCaret(pos, programLinesDom);
+        e.preventDefault();
+    }
 }
 
