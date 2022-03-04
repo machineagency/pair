@@ -183,7 +183,7 @@ let attachRoutesAndStart = () => {
             let updateQuery = db.prepare(
                 'INSERT INTO Workflows '
                 + '(progName, progText) '
-                + `VALUES ('${workflowText}', '${workflowName}')`
+                + `VALUES ('${workflowName}', '${workflowText}')`
             );
             let info = updateQuery.run();
             if (!info.changes) {
