@@ -102,6 +102,7 @@ pre code.hljs {
 #program-lines {
     border: 1px dashed white;
     padding: 20px 20px 20px 35px;
+    outline: none;
 }
 
 .program-line {
