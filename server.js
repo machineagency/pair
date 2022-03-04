@@ -27,6 +27,12 @@ let initWorkflowTable = (db) => {
     query.run();
 };
 
+let workflowTableIsEmpty = (db) => {
+    let query = db.prepare('SELECT * FROM Workflows;');
+    let maybeRows = query.all();
+    return maybeRows.length === 0;
+};
+
 let addWorkflow = (db, workflowName, workflowText) => {
     let query = db.prepare('INSERT INTO Workflows '
         + `VALUES ('${workflowName}', '${workflowText}');`);
@@ -34,7 +40,11 @@ let addWorkflow = (db, workflowName, workflowText) => {
 };
 
 initWorkflowTable(db);
-seedDatabase(db);
+if (workflowTableIsEmpty(db)) {
+    console.log('Seeding database!');
+    seedDatabase(db);
+}
+
 
 /* Keep references to the name and Express response object for the current
  * RPC and set the shell.on handler once only, using a lookup table that
@@ -136,6 +146,51 @@ let attachRoutesAndStart = () => {
             }
             catch (e) {
                 res.status(404).send();
+            }
+        }
+    });
+
+    app.put('/workflows', (req, res) => {
+        let workflowName = req.query.workflowName;
+        let workflowText = req.query.workflowText;
+        if (!(workflowName && workflowText)) {
+            res.status(400).send();
+            return;
+        }
+        workflowText = workflowText.replaceAll('\'', '\'\'');
+        workflowText = workflowText.replaceAll('\\n', '\n');
+        let maybeRows = db.prepare(`SELECT * FROM Workflows WHERE progName='${workflowName}'`)
+                         .all();
+        if (maybeRows.length !== 0) {
+            // Update existing workflow text
+            console.log('Resolve PUT -> UPDATE');
+            let updateQuery = db.prepare(
+                'UPDATE Workflows '
+                + `SET progText='${workflowText}' `
+                + `WHERE progName='${workflowName}'`
+            );
+            let info = updateQuery.run();
+            if (!info.changes) {
+                res.status(500).send();
+            }
+            else {
+                res.status(200).send();
+            }
+        }
+        else {
+            // Insert new workflow
+            console.log('Resolve PUT -> INSERT');
+            let updateQuery = db.prepare(
+                'INSERT INTO Workflows '
+                + '(progName, progText) '
+                + `VALUES ('${workflowText}', '${workflowName}')`
+            );
+            let info = updateQuery.run();
+            if (!info.changes) {
+                res.status(500).send();
+            }
+            else {
+                res.status(200).send();
             }
         }
     });
