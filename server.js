@@ -9,7 +9,7 @@ const bodyParser     = require('body-parser');
 const path           = require('path');
 const fs             = require('fs');
 const ps             = require('python-shell');
-const sqlite3        = require('sqlite3').verbose();
+const Database       = require('better-sqlite3');
 
 // configuration ===========================================
 let port = process.env.PORT || 3000; // set our port
@@ -18,25 +18,23 @@ app.use(express.static(__dirname + '/client')); // set the static files location
 const shell = new ps.PythonShell('./cp_interpreter.py', {});
 
 // database ===========================================
-const db = new sqlite3.Database(':memory:');
-let initDb = (db) => {
-    let query = 'CREATE TABLE Workflows ('
+const db = new Database('verso.db', {});
+let initWorkflowTable = (db) => {
+    let query = db.prepare('CREATE TABLE IF NOT EXISTS Workflows ('
         + 'progName TEXT NOT NULL,'
         + 'progText TEXT NOT NULL'
-        + ');'
-    db.run(query);
+        + ');');
+    query.run();
 };
 
 let addWorkflow = (db, workflowName, workflowText) => {
-    let query = 'INSERT INTO Workflows '
-        + `VALUES ('${workflowName}', '${workflowText}');`;
-    db.run(query);
+    let query = db.prepare('INSERT INTO Workflows '
+        + `VALUES ('${workflowName}', '${workflowText}');`);
+    query.run();
 };
 
-db.serialize(() => {
-    initDb(db);
-    seedDatabase(db);
-});
+initWorkflowTable(db);
+seedDatabase(db);
 
 /* Keep references to the name and Express response object for the current
  * RPC and set the shell.on handler once only, using a lookup table that
@@ -116,31 +114,29 @@ let attachRoutesAndStart = () => {
     app.get('/workflows', (req, res) => {
         let query;
         if (req.query.workflowName) {
-            query = 'SELECT * FROM Workflows '
-                + `WHERE progName='${req.query.workflowName}'`;
-            db.get(query, (err, row) => {
-                if (err) {
-                    res.status(404).send();
-                }
-                else {
-                    res.status(200).json({
-                        workflow: row
-                    });
-                }
-            });
+            query = db.prepare('SELECT * FROM Workflows '
+                + `WHERE progName='${req.query.workflowName}'`);
+            try {
+                let row = query.get();
+                res.status(200).json({
+                    workflows: row
+                });
+            }
+            catch (e) {
+                res.status(404).send();
+            }
         }
         else {
-            query = 'SELECT * FROM Workflows ORDER BY progName ASC;';
-            db.all(query, [], (err, rows) => {
-                if (err) {
-                    res.status(404).send();
-                }
-                else {
-                    res.status(200).json({
-                        workflows: rows
-                    });
-                }
-            });
+            query = db.prepare('SELECT * FROM Workflows ORDER BY progName ASC;');
+            try {
+                let rows = query.all();
+                res.status(200).json({
+                    workflows: rows
+                });
+            }
+            catch (e) {
+                res.status(404).send();
+            }
         }
     });
 
@@ -236,12 +232,13 @@ function seedDatabase(db) {
                         }
                         let progName = headerObj['progName'];
                         let progText = jsData.toString();
-                        // Hacky: just replace double quotes with single quotes
-                        // in the programs so that we can run our SQL query.
-                        progText = progText.replace('"', '\'');
-                        let query = 'INSERT INTO Workflows '
-                            + `VALUES ("${progName}", "${progText}");`;
-                        db.run(query);
+                        // SQL escapes quotes with ... another quote.
+                        progText = progText.replaceAll('\'', '\'\'');
+                        let queryStr = ('INSERT INTO Workflows '
+                            + '(progName, progText) '
+                            + `VALUES ('${progName}', '${progText}');`);
+                        let query = db.prepare(queryStr);
+                        query.run();
                     });
                 });
             }
