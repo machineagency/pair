@@ -34,4 +34,5 @@ test_images/secret
 volatile
 client/*.js
 client/*.js.map
+verso.db
 
