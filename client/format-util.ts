@@ -2,7 +2,9 @@
 export class FormatUtil {
 
     static isCharKeypress(e: KeyboardEvent) {
-        return e.keyCode >= 0x30 || e.keyCode == 0x20;
+        // Alphanumeric || space || backspace
+        return e.keyCode >= 0x30 || e.keyCode == 0x20 || e.keyCode == 0x08
+            || e.keyCode == 0x09;
     }
 
     static highlight(programLinesDom: HTMLElement) {
@@ -68,7 +70,9 @@ export class FormatUtil {
     }
 
     static handleTabKeypress(e: KeyboardEvent, programLinesDom: HTMLElement) {
-        const tab = '    ';
+        const tabDepth = 4;
+        const magicalSpace = '\xa0';
+        const tab = magicalSpace.repeat(tabDepth);
         const pos = FormatUtil.caret(programLinesDom) + tab.length;
         const sel = window.getSelection();
         if (!sel) { return; }
