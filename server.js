@@ -195,6 +195,25 @@ let attachRoutesAndStart = () => {
         }
     });
 
+    app.delete('/workflows', (req, res) => {
+        let workflowName = req.query.workflowName;
+        if (!workflowName) {
+            res.status(400).send();
+            return;
+        }
+        let updateQuery = db.prepare(
+            'DELETE FROM Workflows '
+            + `WHERE progName='${workflowName}'`
+        );
+        let info = updateQuery.run();
+        if (info.changes) {
+            res.status(200).send();
+        }
+        else {
+            res.status(500).send();
+        }
+    });
+
     app.get('/machine/drawEnvelope', (req, res) => {
         shell.send('draw_envelope');
         res.status(200).send();
