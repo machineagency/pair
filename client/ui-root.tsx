@@ -193,7 +193,12 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
                     + `&workflowText=${currentWorkflowText}`;
         fetch(url, { method: 'PUT' })
         .then((response) => {
-            console.log(`Did it save? --${response.statusText}`);
+            if (response.ok) {
+                this.populateWorkflows();
+            }
+            else {
+                console.error(response.statusText);
+            }
         })
         .catch((error) => {
             console.error(error);
