@@ -86,6 +86,32 @@ pre code.hljs {
     font-family: 'JetBrains Mono', monospace;
 }
 
+#topbar {
+    display: flex;
+}
+
+#workflow-btn-bar {
+    display: flex;
+    margin-left: 20px;
+}
+
+.workflow-btn {
+    height: 26px;
+    width: 35px;
+    background-color: whitesmoke;
+    color: #23241f;;
+    text-align: center;
+    margin-right: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 12px;
+    padding-top: 9px;
+}
+
+.workflow-btn .condensed {
+    font-size: 8px;
+}
+
 #module-pane {
     height: 100%;
     width: 360pt;
