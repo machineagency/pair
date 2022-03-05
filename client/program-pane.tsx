@@ -1854,8 +1854,6 @@ class ToolpathVisualizer extends LivelitWindow {
                 0.0
             );
         };
-        let currentPosition = new THREE.Vector3();
-        let newPosition = new THREE.Vector3();
         let moveCurve: THREE.LineCurve3;
         let curveMaterials: THREE.Material[] = [];
         enum Colors {
@@ -1868,6 +1866,8 @@ class ToolpathVisualizer extends LivelitWindow {
         }
         let currentColor = Colors.Green;
         let currentPenHeight = PenHeight.Up;
+        let currentPosition = new THREE.Vector3(0, 0, currentPenHeight);
+        let newPosition = currentPosition.clone();
         let tokens, opcode, duration, aSteps, bSteps, xyChange, material;
         let materialColor = Colors.Green;
         toolpath.instructions.forEach((instruction) => {
