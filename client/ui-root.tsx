@@ -184,12 +184,35 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
         );
     }
 
+    saveWorkflow() {
+        let programLinesDom = document.getElementById('program-lines');
+        if (!programLinesDom) { return; }
+        let currentWorkflowText = programLinesDom.innerText
+                                    .replaceAll('\n', '\\n');
+        let url = `/workflows?workflowName=${this.state.currentWorkflowName}`
+                    + `&workflowText=${currentWorkflowText}`;
+        fetch(url, { method: 'PUT' })
+        .then((response) => {
+            console.log(`Did it save? --${response.statusText}`);
+        })
+        .catch((error) => {
+            console.error(error);
+        });
+    }
 
     render() {
         return (
             <div id="main-container">
                 <div id="program-container">
-                    { this.renderWorkflowSelect() }
+                    <div id="topbar">
+                        { this.renderWorkflowSelect() }
+                        <div id="workflow-btn-bar">
+                            <div id="workflow-save" className="workflow-btn"
+                                 onClick={this.saveWorkflow.bind(this)}>
+                                Save
+                            </div>
+                        </div>
+                    </div>
                     <ProgramPane loadedWorkflowText={this.currentWorkflowText}
                         ref={this.state.programPaneRef}></ProgramPane>
                 </div>
