@@ -624,6 +624,14 @@ export class Geometry {
         }
     }
 
+    get height() : number {
+        return this.paperGroup?.bounds.height || 0;
+    }
+
+    get width() : number {
+        return this.paperGroup?.bounds.width || 0;
+    }
+
     placeAt(placementPoint: Point, tabletop: Tabletop) : Geometry {
         if (!this.paperGroup) {
             throw new Error('Cannot place geometry without data loaded.');
