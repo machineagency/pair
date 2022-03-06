@@ -707,6 +707,8 @@ export class Machine {
                 return new Point(280, 180);
             case 'othermill':
                 return new Point(200, 200);
+            case 'jubilee':
+                return new Point(300, 300);
             default:
                 return new Point (10, 10);
         }
