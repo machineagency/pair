@@ -120,6 +120,14 @@ class ProgramUtil {
                     key: text
                 };
                 return <ToolpathVisualizer {...tdProps}></ToolpathVisualizer>;
+            case 'machineInitializer':
+                const miProps: MachineInitializerProps = {
+                    ref: livelitRef as React.RefObject<MachineInitializer>,
+                    valueSet: false,
+                    windowOpen: true,
+                    key: text
+                };
+                return <MachineInitializer {...miProps}></MachineInitializer>;
             default:
                 return null;
         }
@@ -2062,6 +2070,81 @@ class ToolpathVisualizer extends LivelitWindow {
            </div>
        );
     }
+}
+
+interface MachineInitializerProps extends LivelitProps {
+    ref: React.RefObject<MachineInitializer>;
+};
+
+interface MachineInitializerState extends LivelitState {
+};
+
+class MachineInitializer extends LivelitWindow {
+    props: MachineInitializerProps;
+    state: MachineInitializerState;
+
+    constructor(props: MachineInitializerProps) {
+        super(props);
+        this.titleText = 'Machine Initializer';
+        this.functionName = '$machineInitializer';
+        this.props = props;
+        this.state = {
+            windowOpen: props.windowOpen,
+            valueSet: false
+        };
+    }
+
+    // FIXME: this doesn't properly apply saved homographies yet
+    expand() : string {
+        let s = `async function ${this.functionName}(machine) {`;
+        s += `let mi = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `return machine;`;
+        s += `}`;
+        return s;
+    }
+
+    saveValue() {
+        return new Promise<void>((resolve) => {
+            // TODO
+            resolve();
+        });
+    }
+
+    loadSavedValue() {
+            // TODO
+        return undefined;
+    }
+
+    clearSavedValue() {
+        return new Promise<void>((resolve) => {
+            localStorage.removeItem(this.functionName);
+            this.setState(_ => {
+                return {
+                    valueSet: false
+                }
+            }, resolve);
+        });
+    }
+
+    renderValue() {
+        let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
+        let display = `Machine(initialized: maybe)`;
+        return (
+            <div className={`module-value ${grayedIffUnset}`}
+                 key={`${this.titleKey}-value`}>
+                 { display }
+            </div>
+        );
+    }
+
+    // render() {
+    //     let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+    //     return (
+    //         <div className={`machine-initializer content ${maybeHidden}`}>
+    //             Hi
+    //         </div>
+    //     );
+    // }
 }
 
 export { ProgramPane };
