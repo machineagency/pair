@@ -14,6 +14,7 @@
 import * as verso from './verso.js';
 import { mm, px } from './verso.js';
 import { FormatUtil } from './format-util.js'
+import { VisualizationInterpreters } from './visualization-interpreters.js'
 (window as any).mm = mm;
 (window as any).px = px;
 
@@ -1694,20 +1695,20 @@ class ToolpathVisualizer extends LivelitWindow {
         // a type and also generate this.interpreters programatically.
         this.interpreters = [
             {
-                name: this.basicViz.name,
+                name: VisualizationInterpreters.basicViz.name,
                 description: 'All movement lines.',
-                implementation: this.basicViz.toString(),
+                implementation: VisualizationInterpreters.basicViz.toString(),
             },
             {
-                name: this.colorViz.name,
+                name: VisualizationInterpreters.colorViz.name,
                 description: 'Travel and plot lines encoded by color.',
-                implementation: this.colorViz.toString(),
+                implementation: VisualizationInterpreters.colorViz.toString(),
             },
             {
-                name: this.velocityThicknessViz.name,
+                name: VisualizationInterpreters.velocityThicknessViz.name,
                 description: 'Movement lines with thickness proportional to'
                              + ' velocity.',
-                implementation: this.velocityThicknessViz.toString(),
+                implementation: VisualizationInterpreters.velocityThicknessViz.toString(),
             }
         ];
         let maybeSavedInterpreterName = this.loadSavedValue();
@@ -1760,7 +1761,8 @@ class ToolpathVisualizer extends LivelitWindow {
             throw Error('Cannot set interpreter without viz space.');
         }
         this.state.visualizationSpace.removeAllViz();
-        let vizGroup = eval(`this.${interpreterName}(this.state.toolpath);`);
+        let interpreter = eval(`VisualizationInterpreters.${interpreterName}`);
+        let vizGroup = interpreter(this.state.toolpath);
         this.state.visualizationSpace.addVizWithName(vizGroup, interpreterName);
         this.setState((prevState) => {
             return {
@@ -1781,9 +1783,9 @@ class ToolpathVisualizer extends LivelitWindow {
 
     expand() : string {
         let s = `async function ${this.functionName}(machine, toolpath, vizSpace) {`;
-        s += `let td = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
-        s += `await td.setArguments(machine, toolpath, vizSpace);`;
-        s += `td.renderWithInterpreter(td.state.currentInterpreterName);`;
+        s += `let tv = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `await tv.setArguments(machine, toolpath, vizSpace);`;
+        s += `tv.renderWithInterpreter(tv.state.currentInterpreterName);`;
         s += `return vizSpace;`;
         s += `}`;
         return s;
@@ -1798,180 +1800,6 @@ class ToolpathVisualizer extends LivelitWindow {
                 });
             }
         });
-    }
-
-    basicViz(toolpath: verso.Toolpath) {
-        let moveCurves : THREE.LineCurve3[] = [];
-        let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
-            let x = 0.5 * (aSteps + bSteps);
-            let y = -0.5 * (aSteps - bSteps);
-            // TODO: read this from an EM instruction
-            let stepsPerMm = 80;
-            return new THREE.Vector3(
-                (x / stepsPerMm),
-                (y / stepsPerMm),
-                0.0
-            );
-        };
-        let currentPosition = new THREE.Vector3();
-        let newPosition : THREE.Vector3;
-        let moveCurve: THREE.LineCurve3;
-        let tokens, opcode, duration, aSteps, bSteps, xyChange;
-        toolpath.instructions.forEach((instruction) => {
-            tokens = instruction.split(',');
-            opcode = tokens[0];
-            if (opcode === 'SM') {
-                aSteps = parseInt(tokens[2]);
-                bSteps = parseInt(tokens[3]);
-                xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
-                newPosition = currentPosition.clone().add(xyChange);
-                moveCurve = new THREE.LineCurve3(currentPosition, newPosition);
-                moveCurves.push(moveCurve);
-                currentPosition = newPosition;
-            }
-        });
-        let material = new THREE.MeshToonMaterial({
-            color: 0xe44242,
-            side: THREE.DoubleSide
-        });
-        let pathRadius = 0.25
-        let geometries = moveCurves.map((curve) => {
-            return new THREE.TubeBufferGeometry(curve, 64, pathRadius, 64, false);
-        });
-        let meshes = geometries.map((geom) => {
-            return new THREE.Mesh(geom, material);
-        });
-        let wrapperGroup = new THREE.Group();
-        meshes.forEach((mesh) => wrapperGroup.add(mesh));
-        wrapperGroup.rotateX(Math.PI / 2);
-        return wrapperGroup;
-    }
-
-    // TODO: is there a way to do this without copy paste? Maybe not because
-    // each must be its own standalone interpreter
-    colorViz(toolpath: verso.Toolpath) {
-        let moveCurves : THREE.LineCurve3[] = [];
-        let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
-            let x = 0.5 * (aSteps + bSteps);
-            let y = -0.5 * (aSteps - bSteps);
-            // TODO: read this from an EM instruction
-            let stepsPerMm = 80;
-            return new THREE.Vector3(
-                (x / stepsPerMm),
-                (y / stepsPerMm),
-                0.0
-            );
-        };
-        let moveCurve: THREE.LineCurve3;
-        let curveMaterials: THREE.Material[] = [];
-        enum Colors {
-            Red = 0xe44242,
-            Green = 0x2ecc71
-        }
-        enum PenHeight {
-            Up = -7,
-            Down = 0
-        }
-        let currentColor = Colors.Green;
-        let currentPenHeight = PenHeight.Up;
-        let currentPosition = new THREE.Vector3(0, 0, currentPenHeight);
-        let newPosition = currentPosition.clone();
-        let tokens, opcode, duration, aSteps, bSteps, xyChange, material;
-        let materialColor = Colors.Green;
-        toolpath.instructions.forEach((instruction) => {
-            tokens = instruction.split(',');
-            opcode = tokens[0];
-            if (opcode === 'SM') {
-                aSteps = parseInt(tokens[2]);
-                bSteps = parseInt(tokens[3]);
-                xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
-                newPosition = currentPosition.clone().add(xyChange);
-                materialColor = currentColor;
-            }
-            if (opcode === 'SP') {
-                currentColor = currentColor === Colors.Red
-                               ? Colors.Green : Colors.Red;
-                currentPenHeight = currentPenHeight === PenHeight.Up
-                                   ? PenHeight.Down : PenHeight.Up;
-                newPosition = currentPosition.clone().setZ(currentPenHeight);
-                materialColor = Colors.Green;
-            }
-            moveCurve = new THREE.LineCurve3(currentPosition, newPosition);
-            moveCurves.push(moveCurve);
-            currentPosition = newPosition;
-            material = new THREE.MeshToonMaterial({
-                color: materialColor,
-                side: THREE.DoubleSide
-            });
-            curveMaterials.push(material);
-        });
-        let pathRadius = 0.25
-        let geometries = moveCurves.map((curve) => {
-            return new THREE.TubeBufferGeometry(curve, 64, pathRadius, 64, false);
-        });
-        let meshes = geometries.map((geom, idx) => {
-            return new THREE.Mesh(geom, curveMaterials[idx]);
-        });
-        let wrapperGroup = new THREE.Group();
-        meshes.forEach((mesh) => wrapperGroup.add(mesh));
-        wrapperGroup.rotateX(Math.PI / 2);
-        return wrapperGroup;
-    }
-
-    velocityThicknessViz(toolpath: verso.Toolpath) {
-        let moveCurves : THREE.LineCurve3[] = [];
-        let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
-            let x = 0.5 * (aSteps + bSteps);
-            let y = -0.5 * (aSteps - bSteps);
-            // TODO: read this from an EM instruction
-            let stepsPerMm = 80;
-            return new THREE.Vector3(
-                (x / stepsPerMm),
-                (y / stepsPerMm),
-                0.0
-            );
-        };
-        let axidrawMaxMMPerSec = 380;
-        let maxStrokeRadius = 10;
-        let currentPosition = new THREE.Vector3();
-        let newPosition : THREE.Vector3;
-        let moveCurve: THREE.LineCurve3;
-        let tokens, opcode, duration, aSteps, bSteps, xyChange;
-        let velRadii : number[] = [];
-        toolpath.instructions.forEach((instruction) => {
-            tokens = instruction.split(',');
-            opcode = tokens[0];
-            if (opcode === 'SM') {
-                duration = parseInt(tokens[1]);
-                aSteps = parseInt(tokens[2]);
-                bSteps = parseInt(tokens[3]);
-                xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
-                newPosition = currentPosition.clone().add(xyChange);
-                moveCurve = new THREE.LineCurve3(currentPosition, newPosition);
-                moveCurves.push(moveCurve);
-                currentPosition = newPosition;
-                let durationSec = duration / 100;
-                let norm = Math.sqrt(Math.pow(xyChange.x, 2) + Math.pow(xyChange.y,2));
-                let mmPerSec = norm / durationSec;
-                let velRadius = (mmPerSec / axidrawMaxMMPerSec) * maxStrokeRadius;
-                velRadii.push(velRadius);
-            }
-        });
-        let material = new THREE.MeshToonMaterial({
-            color: 0xe44242,
-            side: THREE.DoubleSide
-        });
-        let geometries = moveCurves.map((curve, idx) => {
-            let velRadius = velRadii[idx];
-            return new THREE.TubeBufferGeometry(curve, 64, velRadius, 64, false);
-        });
-        let meshes = geometries.map((geom) => {
-            return new THREE.Mesh(geom, material);
-        });
-        let wrapperGroup = new THREE.Group();
-        meshes.forEach((mesh) => wrapperGroup.add(mesh));
-        wrapperGroup.rotateX(Math.PI / 2);
-        return wrapperGroup;
     }
 
     renderToolpathInstructions() {
