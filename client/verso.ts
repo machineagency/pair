@@ -649,6 +649,24 @@ export class Geometry {
         // TODO
     }
 
+    async loadRemoteFile(filename: string) : Promise<paper.Group> {
+       let getUrl = `/geometry/${filename}`;
+       let fileResult = await fetch(getUrl);
+       if (!fileResult.ok) {
+           console.error(`Could not load ${filename} from remote.`);
+           return new Promise<paper.Group>((resolve) => {
+               resolve(new paper.Group());
+           });
+       }
+       else {
+            let blob = await fileResult.blob();
+            let localUrl = URL.createObjectURL(blob);
+            this.filename = filename;
+            this.filepath = localUrl;
+            return this.loadFromFilepath(filename, localUrl);
+       }
+    }
+
     async loadFromFilepath(filename: string, filepath: string) : Promise<paper.Group> {
         return new Promise<paper.Group>((resolve) => {
             this.tabletop.project.importSVG(filepath, {
