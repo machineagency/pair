@@ -632,13 +632,19 @@ export class Geometry {
         return this.paperGroup?.bounds.width || 0;
     }
 
-    placeAt(placementPoint: Point, tabletop: Tabletop) : Geometry {
+    /** Returns a new verso.Geometry object with placed at the provided
+     *  placement point. */
+    placeAt(placementPoint: Point) : Geometry {
         if (!this.paperGroup) {
             throw new Error('Cannot place geometry without data loaded.');
         }
-        let adjustedPoint = placementPoint.paperPoint.add(tabletop.workEnvelope.anchor);
-        this.paperGroup.position = adjustedPoint;
-        return this;
+        let adjustedPoint = placementPoint.paperPoint.add(this.tabletop.workEnvelope.anchor);
+        let newGeom = new Geometry(this.tabletop);
+        newGeom.filename = this.filename;
+        newGeom.filepath = this.filepath;
+        newGeom.paperGroup = this.paperGroup;
+        newGeom.paperGroup.position = adjustedPoint;
+        return newGeom;
     }
 
     rotate() {
@@ -649,31 +655,30 @@ export class Geometry {
         // TODO
     }
 
-    async loadRemoteFile(filename: string) : Promise<paper.Group> {
+    async loadRemoteFile(filename: string) : Promise<Geometry> {
        let getUrl = `/geometry/${filename}`;
        let fileResult = await fetch(getUrl);
        if (!fileResult.ok) {
            console.error(`Could not load ${filename} from remote.`);
-           return new Promise<paper.Group>((resolve) => {
-               resolve(new paper.Group());
+           return new Promise<Geometry>((resolve) => {
+               resolve(this);
            });
        }
        else {
             let blob = await fileResult.blob();
             let localUrl = URL.createObjectURL(blob);
-            this.filename = filename;
-            this.filepath = localUrl;
-            return this.loadFromFilepath(filename, localUrl);
+            return await this.loadFromFilepath(filename, localUrl);
        }
     }
 
-    async loadFromFilepath(filename: string, filepath: string) : Promise<paper.Group> {
-        return new Promise<paper.Group>((resolve) => {
+    async loadFromFilepath(filename: string, filepath: string) : Promise<Geometry> {
+        return new Promise<Geometry>((resolve, reject) => {
             this.tabletop.project.importSVG(filepath, {
                 expandShapes: true,
                 insert: false,
                 onError: () => {
                     console.warn('Could not load an SVG');
+                    reject();
                 },
                 onLoad: (item: paper.Group, svgString: string) => {
                     this.tabletop.workEnvelope.applyHomographyToGroup(item);
@@ -685,7 +690,7 @@ export class Geometry {
                     this.paperGroup = item;
                     this.filename = filename;
                     this.filepath = filepath;
-                    resolve(item);
+                    resolve(this);
                 }
             });
         });

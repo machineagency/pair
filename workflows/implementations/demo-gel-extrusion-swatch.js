@@ -5,7 +5,7 @@ machine = await $machineInitializer(machine);
 // Calibrate and generate a tabletop for the setup.
 let tabletop = await $tabletopCalibrator(machine);
 // Consider a simple test geometry which is a wave.
-let baseGeometry = new verso.Geometry().loadRemoteFile('wave.svg');
+let baseGeometry = await (new verso.Geometry(tabletop)).loadRemoteFile('wave.svg');
 // Start with 3 test values a 2-factor grid: velocity and corner radius.
 // Eventually these can be generated with a module.
 let params = {
@@ -14,21 +14,21 @@ let params = {
 };
 // Lay the geometries out in a spatial grid.
 let margin = 10;
-let anchorPoints = params.velocities.keys().map((velocityIndex) => {
-    return params.cornerRadii.keys().map((radiusIndex) => {
+let anchorPoints = params.velocities.map((velocity, velocityIndex) => {
+    return params.cornerRadii.map((radius, radiusIndex) => {
         return new verso.Point(
             velocityIndex * (baseGeometry.width + margin),
             radiusIndex * (baseGeometry.height + margin)
         );
     });
 }).flat();
-let geometries = anchorPoints.map((anchor) => {
+let geometries = anchorPoints.map((anchor, anchorIndex) => {
     return baseGeometry.placeAt(anchor, tabletop);
 });
 // Given these parameters, generate 6 toolpaths based on the geometry.
 let toolpaths = [];
 // Visualize each toolpath.
 let vizSpace = new verso.VisualizationSpace();
-vizSpace = await $toolpathVisualizer(machie, toolpaths, vizSpace);
+vizSpace = await $toolpathVisualizer(machine, toolpaths, vizSpace);
 // Pick which toolpath to try and dispatch.
 await $dispatcher(machine, toolpaths);
