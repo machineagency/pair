@@ -129,6 +129,30 @@ class ProgramUtil {
                     key: text
                 };
                 return <MachineInitializer {...miProps}></MachineInitializer>;
+            case 'dispatcher':
+                const dProps: DispatcherProps = {
+                    ref: livelitRef as React.RefObject<Dispatcher>,
+                    valueSet: false,
+                    windowOpen: true,
+                    key: text
+                };
+                return <Dispatcher {...dProps}></Dispatcher>;
+            case 'jsCut':
+                const jcProps: JSCutProps = {
+                    ref: livelitRef as React.RefObject<JSCut>,
+                    valueSet: false,
+                    windowOpen: true,
+                    key: text
+                };
+                return <JSCut {...jcProps}></JSCut>;
+            case 'display':
+                const displayProps: DispatcherProps = {
+                    ref: livelitRef as React.RefObject<Dispatcher>,
+                    valueSet: false,
+                    windowOpen: true,
+                    key: text
+                };
+                return <Dispatcher {...displayProps}></Dispatcher>;
             default:
                 return null;
         }
@@ -1922,11 +1946,234 @@ class MachineInitializer extends LivelitWindow {
         };
     }
 
+    expand() : string {
+        let s = `async function ${this.functionName}(machine) {`;
+        s += `let d = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `return machine;`;
+        s += `}`;
+        return s;
+    }
+
+    saveValue() {
+        return new Promise<void>((resolve) => {
+            // TODO
+            resolve();
+        });
+    }
+
+    loadSavedValue() {
+            // TODO
+        return undefined;
+    }
+
+    clearSavedValue() {
+        return new Promise<void>((resolve) => {
+            localStorage.removeItem(this.functionName);
+            this.setState(_ => {
+                return {
+                    valueSet: false
+                }
+            }, resolve);
+        });
+    }
+
+    renderValue() {
+        let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
+        let display = `Machine(initialized: maybe)`;
+        return (
+            <div className={`module-value ${grayedIffUnset}`}
+                 key={`${this.titleKey}-value`}>
+                 { display }
+            </div>
+        );
+    }
+
+    // render() {
+    //     let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+    //     return (
+    //         <div className={`machine-initializer content ${maybeHidden}`}>
+    //             Hi
+    //         </div>
+    //     );
+    // }
+}
+
+interface DispatcherProps extends LivelitProps {
+    ref: React.RefObject<Dispatcher>;
+};
+
+interface DispatcherState extends LivelitState {
+};
+
+class Dispatcher extends LivelitWindow {
+    props: DispatcherProps;
+    state: DispatcherState;
+
+    constructor(props: DispatcherProps) {
+        super(props);
+        this.titleText = 'Dispatcher';
+        this.functionName = '$dispatcher';
+        this.props = props;
+        this.state = {
+            windowOpen: props.windowOpen,
+            valueSet: false
+        };
+    }
+
     // FIXME: this doesn't properly apply saved homographies yet
     expand() : string {
         let s = `async function ${this.functionName}(machine) {`;
         s += `let mi = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `return machine;`;
+        s += `}`;
+        return s;
+    }
+
+    saveValue() {
+        return new Promise<void>((resolve) => {
+            // TODO
+            resolve();
+        });
+    }
+
+    loadSavedValue() {
+            // TODO
+        return undefined;
+    }
+
+    clearSavedValue() {
+        return new Promise<void>((resolve) => {
+            localStorage.removeItem(this.functionName);
+            this.setState(_ => {
+                return {
+                    valueSet: false
+                }
+            }, resolve);
+        });
+    }
+
+    renderValue() {
+        let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
+        let display = `Machine(initialized: maybe)`;
+        return (
+            <div className={`module-value ${grayedIffUnset}`}
+                 key={`${this.titleKey}-value`}>
+                 { display }
+            </div>
+        );
+    }
+
+    // render() {
+    //     let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+    //     return (
+    //         <div className={`machine-initializer content ${maybeHidden}`}>
+    //             Hi
+    //         </div>
+    //     );
+    // }
+}
+
+interface JSCutProps extends LivelitProps {
+    ref: React.RefObject<JSCut>;
+};
+
+interface JSCutState extends LivelitState {
+};
+
+class JSCut extends LivelitWindow {
+    props: JSCutProps;
+    state: JSCutState;
+
+    constructor(props: JSCutProps) {
+        super(props);
+        this.titleText = 'JSCut';
+        this.functionName = '$jsCut';
+        this.props = props;
+        this.state = {
+            windowOpen: props.windowOpen,
+            valueSet: false
+        };
+    }
+
+    expand() : string {
+        let s = `async function ${this.functionName}(geometry, machine) {`;
+        s += `let jc = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `return machine;`;
+        s += `}`;
+        return s;
+    }
+
+    saveValue() {
+        return new Promise<void>((resolve) => {
+            // TODO
+            resolve();
+        });
+    }
+
+    loadSavedValue() {
+            // TODO
+        return undefined;
+    }
+
+    clearSavedValue() {
+        return new Promise<void>((resolve) => {
+            localStorage.removeItem(this.functionName);
+            this.setState(_ => {
+                return {
+                    valueSet: false
+                }
+            }, resolve);
+        });
+    }
+
+    renderValue() {
+        let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
+        let display = `Machine(initialized: maybe)`;
+        return (
+            <div className={`module-value ${grayedIffUnset}`}
+                 key={`${this.titleKey}-value`}>
+                 { display }
+            </div>
+        );
+    }
+
+    // render() {
+    //     let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+    //     return (
+    //         <div className={`machine-initializer content ${maybeHidden}`}>
+    //             Hi
+    //         </div>
+    //     );
+    // }
+}
+
+interface DisplayProps extends LivelitProps {
+    ref: React.RefObject<Display>;
+};
+
+interface DisplayState extends LivelitState {
+};
+
+class Display extends LivelitWindow {
+    props: DisplayProps;
+    state: DisplayState;
+
+    constructor(props: DisplayProps) {
+        super(props);
+        this.titleText = 'Display';
+        this.functionName = '$display';
+        this.props = props;
+        this.state = {
+            windowOpen: props.windowOpen,
+            valueSet: false
+        };
+    }
+
+    // FIXME: this doesn't properly apply saved homographies yet
+    expand() : string {
+        let s = `async function ${this.functionName}(value) {`;
+        s += `let d = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `return value;`;
         s += `}`;
         return s;
     }
