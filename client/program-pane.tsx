@@ -104,15 +104,15 @@ class ProgramUtil {
                 };
                 return <FaceFinder {...ffProps}>
                        </FaceFinder>;
-            case 'camCompiler':
-                const camProps: CamCompilerProps = {
-                    ref: livelitRef as React.RefObject<CamCompiler>,
+            case 'axidrawDriver':
+                const camProps: AxidrawDriverProps = {
+                    ref: livelitRef as React.RefObject<AxidrawDriver>,
                     valueSet: false,
                     windowOpen: true,
                     key: text
                 };
-                return <CamCompiler {...camProps}>
-                       </CamCompiler>
+                return <AxidrawDriver {...camProps}>
+                       </AxidrawDriver>
             case 'toolpathVisualizer':
                 const tdProps: ToolpathVisualizerProps = {
                     ref: livelitRef as React.RefObject<ToolpathVisualizer>,
@@ -1384,57 +1384,53 @@ class ToolpathDirectManipulator extends LivelitWindow {
     }
 }
 
-interface CamCompilerProps extends LivelitProps {
-    ref: React.RefObject<CamCompiler>;
+interface AxidrawDriverProps extends LivelitProps {
+    ref: React.RefObject<AxidrawDriver>;
     valueSet: boolean;
     windowOpen: boolean;
 }
 
-interface CamCompilerState extends LivelitState {
-    currentCompilerName?: CamCompilerName;
+interface AxidrawDriverState extends LivelitState {
+    currentDriverName?: DriverName;
     machine: verso.Machine;
     geometry?: verso.Geometry;
     toolpath?: verso.Toolpath;
 }
 
-type CamCompilerName = 'Axidraw EBB Compiler'
+type DriverName = 'Axidraw EBB'
     | 'Jasper\'s Wacky Slicer';
 type CamIsaOutput = 'EBB' | 'g-Code';
 
-interface SingleCamCompiler {
-    name: CamCompilerName;
+interface SingleAxidrawDriver {
+    name: DriverName;
     geometryInput: verso.GeometryFiletype;
     isaOutput: CamIsaOutput;
 }
 
-class CamCompiler extends LivelitWindow {
-    state: CamCompilerState;
-    compilers: SingleCamCompiler[];
+class AxidrawDriver extends LivelitWindow {
+    state: AxidrawDriverState;
+    drivers: SingleAxidrawDriver[];
 
-    constructor(props: CamCompilerProps) {
+    constructor(props: AxidrawDriverProps) {
         super(props);
-        this.titleText = 'CAM Compiler';
-        this.functionName = '$camCompiler';
-        this.compilers = [
+        this.titleText = 'Axidraw Driver';
+        this.functionName = '$axidrawDriver';
+        this.drivers = [
             {
-                name: 'Axidraw EBB Compiler',
+                name: 'Axidraw EBB',
                 geometryInput: 'svg',
                 isaOutput: 'EBB'
-            },
-            {
-                name: 'Jasper\'s Wacky Slicer',
-                geometryInput: 'stl',
-                isaOutput: 'g-Code'
             }
         ];
-        let maybeSavedCamCompilerName = this.loadSavedValue();
+        let maybeSavedAxidrawDriverName = this.loadSavedValue();
+        let defaultDriverName: DriverName = 'Axidraw EBB';
         this.state = {
-            currentCompilerName: maybeSavedCamCompilerName,
+            currentDriverName: maybeSavedAxidrawDriverName || defaultDriverName,
             machine: new verso.Machine('TEMP'),
             geometry: undefined,
             toolpath: undefined,
             windowOpen: props.windowOpen,
-            valueSet: !!maybeSavedCamCompilerName
+            valueSet: !!maybeSavedAxidrawDriverName
         };
     }
 
@@ -1446,7 +1442,7 @@ class CamCompiler extends LivelitWindow {
                     geometry: geometry
                 };
             }, () => {
-                this.generateToolpathWithCurrentCompiler()
+                this.generateToolpathWithCurrentDriver()
                     .then((toolpath) => {
                         this.setState((prevState) => {
                             return { toolpath: toolpath }
@@ -1461,7 +1457,7 @@ class CamCompiler extends LivelitWindow {
         s += `let cc = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `let toolpath;`;
         s += `await cc.setArguments(machine, geometry);`;
-        s += `cc.generateToolpathWithCurrentCompiler();`;
+        s += `cc.generateToolpathWithCurrentDriver();`;
         s += `toolpath = cc.state.toolpath;`;
         s += `return toolpath;`;
         s += `}`;
@@ -1470,8 +1466,8 @@ class CamCompiler extends LivelitWindow {
 
     saveValue() {
         return new Promise<void>((resolve) => {
-            if (this.state.currentCompilerName) {
-                localStorage.setItem(this.functionName, this.state.currentCompilerName);
+            if (this.state.currentDriverName) {
+                localStorage.setItem(this.functionName, this.state.currentDriverName);
                 this.setState(_ => {
                     return {
                         valueSet: true
@@ -1481,11 +1477,11 @@ class CamCompiler extends LivelitWindow {
         });
     }
 
-    loadSavedValue() : CamCompilerName | undefined {
+    loadSavedValue() : DriverName | undefined {
         let compilerName = localStorage.getItem(this.functionName);
         if (compilerName) {
             // TODO: actually verify
-            return compilerName as CamCompilerName;
+            return compilerName as DriverName;
         };
         return undefined;
     }
@@ -1495,29 +1491,29 @@ class CamCompiler extends LivelitWindow {
             localStorage.removeItem(this.functionName);
             this.setState(_ => {
                 return {
-                    currentCompilerName: undefined,
+                    currentDriverName: undefined,
                     valueSet: false
                 }
             }, resolve);
         });
     }
 
-    async generateToolpathWithCurrentCompiler(): Promise<verso.Toolpath> {
+    async generateToolpathWithCurrentDriver(): Promise<verso.Toolpath> {
         // TODO: find the correct compiler to use, for now assume Axidraw.
         // return early if we cannot find an appropriate compiler
         // for the current machine.
         return new Promise<verso.Toolpath>((resolve, reject) => {
-            let compiler = this.compilers.find(c => c.name
-                === this.state.currentCompilerName);
+            let compiler = this.drivers.find(c => c.name
+                === this.state.currentDriverName);
             if (!this.state.geometry) {
                 reject('Geometry not set');
             }
             else if (!compiler) {
                 reject(`Can't find a compiler named`
-                    + ` ${this.state.currentCompilerName}`);
+                    + ` ${this.state.currentDriverName}`);
             }
             else if (compiler.geometryInput !== this.state.geometry.filetype) {
-                reject(`${this.state.currentCompilerName} cannot compile`
+                reject(`${this.state.currentDriverName} cannot compile`
                     + ` a geometry with filetype ${this.state.geometry.filetype}`);
             }
             else {
@@ -1541,14 +1537,14 @@ class CamCompiler extends LivelitWindow {
         });
     }
 
-    setCurrentCompiler(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+    setCurrentDriver(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
         let compilerItemDom = event.target as HTMLDivElement;
         let compilerName = compilerItemDom.dataset.compilerName;
         if (compilerName) {
             this.setState((prevState) => {
-                return { currentCompilerName: compilerName };
+                return { currentDriverName: compilerName };
             }, () => {
-                this.generateToolpathWithCurrentCompiler()
+                this.generateToolpathWithCurrentDriver()
                     .then((toolpath) => {
                         this.setState((prevState) => {
                             return {
@@ -1563,19 +1559,19 @@ class CamCompiler extends LivelitWindow {
         }
     }
 
-    renderCompilers() {
-        let compilerDoms = this.compilers.map((compiler: SingleCamCompiler,
+    renderDrivers() {
+        let compilerDoms = this.drivers.map((compiler: SingleAxidrawDriver,
                                                idx: number) => {
             let maybeGrayed = compiler.geometryInput !== this.state.geometry?.filetype
                                 ? 'grayed' : '';
-            let maybeHighlight = compiler.name === this.state.currentCompilerName
+            let maybeHighlight = compiler.name === this.state.currentDriverName
                                  && !maybeGrayed
                                 ? 'highlight' : '';
             return (
                 <div className={`cam-compiler-item ${maybeHighlight} ${maybeGrayed}`}
                      key={idx}
                      data-compiler-name={compiler.name}
-                     onClick={this.setCurrentCompiler.bind(this)}>
+                     onClick={this.setCurrentDriver.bind(this)}>
                     <span className="compiler-name param-key"
                           data-compiler-name={compiler.name}>
                          { compiler.name }
@@ -1617,7 +1613,7 @@ class CamCompiler extends LivelitWindow {
     renderValue() {
         let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
         let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
-        let display = `${this.state.currentCompilerName}`;
+        let display = `${this.state.currentDriverName}`;
         return (
             <div className={`module-value ${grayedIffUnset}`}
                  key={`${this.titleKey}-value`}>
@@ -1630,7 +1626,6 @@ class CamCompiler extends LivelitWindow {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return (
             <div className={`cam-compiler content ${maybeHidden}`}>
-                { this.renderCompilers() }
                 { this.renderToolpathInstructions() }
             </div>
         );
