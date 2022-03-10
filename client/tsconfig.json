@@ -12,6 +12,6 @@
   },
   "files": [
       "main.ts", "verso.ts", "ui-root.tsx", "program-pane.tsx",
-      "visualization-interpreters.ts"
+      "visualization-interpreters.ts", "cam.ts"
   ]
 }
