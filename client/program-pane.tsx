@@ -15,6 +15,7 @@ import * as verso from './verso.js';
 import { mm, px } from './verso.js';
 import { FormatUtil } from './format-util.js'
 import { VisualizationInterpreters } from './visualization-interpreters.js'
+import { Cam } from './cam.js'
 (window as any).mm = mm;
 (window as any).px = px;
 
@@ -145,6 +146,14 @@ class ProgramUtil {
                     key: text
                 };
                 return <JSCut {...jcProps}></JSCut>;
+            case 'miniCam':
+                const mcProps: MiniCamProps = {
+                    ref: livelitRef as React.RefObject<MiniCam>,
+                    valueSet: false,
+                    windowOpen: true,
+                    key: text
+                };
+                return <MiniCam {...mcProps}></MiniCam>;
             case 'display':
                 const displayProps: DispatcherProps = {
                     ref: livelitRef as React.RefObject<Dispatcher>,
@@ -2165,6 +2174,107 @@ class Display extends LivelitWindow {
     //         </div>
     //     );
     // }
+}
+
+interface MiniCamProps extends LivelitProps {
+    ref: React.RefObject<MiniCam>;
+};
+
+interface MiniCamState extends LivelitState {
+    gCode: string;
+};
+
+class MiniCam extends LivelitWindow {
+    props: MiniCamProps;
+    state: MiniCamState;
+
+    constructor(props: MiniCamProps) {
+        super(props);
+        this.titleText = 'MiniCam';
+        this.functionName = '$miniCam';
+        this.props = props;
+        this.state = {
+            windowOpen: props.windowOpen,
+            valueSet: false,
+            gCode: ''
+        };
+    }
+
+    private __expandHelper(geometry: verso.Geometry) {
+        // @ts-ignore
+        let mc: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
+        let cam = new Cam(geometry);
+        let gCode = cam.getGcode();
+        mc.setState(_ => ({ gCode: gCode }));
+        return gCode;
+    }
+
+    expand() : string {
+        let fnString = this.__expandHelper.toString();
+        fnString = fnString.replace('__expandHelper', this.functionName);
+        fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
+        fnString = 'async function ' + fnString;
+        return fnString;
+    }
+
+    saveValue() {
+        return new Promise<void>((resolve) => {
+            // TODO
+            resolve();
+        });
+    }
+
+    loadSavedValue() {
+            // TODO
+        return undefined;
+    }
+
+    clearSavedValue() {
+        return new Promise<void>((resolve) => {
+            localStorage.removeItem(this.functionName);
+            this.setState(_ => {
+                return {
+                    valueSet: false
+                }
+            }, resolve);
+        });
+    }
+
+    renderValue() {
+        let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
+        let display = `Machine(initialized: maybe)`;
+        return (
+            <div className={`module-value ${grayedIffUnset}`}
+                 key={`${this.titleKey}-value`}>
+                 { display }
+            </div>
+        );
+    }
+
+    renderInstructions() {
+        let instElements : JSX.Element[] = [];
+        if (this.state.gCode) {
+            instElements = this.state.gCode.split('\n')
+                .map((inst, idx) => {
+                return (
+                    <div className={`inst-list-item`}
+                         key={idx}>{inst}</div>
+                );
+            });
+        }
+        return (
+            <div id="inst-list" className="boxed-list">{ instElements }</div>
+        );
+    }
+
+    renderContent() {
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return (
+            <div className={`mini-cam content ${maybeHidden}`}>
+                { this.renderInstructions() }
+            </div>
+        );
+    }
 }
 
 export { ProgramPane };
