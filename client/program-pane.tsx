@@ -12,9 +12,10 @@
 
 /// <reference path="lib/perspective-transform.d.ts" />
 import * as verso from './verso.js';
-import { mm, px } from './verso.js';
+import { mm, px, ISA, GeometryFiletype } from './verso.js';
 import { FormatUtil } from './format-util.js'
-import { VisualizationInterpreters } from './visualization-interpreters.js'
+import { VisualizationInterpreters,
+         InterpreterSignature } from './visualization-interpreters.js'
 import { Cam } from './cam.js'
 (window as any).mm = mm;
 (window as any).px = px;

@@ -1,7 +1,10 @@
 import * as verso from './verso.js';
 
+export type InterpreterSignature = (tp: verso.Toolpath) => THREE.Group;
+
 export class VisualizationInterpreters {
-    static basicViz(toolpath: verso.Toolpath) {
+    // EBB
+    static ebbBasicViz(toolpath: verso.Toolpath) {
         let moveCurves : THREE.LineCurve3[] = [];
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
             let x = 0.5 * (aSteps + bSteps);
@@ -48,9 +51,7 @@ export class VisualizationInterpreters {
         return wrapperGroup;
     }
 
-    // TODO: is there a way to do this without copy paste? Maybe not because
-    // each must be its own standalone interpreter
-    static colorViz(toolpath: verso.Toolpath) {
+    static ebbColorViz(toolpath: verso.Toolpath) {
         let moveCurves : THREE.LineCurve3[] = [];
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
             let x = 0.5 * (aSteps + bSteps);
@@ -119,7 +120,7 @@ export class VisualizationInterpreters {
         return wrapperGroup;
     }
 
-    static velocityThicknessViz(toolpath: verso.Toolpath) {
+    static ebbVelocityThicknessViz(toolpath: verso.Toolpath) {
         let moveCurves : THREE.LineCurve3[] = [];
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
             let x = 0.5 * (aSteps + bSteps);

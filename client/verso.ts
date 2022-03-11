@@ -5,6 +5,9 @@
 /** This file contains all primitives in the (expanded) Verso language.
  */
 
+export type GeometryFiletype = 'svg' | 'stl';
+export type ISA = 'gcode' | 'ebb' | 'unknown';
+
 interface VersoNameable extends paper.Group {
     versoName: string;
     versoType: string;
@@ -390,11 +393,9 @@ export class WorkEnvelope {
     }
 }
 
-type InstructionType = 'gcode' | 'ebb' | 'unknown';
-
 export class Toolpath {
     geometryUrl: string;
-    isa: InstructionType;
+    isa: ISA;
     instructions: string[];
     vizGroup: paper.Group;
 
@@ -407,7 +408,7 @@ export class Toolpath {
         // and then rendered to the tabletop.
     }
 
-    recognizeIsa(instructions: string[]) : InstructionType {
+    recognizeIsa(instructions: string[]) : ISA {
         if (instructions.length < 1) {
             return 'unknown'
         }
@@ -608,8 +609,6 @@ export class Camera {
         return new Promise((resolve, reject) => resolve(regions));
     }
 }
-
-export type GeometryFiletype = 'svg' | 'stl';
 
 export class Geometry {
     tabletop: Tabletop;
