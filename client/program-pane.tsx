@@ -2229,8 +2229,9 @@ class MiniCam extends LivelitWindow {
         let mc: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
         let cam = new Cam(geometry);
         let gCode = cam.getGcode();
+        let tp = new verso.Toolpath(geometry.filepath || '', gCode);
         mc.setState(_ => ({ gCode: gCode }));
-        return gCode;
+        return tp;
     }
 
     expand() : string {
