@@ -1652,14 +1652,16 @@ interface ToolpathVisualizerState extends LivelitState {
     machine: verso.Machine;
     toolpath: verso.Toolpath;
     visualizationSpace?: verso.VisualizationSpace;
-    currentInterpreterName: string;
+    currentInterpreterId: number;
     selectedInstIndex: number;
 }
 
 interface VisualizerInterpreter {
     name: string;
     description: string;
-    implementation: string;
+    isa: ISA;
+    implementation: InterpreterSignature;
+    id: number;
 }
 
 class ToolpathVisualizer extends LivelitWindow {
@@ -1674,34 +1676,50 @@ class ToolpathVisualizer extends LivelitWindow {
         // a type and also generate this.interpreters programatically.
         this.interpreters = [
             {
-                name: VisualizationInterpreters.basicViz.name,
+                name: 'Basic Lines (G-code)',
                 description: 'All movement lines.',
-                implementation: VisualizationInterpreters.basicViz.toString(),
+                isa: 'ebb',
+                implementation: VisualizationInterpreters.ebbBasicViz,
+                id: 0
             },
             {
-                name: VisualizationInterpreters.colorViz.name,
+                name: 'Colored Travel vs Draw (EBB)',
                 description: 'Travel and plot lines encoded by color.',
-                implementation: VisualizationInterpreters.colorViz.toString(),
+                isa: 'ebb',
+                implementation: VisualizationInterpreters.ebbColorViz,
+                id: 1
             },
             {
-                name: VisualizationInterpreters.velocityThicknessViz.name,
+                name: 'Velocity as Thickness (EBB)',
                 description: 'Movement lines with thickness proportional to'
                              + ' velocity.',
-                implementation: VisualizationInterpreters.velocityThicknessViz.toString(),
+                isa: 'ebb',
+                implementation: VisualizationInterpreters.ebbVelocityThicknessViz,
+                id: 2
+            },
+            {
+                name: 'Colored Travel vs Draw (G-code)',
+                description: 'Travel and plot lines encoded by color.',
+                isa: 'gcode',
+                implementation: VisualizationInterpreters.gcodeColorViz,
+                id: 3
             }
         ];
         let maybeSavedInterpreterName = this.loadSavedValue();
-        let fallbackInterpreterName = 'basicViz';
         this.state = {
             machine: new verso.Machine('TEMP'),
             toolpath: new verso.Toolpath('', []),
             visualizationSpace: undefined,
-            currentInterpreterName: maybeSavedInterpreterName
-                                    || fallbackInterpreterName,
+            currentInterpreterId: maybeSavedInterpreterName
+                                    || 0,
             windowOpen: props.windowOpen,
             valueSet: !!maybeSavedInterpreterName,
             selectedInstIndex: -1
         };
+    }
+
+    get currentInterpreter() {
+        return this.interpreters.find(i => i.id === this.state.currentInterpreterId);
     }
 
     async setArguments(machine: verso.Machine,
@@ -1719,33 +1737,39 @@ class ToolpathVisualizer extends LivelitWindow {
     }
 
     saveValue() {
-        localStorage.setItem(this.functionName, this.state.currentInterpreterName);
+        localStorage.setItem(this.functionName,
+                             this.state.currentInterpreterId.toString());
         this.setState((prevState) => ({ valueSet: true }));
     }
 
     loadSavedValue() {
-        return localStorage.getItem(this.functionName) || undefined;
+        let maybeId = localStorage.getItem(this.functionName);
+        if (maybeId) {
+            return parseInt(maybeId);
+        }
     }
 
     setInterpreterFromClick (event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
         let interpreterItemDom = event.target as HTMLDivElement;
-        let interpreterName = interpreterItemDom.dataset.interpreterName;
-        if (interpreterName) {
-            this.renderWithInterpreter(interpreterName);
+        let interpreterId = interpreterItemDom.dataset.interpreterId;
+        if (interpreterId && !!parseInt(interpreterId)) {
+            this.renderWithInterpreter(parseInt(interpreterId));
         }
     }
 
-    renderWithInterpreter(interpreterName: string) {
+    renderWithInterpreter(interpreterId: number) {
         if (!this.state.visualizationSpace) {
             throw Error('Cannot set interpreter without viz space.');
         }
         this.state.visualizationSpace.removeAllViz();
-        let interpreter = eval(`VisualizationInterpreters.${interpreterName}`);
-        let vizGroup = interpreter(this.state.toolpath);
-        this.state.visualizationSpace.addVizWithName(vizGroup, interpreterName);
+        // let interpreter = eval(`VisualizationInterpreters.${interpreterName}`);
+        let interpreter = this.currentInterpreter;
+        if (!interpreter) { throw new Error(); }
+        let vizGroup = interpreter.implementation(this.state.toolpath);
+        this.state.visualizationSpace.addVizWithName(vizGroup, interpreter.name);
         this.setState((prevState) => {
             return {
-                currentInterpreterName: interpreterName,
+                currentInterpreterId: interpreterId
             };
         }, () => this.saveValue());
     }
@@ -1764,7 +1788,7 @@ class ToolpathVisualizer extends LivelitWindow {
         let s = `async function ${this.functionName}(machine, toolpath, vizSpace) {`;
         s += `let tv = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `await tv.setArguments(machine, toolpath, vizSpace);`;
-        s += `tv.renderWithInterpreter(tv.state.currentInterpreterName);`;
+        s += `tv.renderWithInterpreter(tv.state.currentInterpreterId);`;
         s += `return vizSpace;`;
         s += `}`;
         return s;
@@ -1814,12 +1838,12 @@ class ToolpathVisualizer extends LivelitWindow {
         let interpreterDoms = this.interpreters
                                   .map((interpreter: VisualizerInterpreter,
                                         idx: number) => {
-            let maybeHighlight = interpreter.name === this.state.currentInterpreterName
+            let maybeHighlight = interpreter.id === this.state.currentInterpreterId
                                 ? 'highlight' : '';
             return (
                 <div className={`viz-interpreter-item ${maybeHighlight}`}
                      key={idx}
-                     data-interpreter-name={interpreter.name}
+                     data-interpreter-id={interpreter.id}
                      onClick={this.setInterpreterFromClick.bind(this)}>
                     <span className="interpreter-name param-key"
                           data-interpreter-name={interpreter.name}>
@@ -1840,10 +1864,8 @@ class ToolpathVisualizer extends LivelitWindow {
     }
 
     renderImplementation() {
-        let interpreter = this.interpreters.find(i => {
-            return i.name === this.state.currentInterpreterName;
-        });
-        let functionText = interpreter ? interpreter.implementation
+        let interpreter = this.currentInterpreter;
+        let functionText = interpreter ? interpreter.implementation.toString()
                                        : '';
         return (
             <pre id="viz-implementation-box" className="code-box"><code>
@@ -1856,7 +1878,8 @@ class ToolpathVisualizer extends LivelitWindow {
         let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
         let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
         // TODO: have set visualizations modify state and the render... or not
-        let display = `Interpreter(${this.state.currentInterpreterName})`;
+        let interpreterName = this.currentInterpreter?.name || 'Unknown';
+        let display = `Interpreter(${interpreterName})`;
         return (
             <div className={`module-value ${grayedIffUnset}`}
                  key={`${this.titleKey}-value`}>
