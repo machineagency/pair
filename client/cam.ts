@@ -42,7 +42,8 @@ class Cam {
         let pointSets = this.paths.map((path) => Cam.getPointsFromPath(path));
         let preamble = Cam.codegenPreamble();
         let pathCodeBlocks = pointSets.map((ps) => Cam.codegenPathPoints(ps));
-        return preamble.concat(pathCodeBlocks.flat());
+        let postabmble = Cam.codegenPostamble();
+        return preamble.concat(pathCodeBlocks.flat()).concat(postabmble);
     }
 
     /**
@@ -66,6 +67,10 @@ class Cam {
         gCodes.push(`G90 ; Absolute positioning.`);
         gCodes.push(`G0 Z${opParamZHigh} F${opParamTravelSpeed} ; Move to clearance level.`);
         return gCodes;
+    }
+
+    private static codegenPostamble() {
+        return [ 'G0 X0 Y0' ];
     }
 
     /**
