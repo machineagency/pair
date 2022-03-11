@@ -28,7 +28,7 @@ let geometries = anchorPoints.map((anchor, anchorIndex) => {
     return baseGeometry.placeAt(anchor, tabletop);
 });
 // Given these parameters, generate 6 toolpaths based on the geometry.
-// let toolpathGenerator = await $svgToGcodeGenerator();
+let testTp = await $miniCam(baseGeometry);
 let toolpathGenerator = (geom) => {
     return new verso.Toolpath('temp', [
         'EM,1,1',
