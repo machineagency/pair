@@ -176,4 +176,81 @@ export class VisualizationInterpreters {
         return wrapperGroup;
     }
 
+    //G-Code
+    static gcodeColorViz(toolpath: verso.Toolpath) {
+        let moveCurves : THREE.LineCurve3[] = [];
+        let moveCurve: THREE.LineCurve3;
+        let curveMaterials: THREE.Material[] = [];
+        enum Colors {
+            Red = 0xe44242,
+            Green = 0x2ecc71
+        }
+        enum PenHeight {
+            Up = -7,
+            Down = 0
+        }
+        let currentColor = Colors.Green;
+        let currentPenHeight = PenHeight.Up;
+        let currentPosition = new THREE.Vector3(0, 0, currentPenHeight);
+        let newPosition = currentPosition.clone();
+        let tokens, opcode, duration, opX, opY, opZ, opF, material;
+        let posChange;
+        let materialColor = Colors.Green;
+        let opcodeRe = /(G[0-9]+|M[0-9]+)/;
+        let opXRe = /X([0-9]+)/;
+        let opYRe = /Y([0-9]+)/;
+        let opZRe = /Z([0-9]+)/;
+        let opFRe = /F([0-9]+)/;
+        let findOpcode = (instruction: string, argRe: RegExp) => {
+            let maybeArgResults = instruction.match(argRe);
+            if (!maybeArgResults) { return ''; }
+            return maybeArgResults[0];
+        };
+        let findArg = (instruction: string, argRe: RegExp, fallback: number) => {
+            let maybeArgResults = instruction.match(argRe);
+            if (!maybeArgResults || maybeArgResults.length < 2) {
+                return fallback;
+            }
+            return parseInt(maybeArgResults[1]) || 0;
+        };
+        toolpath.instructions.forEach((instruction) => {
+            opcode = findOpcode(instruction, opcodeRe);
+            if (opcode === 'G0' || opcode === 'G1') {
+                opX = findArg(instruction, opXRe, currentPosition.x),
+                opY = findArg(instruction, opYRe, currentPosition.y),
+                // Two negatives here because our coordinate basis is wonky
+                opZ = -findArg(instruction, opZRe, -currentPosition.z)
+                newPosition = new THREE.Vector3(opX, opY, opZ);
+                // Set color based on height
+                if (currentPosition.z === 0 && newPosition.z === 0) {
+                    currentColor = Colors.Red;
+                }
+                else {
+                    currentColor = Colors.Green;
+                }
+                materialColor = currentColor;
+            }
+            moveCurve = new THREE.LineCurve3(currentPosition, newPosition);
+            moveCurves.push(moveCurve);
+            currentPosition = newPosition;
+            material = new THREE.MeshToonMaterial({
+                color: materialColor,
+                side: THREE.DoubleSide
+            });
+            curveMaterials.push(material);
+        });
+        let pathRadius = 0.25
+        let geometries = moveCurves.map((curve) => {
+            return new THREE.TubeBufferGeometry(curve, 64, pathRadius, 64, false);
+        });
+        let meshes = geometries.map((geom, idx) => {
+            return new THREE.Mesh(geom, curveMaterials[idx]);
+        });
+        let wrapperGroup = new THREE.Group();
+        meshes.forEach((mesh) => wrapperGroup.add(mesh));
+        wrapperGroup.rotateX(Math.PI / 2);
+        return wrapperGroup;
+    }
+
+
 }
