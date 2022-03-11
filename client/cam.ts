@@ -100,25 +100,27 @@ class Cam {
         });
 
         let initialPoint = truncatedPoints[0];
-        // emit travel to initial
+        gCodes.push(`; ---begin path---`);
+        gCodes.push(`; travel to initial`);
         gCodes.push(`G0 X${initialPoint.x} Y${initialPoint.y}`);
-        // emit set plunge rates
+        gCodes.push(`;  set plunge rates`);
         gCodes.push(`G0 F${opParamPlungeSpeed}`);
-        // emit plunge
+        gCodes.push(`;  plunge`);
         gCodes.push(`G0 Z${opParamZLow}`);
-        // emit set cut rates
+        gCodes.push(`;  set cut rates`);
         gCodes.push(`G0 F${opParamCutSpeed}`);
-        // emit cuts
+        gCodes.push(`;  cuts`);
         let cuts = truncatedPoints.slice(1).forEach((point) => {
             gCodes.push(`G0 X${point.x} Y${point.y}`);
         });
-        // emit set retract rates
+        gCodes.push(`;  set retract rates`);
         gCodes.push(`G0 F${opParamRetractSpeed}`);
-        // emit retract
+        gCodes.push(`;  retract`);
         gCodes.push(`G0 Z${opParamZHigh}`);
-        // emit set travel rates
+        gCodes.push(`;  set travel rates`);
         gCodes.push(`G0 F${opParamTravelSpeed}`);
-        return gCodes.join('\n');
+        gCodes.push(`; ---end path---`);
+        return gCodes;
     }
 
     private static truncateDecimal(num: number, places: number): string {
