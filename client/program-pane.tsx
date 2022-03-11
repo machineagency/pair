@@ -2205,7 +2205,7 @@ interface MiniCamProps extends LivelitProps {
 };
 
 interface MiniCamState extends LivelitState {
-    gCode: string;
+    gCode: string[];
 };
 
 class MiniCam extends LivelitWindow {
@@ -2220,7 +2220,7 @@ class MiniCam extends LivelitWindow {
         this.state = {
             windowOpen: props.windowOpen,
             valueSet: false,
-            gCode: ''
+            gCode: []
         };
     }
 
@@ -2278,7 +2278,7 @@ class MiniCam extends LivelitWindow {
     renderInstructions() {
         let instElements : JSX.Element[] = [];
         if (this.state.gCode) {
-            instElements = this.state.gCode.split('\n')
+            instElements = this.state.gCode
                 .map((inst, idx) => {
                 return (
                     <div className={`inst-list-item`}
