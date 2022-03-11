@@ -13,8 +13,8 @@ class Cam {
 
     constructor(geometry: Geometry) {
         this.geometry = geometry;
-        if (geometry.filepath) {
-            this.loadSvgTextFromUrl(geometry.filepath);
+        if (geometry.stringRep) {
+            this.svg = this.parseSvg(geometry.stringRep);
         }
         else {
             console.error('Could not load geometry data into CAM object.');
@@ -31,21 +31,11 @@ class Cam {
         });
     }
 
-    async loadSvgTextFromUrl(url: string): Promise<XMLDocument> {
-        return new Promise<XMLDocument>((resolve, reject) => {
-            fetch(url)
-                .then(response => response.text())
-                .then((text) => {
-                    let domParser = new DOMParser();
-                    let parseFlag: DOMParserSupportedType = 'image/svg+xml';
-                    let svg = domParser.parseFromString(text, parseFlag);
-                    resolve(svg);
-                })
-                .catch((error) => {
-                    console.log(error);
-                    reject();
-                });
-        });
+    parseSvg(stringRep: string): XMLDocument {
+        let domParser = new DOMParser();
+        let parseFlag: DOMParserSupportedType = 'image/svg+xml';
+        let svg = domParser.parseFromString(stringRep, parseFlag);
+        return svg
     }
 
     getGcode() {
