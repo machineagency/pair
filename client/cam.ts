@@ -40,16 +40,32 @@ class Cam {
 
     getGcode() {
         let pointSets = this.paths.map((path) => Cam.getPointsFromPath(path));
+        let preamble = Cam.codegenPreamble();
+        let pathCodeBlocks = pointSets.map((ps) => Cam.codegenPathPoints(ps));
+        return preamble + '\n' + pathCodeBlocks;
     }
 
     /**
      * NOTE: for now we ignore curve data and just discretize as lines.
      */
     private static getPointsFromPath(path: SVGPathElement): SVGPoint[] {
+        // TODO: allow different resolutions
+        const STEP_SIZE = 1;
         let numSamples = Math.ceil(path.getTotalLength());
+        let samplePoints = [...Array(numSamples).keys()];
         return [...Array(numSamples).keys()].map((sampleDist) => {
             return path.getPointAtLength(sampleDist);
         });
+    }
+
+    private static codegenPreamble() {
+        const opParamZHigh = 20;
+        const opParamTravelSpeed = 50;
+        let gCodes = [];
+        gCodes.push(`G21 ; Set units to mm.`);
+        gCodes.push(`G90 ; Absolute positioning.`);
+        gCodes.push(`G0 Z${opParamZHigh} F${opParamTravelSpeed} ; Move to clearance level.`);
+        return gCodes.join('\n');
     }
 
     /**
