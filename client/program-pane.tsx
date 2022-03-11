@@ -156,13 +156,13 @@ class ProgramUtil {
                 };
                 return <MiniCam {...mcProps}></MiniCam>;
             case 'display':
-                const displayProps: DispatcherProps = {
-                    ref: livelitRef as React.RefObject<Dispatcher>,
+                const displayProps: DisplayProps = {
+                    ref: livelitRef as React.RefObject<Display>,
                     valueSet: false,
                     windowOpen: true,
                     key: text
                 };
-                return <Dispatcher {...displayProps}></Dispatcher>;
+                return <Display {...displayProps}></Display>;
             default:
                 return null;
         }
@@ -2130,6 +2130,7 @@ interface DisplayProps extends LivelitProps {
 };
 
 interface DisplayState extends LivelitState {
+    displayValue: string;
 };
 
 class Display extends LivelitWindow {
@@ -2143,7 +2144,8 @@ class Display extends LivelitWindow {
         this.props = props;
         this.state = {
             windowOpen: props.windowOpen,
-            valueSet: false
+            valueSet: false,
+            displayValue: 'nothing'
         };
     }
 
@@ -2151,6 +2153,7 @@ class Display extends LivelitWindow {
     expand() : string {
         let s = `async function ${this.functionName}(value) {`;
         s += `let d = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `d.setState(_ => ({ displayValue: JSON.stringify(value) }));`
         s += `return value;`;
         s += `}`;
         return s;
@@ -2185,19 +2188,18 @@ class Display extends LivelitWindow {
         return (
             <div className={`module-value ${grayedIffUnset}`}
                  key={`${this.titleKey}-value`}>
-                 { display }
             </div>
         );
     }
 
-    // render() {
-    //     let maybeHidden = this.state.windowOpen ? '' : 'hidden';
-    //     return (
-    //         <div className={`machine-initializer content ${maybeHidden}`}>
-    //             Hi
-    //         </div>
-    //     );
-    // }
+    renderContent() {
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return (
+            <div className={`machine-initializer content ${maybeHidden}`}>
+                { JSON.stringify(this.state.displayValue) || 'nothing' }
+            </div>
+        );
+    }
 }
 
 interface MiniCamProps extends LivelitProps {
