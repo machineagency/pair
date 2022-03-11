@@ -390,8 +390,11 @@ export class WorkEnvelope {
     }
 }
 
+type InstructionType = 'gcode' | 'ebb' | 'unknown';
+
 export class Toolpath {
     geometryUrl: string;
+    isa: InstructionType;
     instructions: string[];
     vizGroup: paper.Group;
 
@@ -399,8 +402,25 @@ export class Toolpath {
         this.geometryUrl = geometryUrl;
         this.instructions = instructions;
         this.vizGroup = new paper.Group();
+        this.isa = this.recognizeIsa(instructions);
         // TODO: vizGroup should be populated by the toolpath visualizers
         // and then rendered to the tabletop.
+    }
+
+    recognizeIsa(instructions: string[]) : InstructionType {
+        if (instructions.length < 1) {
+            return 'unknown'
+        }
+        let testInst = instructions[0];
+        if (testInst.match(',')) {
+            return 'ebb';
+        }
+        else if (testInst[0] === 'G' || testInst[0] === 'M') {
+            return 'gcode';
+        }
+        else {
+            return 'unknown';
+        }
     }
 
     get position() {
@@ -602,6 +622,9 @@ export class Geometry {
     // path does not necessarily contain the filetype.
     filepath?: string;
 
+    // The string representation of the geometry e.g. the SVG string
+    stringRep?: string;
+
     constructor(tabletop: Tabletop) {
         this.tabletop = tabletop;
     }
@@ -665,13 +688,15 @@ export class Geometry {
            });
        }
        else {
-            let blob = await fileResult.blob();
+            let blob = await fileResult.clone().blob();
             let localUrl = URL.createObjectURL(blob);
-            return await this.loadFromFilepath(filename, localUrl);
+            this.stringRep = await fileResult.text();
+            return await this.loadIntoPaperCanvas(filename, localUrl);
        }
     }
 
-    async loadFromFilepath(filename: string, filepath: string) : Promise<Geometry> {
+    // FIXME: deprecate the paper functionality and just work with the string rep
+    async loadIntoPaperCanvas(filename: string, filepath: string) : Promise<Geometry> {
         return new Promise<Geometry>((resolve, reject) => {
             this.tabletop.project.importSVG(filepath, {
                 expandShapes: true,
