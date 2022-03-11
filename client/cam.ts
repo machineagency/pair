@@ -91,7 +91,15 @@ class Cam {
 
         let gCodes = [];
 
-        let initialPoint = points[0];
+        let truncatedPoints = points.map((point) => {
+            const places = 4;
+            return {
+                x: Cam.truncateDecimal(point.x, places),
+                y: Cam.truncateDecimal(point.y, places)
+            }
+        });
+
+        let initialPoint = truncatedPoints[0];
         // emit travel to initial
         gCodes.push(`G0 X${initialPoint.x} Y${initialPoint.y}`);
         // emit set plunge rates
@@ -101,7 +109,7 @@ class Cam {
         // emit set cut rates
         gCodes.push(`G0 F${opParamCutSpeed}`);
         // emit cuts
-        let cuts = points.slice(1).forEach((point) => {
+        let cuts = truncatedPoints.slice(1).forEach((point) => {
             gCodes.push(`G0 X${point.x} Y${point.y}`);
         });
         // emit set retract rates
@@ -111,6 +119,12 @@ class Cam {
         // emit set travel rates
         gCodes.push(`G0 F${opParamTravelSpeed}`);
         return gCodes.join('\n');
+    }
+
+    private static truncateDecimal(num: number, places: number): string {
+        var re = new RegExp('^-?\\d+(?:\.\\d{0,' + (places || -1) + '})?');
+        let maybeMatch = num.toString().match(re);
+        return maybeMatch ? maybeMatch[0] : num.toString();
     }
 }
 
