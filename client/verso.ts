@@ -809,6 +809,7 @@ export class Machine {
 }
 
 export class VisualizationSpace {
+    protected machine: Machine;
     protected scene: THREE.Scene;
     protected camera: THREE.Camera;
     protected controls?: THREE.OrbitControls;
@@ -817,9 +818,10 @@ export class VisualizationSpace {
     protected vizGroup: THREE.Group;
     protected renderRequested: boolean;
 
-    constructor() {
+    constructor(machine: Machine) {
+        this.machine = machine;
         this.scene = this.initScene();
-        this.envelopeGroup = this.createEnvelopeGroup();
+        this.envelopeGroup = this.createEnvelopeGroup(machine);
         this.vizGroup = new THREE.Group();
         this.scene.add(this.envelopeGroup);
         this.scene.add(this.vizGroup);
@@ -962,11 +964,14 @@ export class VisualizationSpace {
         this.threeRenderer?.render(this.scene, this.camera);
     }
 
-    createEnvelopeGroup() : THREE.Group {
+    createEnvelopeGroup(machine: Machine) : THREE.Group {
+        // FIXME: eventually have work envelopes be a 3-vector
+        let twoDimWorkEnvelope = machine.workEnvelopeDimensions;
+        let height = machine.machineName === 'axidraw' ? 17 : 300;
         let dimensions = {
-            width: 300,
-            height: 17,
-            length: 218
+            width: twoDimWorkEnvelope.x,
+            height: height,
+            length: twoDimWorkEnvelope.y
         };
         let whitesmoke = 0xf5f5f5;
         let boxGeom = new THREE.BoxBufferGeometry(dimensions.width,
