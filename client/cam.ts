@@ -52,10 +52,11 @@ class Cam {
     private getPointsFromPath(path: SVGPathElement): SVGPoint[] {
         // TODO: allow different resolutions
         const STEP_SIZE = 1;
-        let numSamples = Math.ceil(path.getTotalLength());
-        let samplePoints = [...Array(numSamples).keys()];
-        let points = [...Array(numSamples).keys()].map((sampleDist) => {
-            return path.getPointAtLength(sampleDist);
+        const SAMPLE_FACTOR = 1;
+        let numSamples = Math.ceil(path.getTotalLength()) * SAMPLE_FACTOR;
+        let samplePoints = [...Array(numSamples * SAMPLE_FACTOR).keys()];
+        let points = samplePoints.map((sampleDist) => {
+            return path.getPointAtLength(sampleDist / SAMPLE_FACTOR);
         });
         if (!this.svg) {
             return points;
