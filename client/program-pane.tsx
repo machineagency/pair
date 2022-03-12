@@ -2208,6 +2208,8 @@ interface MiniCamProps extends LivelitProps {
 
 interface MiniCamState extends LivelitState {
     gCode: string[];
+    geometries: verso.Geometry[];
+    selectedGeometryIndex: number;
 };
 
 class MiniCam extends LivelitWindow {
@@ -2222,8 +2224,18 @@ class MiniCam extends LivelitWindow {
         this.state = {
             windowOpen: props.windowOpen,
             valueSet: false,
+            selectedGeometryIndex: 0,
+            geometries: [],
             gCode: []
         };
+    }
+
+    get selectedGeometry() {
+        let index = this.state.selectedGeometryIndex;
+        if (index >= this.state.geometries.length) {
+            return undefined;
+        }
+        return this.state.geometries[index];
     }
 
     private __expandHelper(geometry: verso.Geometry) {
@@ -2232,7 +2244,7 @@ class MiniCam extends LivelitWindow {
         let cam = new Cam(geometry);
         let gCode = cam.getGcode();
         let tp = new verso.Toolpath(geometry.filepath || '', gCode);
-        mc.setState(_ => ({ gCode: gCode }));
+        mc.setState(_ => ({ gCode: gCode, geometries: [geometry] }));
         return tp;
     }
 
@@ -2297,6 +2309,30 @@ class MiniCam extends LivelitWindow {
     handleParamChange() {
     }
 
+    renderGalleryItem(geometry: verso.Geometry) {
+        // const maybeHighlight = this.state.selectedUrl === url
+        //                        ? 'gallery-highlight' : '';
+        const maybeHighlight = 'gallery-highlight';
+        return <div className={`gallery-item ${maybeHighlight}`}
+                    data-geometry-name={name}
+                    // onClick={this.setSelectedGeometryUrlAndRerun.bind(this, url)}
+                    key={geometry.filename}>
+                    <img src={geometry.filepath}
+                         className="gallery-image"/>
+               </div>;
+    }
+
+    renderGeometries() {
+        let galleryItems = this.state.geometries.map((geometry) => {
+            return this.renderGalleryItem(geometry);
+        });
+        return (
+            <div className="gallery">
+                { galleryItems }
+            </div>
+        );
+    }
+
     renderControls() {
         return (
             <form onChange={this.handleParamChange.bind(this)}>
@@ -2322,6 +2358,8 @@ class MiniCam extends LivelitWindow {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return (
             <div className={`mini-cam content ${maybeHidden}`}>
+                { this.renderGeometries() }
+                <div className="subtitle">Parameters for: {this.selectedGeometry?.filename}</div>
                 { this.renderControls() }
                 { this.renderInstructions() }
             </div>
