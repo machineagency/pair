@@ -1846,11 +1846,11 @@ class ToolpathVisualizer extends LivelitWindow {
                      data-interpreter-id={interpreter.id}
                      onClick={this.setInterpreterFromClick.bind(this)}>
                     <span className="interpreter-name param-key"
-                          data-interpreter-name={interpreter.name}>
+                          data-interpreter-id={interpreter.id}>
                          { interpreter.name }
                     </span>
                     <span className="geometry-input param-value"
-                          data-interpreter-name={interpreter.name}>
+                          data-interpreter-id={interpreter.id}>
                          { interpreter.description }
                     </span>
                 </div>
