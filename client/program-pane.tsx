@@ -2294,10 +2294,35 @@ class MiniCam extends LivelitWindow {
         );
     }
 
+    handleParamChange() {
+    }
+
+    renderControls() {
+        return (
+            <form onChange={this.handleParamChange.bind(this)}>
+                <input type="radio" name="op-type" id="mini-cam-radio-engrave"
+                       value="engrave" defaultChecked={true}/>
+                <label htmlFor="mini-cam-radio-engrave">Engrave</label>
+                <input type="radio" name="op-type" id="mini-cam-radio-pocket"
+                       value="pocket"/>
+                <label htmlFor="mini-cam-radio-Pocket">Pocket</label><br/>
+                <label htmlFor="mini-cam-depth">Top Height</label>
+                <input type="text" id="mini-cam-top" placeholder="15"/><br/>
+                <label htmlFor="mini-cam-depth">Depth Height</label>
+                <input type="text" id="mini-cam-depth" placeholder="5"/><br/>
+                <label htmlFor="mini-cam-depth">Cut Speed</label>
+                <input type="text" id="mini-cam-cut-speed" placeholder="5"/><br/>
+                <label htmlFor="mini-cam-depth">Plunge Speed</label>
+                <input type="text" id="mini-cam-plunge-speed" placeholder="5"/><br/>
+            </form>
+        );
+    }
+
     renderContent() {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return (
             <div className={`mini-cam content ${maybeHidden}`}>
+                { this.renderControls() }
                 { this.renderInstructions() }
             </div>
         );
