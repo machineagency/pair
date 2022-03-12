@@ -39,7 +39,7 @@ class Cam {
     }
 
     getGcode() {
-        let pointSets = this.paths.map((path) => Cam.getPointsFromPath(path));
+        let pointSets = this.paths.map((path) => this.getPointsFromPath(path));
         let preamble = Cam.codegenPreamble();
         let pathCodeBlocks = pointSets.map((ps) => Cam.codegenPathPoints(ps));
         let postabmble = Cam.codegenPostamble();
@@ -49,14 +49,31 @@ class Cam {
     /**
      * NOTE: for now we ignore curve data and just discretize as lines.
      */
-    private static getPointsFromPath(path: SVGPathElement): SVGPoint[] {
+    private getPointsFromPath(path: SVGPathElement): SVGPoint[] {
         // TODO: allow different resolutions
         const STEP_SIZE = 1;
         let numSamples = Math.ceil(path.getTotalLength());
         let samplePoints = [...Array(numSamples).keys()];
-        return [...Array(numSamples).keys()].map((sampleDist) => {
+        let points = [...Array(numSamples).keys()].map((sampleDist) => {
             return path.getPointAtLength(sampleDist);
         });
+        if (!this.svg) {
+            return points;
+        }
+        if (!this.svg.rootElement
+            || this.svg.rootElement.transform.baseVal.numberOfItems < 1) {
+            return points;
+        }
+        let globalTransform = this.svg.rootElement.transform.baseVal.getItem(0);
+        let transformedPoints = points.map((pt) => {
+            if (!globalTransform) {
+                return pt;
+            }
+            else {
+                return pt.matrixTransform(globalTransform.matrix);
+            }
+        });
+        return transformedPoints;
     }
 
     private static codegenPreamble() {
