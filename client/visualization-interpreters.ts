@@ -185,22 +185,17 @@ export class VisualizationInterpreters {
             Red = 0xe44242,
             Green = 0x2ecc71
         }
-        enum PenHeight {
-            Up = -7,
-            Down = 0
-        }
         let currentColor = Colors.Green;
-        let currentPenHeight = PenHeight.Up;
-        let currentPosition = new THREE.Vector3(0, 0, currentPenHeight);
+        let currentPosition = new THREE.Vector3(0, 0, 0);
         let newPosition = currentPosition.clone();
         let tokens, opcode, duration, opX, opY, opZ, opF, material;
         let posChange;
         let materialColor = Colors.Green;
         let opcodeRe = /(G[0-9]+|M[0-9]+)/;
-        let opXRe = /X([0-9]+)/;
-        let opYRe = /Y([0-9]+)/;
-        let opZRe = /Z([0-9]+)/;
-        let opFRe = /F([0-9]+)/;
+        let opXRe = /X(-?[0-9]+)/;
+        let opYRe = /Y(-?[0-9]+)/;
+        let opZRe = /Z(-?[0-9]+)/;
+        let opFRe = /F(-?[0-9]+)/;
         let findOpcode = (instruction: string, argRe: RegExp) => {
             let maybeArgResults = instruction.match(argRe);
             if (!maybeArgResults) { return ''; }
