@@ -666,7 +666,27 @@ export class Geometry {
         newGeom.filepath = this.filepath;
         newGeom.paperGroup = this.paperGroup;
         newGeom.paperGroup.position = adjustedPoint;
+        // FIXME: again we should be operating on the underlying svg all the time
+        // but have time to fix this
+        if (!this.position) { throw new Error('bad'); }
+        if (this.stringRep) {
+            newGeom.stringRep = this
+                .calculateTranslatedStringRep(placementPoint.x, placementPoint.y);
+        }
         return newGeom;
+    }
+
+    private calculateTranslatedStringRep(tx: number, ty: number) {
+        if (!this.stringRep) { throw new Error('where is thy string?'); }
+        let parser = new DOMParser();
+        let xml = parser.parseFromString(this.stringRep, 'image/svg+xml');
+        let svg = xml.rootElement;
+        if (!svg) { throw new Error('could not parse an svg'); }
+        let translateMat = svg.createSVGMatrix().translate(tx, ty);
+        let transform = svg.createSVGTransformFromMatrix(translateMat);
+        svg.transform.baseVal.appendItem(transform);
+        let stringRep = svg.outerHTML;
+        return stringRep;
     }
 
     rotate() {
