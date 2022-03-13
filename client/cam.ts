@@ -53,10 +53,11 @@ class Cam {
         // TODO: allow different resolutions
         const STEP_SIZE = 1;
         const SAMPLE_FACTOR = 1;
-        let numSamples = Math.ceil(path.getTotalLength()) * SAMPLE_FACTOR;
-        let samplePoints = [...Array(numSamples * SAMPLE_FACTOR).keys()];
-        let points = samplePoints.map((sampleDist) => {
-            return path.getPointAtLength(sampleDist / SAMPLE_FACTOR);
+        let numSamples = Math.ceil(path.getTotalLength());
+        let sampleDistances = [...Array(numSamples * SAMPLE_FACTOR).keys()]
+                            .map(pt => pt / SAMPLE_FACTOR);
+        let points = sampleDistances.map((sampleDist) => {
+            return path.getPointAtLength(sampleDist);
         });
         if (!this.svg) {
             return points;
