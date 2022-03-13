@@ -38,6 +38,13 @@ pre code.hljs {
     font-style: normal;
 }
 
+.livelit-window .button.grayed {
+    background-color: #888888;
+    color: #222222;
+    cursor: not-allowed;
+    font-style: normal;
+}
+
 .cam-compiler-item.grayed {
     cursor: not-allowed;
 }
@@ -259,6 +266,7 @@ pre code.hljs {
     max-height: 200px;
     overflow-y: scroll;
     border: 1px solid white;
+    padding: 5px;
 }
 
 /* Livelit-Specific Styles */

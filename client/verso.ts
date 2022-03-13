@@ -744,10 +744,12 @@ export class Geometry {
 export class Machine {
     machineName: string;
     tabletop?: Tabletop;
+    initialized: boolean;
 
     constructor(machineName: string) {
         this.machineName = machineName;
-        // TODO: look up machine name and initialize—fake it for now
+        this.initialized = false;
+        // TODO: look up machine name and populate fields—fake it for now
     }
 
     get workEnvelopeDimensions() {

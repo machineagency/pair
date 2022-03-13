@@ -1907,6 +1907,12 @@ interface MachineInitializerProps extends LivelitProps {
 };
 
 interface MachineInitializerState extends LivelitState {
+    initialized: boolean;
+    connected: boolean;
+    axisUHomed: boolean;
+    axisXHomed: boolean;
+    axisYHomed: boolean;
+    axisZHomed: boolean;
 };
 
 class MachineInitializer extends LivelitWindow {
@@ -1920,7 +1926,13 @@ class MachineInitializer extends LivelitWindow {
         this.props = props;
         this.state = {
             windowOpen: props.windowOpen,
-            valueSet: false
+            valueSet: false,
+            initialized: false,
+            connected: false,
+            axisUHomed: false,
+            axisXHomed: false,
+            axisYHomed: false,
+            axisZHomed: false,
         };
     }
 
@@ -1966,14 +1978,86 @@ class MachineInitializer extends LivelitWindow {
         );
     }
 
-    // render() {
-    //     let maybeHidden = this.state.windowOpen ? '' : 'hidden';
-    //     return (
-    //         <div className={`machine-initializer content ${maybeHidden}`}>
-    //             Hi
-    //         </div>
-    //     );
-    // }
+    placeholder() {
+        return 42;
+    }
+
+    renderSnippet(snippetText: string) {
+        return (
+            <pre id="viz-implementation-box" className="code-box"><code>
+                { snippetText }
+            </code></pre>
+            );
+    }
+
+    grayIffUnconnected() {
+        return this.state.connected ? '' : 'grayed';
+    }
+
+    grayIffUAxisNotHomed() {
+        return this.state.axisUHomed ? '' : 'grayed';
+    }
+
+    grayIffYAxisNotHomed() {
+        return this.state.axisYHomed ? '' : 'grayed';
+    }
+
+    grayIffZAxisNotHomed() {
+        return this.state.axisZHomed ? '' : 'grayed';
+    }
+
+    renderContent() {
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return <div className={`tabletop-calibrator content ${maybeHidden}`}
+                    key={this.contentKey.toString()}>
+                   <div className="subtitle">
+                       Machine Initialized? {
+                           this.state.initialized ? 'Yes' : 'No'
+                       }
+                   </div>
+                   <div className="help-text">
+                       1. Connect to the machine.
+                   </div>
+                   { this.renderSnippet(this.placeholder.toString()) }
+                   <div onClick={this.placeholder.bind(this)}
+                        className="button" id="mi-connect">
+                       Send Code
+                   </div>
+                   <div className="help-text">
+                       2. Home the U axis.
+                   </div>
+                   { this.renderSnippet(this.placeholder.toString()) }
+                   <div onClick={this.placeholder.bind(this)}
+                        className={`button ${this.grayIffUnconnected()}`} id="mi-home-u">
+                       Send Code
+                   </div>
+                   <div className="help-text">
+                       3. Home the Y axis.
+                   </div>
+                   { this.renderSnippet(this.placeholder.toString()) }
+                   <div onClick={this.placeholder.bind(this)}
+                        className={`button ${this.grayIffUAxisNotHomed()}`} id="mi-home-y">
+                       Send Code
+                   </div>
+                   <div className="help-text">
+                       4. Home the Z axis.
+                   </div>
+                   { this.renderSnippet(this.placeholder.toString()) }
+                   <div onClick={this.placeholder.bind(this)}
+                        className={`button ${this.grayIffYAxisNotHomed()}`} id="mi-home-z">
+                       Send Code
+                   </div>
+                   <div className="help-text">
+                       5. Home the X axis.
+                   </div>
+                   { this.renderSnippet(this.placeholder.toString()) }
+                   <div onClick={this.placeholder.bind(this)}
+                        className={`button ${this.grayIffYAxisNotHomed()}`} id="mi-home-x">
+                       Send Code
+                   </div>
+                   { this.applyButton }
+               </div>;
+    }
 }
 
 interface DispatcherProps extends LivelitProps {
