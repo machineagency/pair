@@ -139,14 +139,6 @@ class ProgramUtil {
                     key: text
                 };
                 return <Dispatcher {...dProps}></Dispatcher>;
-            case 'jsCut':
-                const jcProps: JSCutProps = {
-                    ref: livelitRef as React.RefObject<JSCut>,
-                    valueSet: false,
-                    windowOpen: true,
-                    key: text
-                };
-                return <JSCut {...jcProps}></JSCut>;
             case 'miniCam':
                 const mcProps: MiniCamProps = {
                     ref: livelitRef as React.RefObject<MiniCam>,
@@ -2125,51 +2117,6 @@ class Dispatcher extends LivelitWindow {
         );
     }
 
-    // render() {
-    //     let maybeHidden = this.state.windowOpen ? '' : 'hidden';
-    //     return (
-    //         <div className={`machine-initializer content ${maybeHidden}`}>
-    //             Hi
-    //         </div>
-    //     );
-    // }
-}
-
-interface JSCutProps extends LivelitProps {
-    ref: React.RefObject<JSCut>;
-};
-
-interface JSCutState extends LivelitState {
-};
-
-class JSCut extends LivelitWindow {
-    props: JSCutProps;
-    state: JSCutState;
-
-    constructor(props: JSCutProps) {
-        super(props);
-        this.titleText = 'JSCut';
-        this.functionName = '$jsCut';
-        this.props = props;
-        this.state = {
-            windowOpen: props.windowOpen,
-            valueSet: false
-        };
-    }
-
-    expand() : string {
-        let s = `async function ${this.functionName}(geometry, machine) {`;
-        s += `let jc = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
-        s += `return machine;`;
-        s += `}`;
-        return s;
-    }
-
-    saveValue() {
-        return new Promise<void>((resolve) => {
-            // TODO
-            resolve();
-        });
     }
 
     loadSavedValue() {
