@@ -1642,7 +1642,7 @@ interface ToolpathVisualizerProps extends LivelitProps {
 
 interface ToolpathVisualizerState extends LivelitState {
     machine: verso.Machine;
-    toolpath: verso.Toolpath;
+    toolpaths: verso.Toolpath[];
     visualizationSpace?: verso.VisualizationSpace;
     currentInterpreterId: number;
     selectedInstIndex: number;
@@ -1700,7 +1700,7 @@ class ToolpathVisualizer extends LivelitWindow {
         let maybeSavedInterpreterName = this.loadSavedValue();
         this.state = {
             machine: new verso.Machine('TEMP'),
-            toolpath: new verso.Toolpath('', []),
+            toolpaths: [],
             visualizationSpace: undefined,
             currentInterpreterId: maybeSavedInterpreterName
                                     || 0,
@@ -1715,13 +1715,13 @@ class ToolpathVisualizer extends LivelitWindow {
     }
 
     async setArguments(machine: verso.Machine,
-                       toolpath: verso.Toolpath,
+                       toolpaths: verso.Toolpath[],
                        visualizationSpace: verso.VisualizationSpace) {
         return new Promise<void>((resolve) => {
             this.setState(_ => {
                 return {
                     machine: machine,
-                    toolpath: toolpath,
+                    toolpaths: toolpaths,
                     visualizationSpace: visualizationSpace
                 };
             }, resolve);
@@ -1744,21 +1744,26 @@ class ToolpathVisualizer extends LivelitWindow {
     setInterpreterFromClick (event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
         let interpreterItemDom = event.target as HTMLDivElement;
         let interpreterId = interpreterItemDom.dataset.interpreterId;
-        if (interpreterId && !!parseInt(interpreterId)) {
-            this.renderWithInterpreter(parseInt(interpreterId));
-        }
+        this.state.toolpaths.forEach((toolpath) => {
+            if (interpreterId && !isNaN(parseInt(interpreterId))) {
+                let id = parseInt(interpreterId);
+                this.renderWithInterpreter(toolpath, id);
+            }
+        });
     }
 
-    renderWithInterpreter(interpreterId: number) {
+    renderWithInterpreter(toolpath: verso.Toolpath, interpreterId: number) {
         if (!this.state.visualizationSpace) {
             throw Error('Cannot set interpreter without viz space.');
         }
         this.state.visualizationSpace.removeAllViz();
         // let interpreter = eval(`VisualizationInterpreters.${interpreterName}`);
         let interpreter = this.currentInterpreter;
-        if (!interpreter) { throw new Error(); }
-        let vizGroup = interpreter.implementation(this.state.toolpath);
-        this.state.visualizationSpace.addVizWithName(vizGroup, interpreter.name);
+        this.state.toolpaths.forEach((toolpath) => {
+            if (!interpreter) { throw new Error(); }
+            let vizGroup = interpreter.implementation(toolpath);
+            this.state.visualizationSpace?.addVizWithName(vizGroup, interpreter.name);
+        });
         this.setState((prevState) => {
             return {
                 currentInterpreterId: interpreterId
@@ -1777,10 +1782,12 @@ class ToolpathVisualizer extends LivelitWindow {
     }
 
     expand() : string {
-        let s = `async function ${this.functionName}(machine, toolpath, vizSpace) {`;
+        let s = `async function ${this.functionName}(machine, toolpaths, vizSpace) {`;
         s += `let tv = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
-        s += `await tv.setArguments(machine, toolpath, vizSpace);`;
-        s += `tv.renderWithInterpreter(tv.state.currentInterpreterId);`;
+        s += `await tv.setArguments(machine, toolpaths, vizSpace);`;
+        s += `tv.state.toolpaths.forEach((toolpath) => {`;
+        s += `tv.renderWithInterpreter(toolpath, tv.state.currentInterpreterId);`;
+        s += `});`;
         s += `return vizSpace;`;
         s += `}`;
         return s;
@@ -1795,24 +1802,6 @@ class ToolpathVisualizer extends LivelitWindow {
                 });
             }
         });
-    }
-
-    renderToolpathInstructions() {
-        let instElements : JSX.Element[] = [];
-        if (this.state.toolpath) {
-            instElements = this.state.toolpath.instructions
-                .map((inst, idx) => {
-                let maybeHighlight = this.state.selectedInstIndex === idx
-                                     ? 'highlight' : '';
-                return (
-                    <div className={`inst-list-item ${maybeHighlight}`}
-                         key={idx}>{inst}</div>
-                );
-            });
-        }
-        return (
-            <div id="inst-list" className="boxed-list">{ instElements }</div>
-        );
     }
 
     renderMachineParams() {
