@@ -2285,7 +2285,9 @@ class Display extends LivelitWindow {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return (
             <div className={`machine-initializer content ${maybeHidden}`}>
-                { JSON.stringify(this.state.displayValue) || 'nothing' }
+                <div id="display-box">
+                    { JSON.stringify(this.state.displayValue) || 'nothing' }
+                </div>
             </div>
         );
     }

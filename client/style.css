@@ -450,6 +450,13 @@ pre code.hljs {
     height: 100%;
 }
 
+#display-box {
+    border: 1px solid whitesmoke;
+    padding: 5px;
+    max-height: 200px;
+    overflow-y: scroll;
+}
+
 #visualization-space-container {
     width: 100%;
     height: 100%;
