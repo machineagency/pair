@@ -2298,7 +2298,7 @@ interface MiniCamProps extends LivelitProps {
 };
 
 interface MiniCamState extends LivelitState {
-    gCode: string[];
+    toolpaths: verso.Toolpath[];
     geometries: verso.Geometry[];
     selectedGeometryIndex: number;
 };
@@ -2317,7 +2317,7 @@ class MiniCam extends LivelitWindow {
             valueSet: false,
             selectedGeometryIndex: 0,
             geometries: [],
-            gCode: []
+            toolpaths: []
         };
     }
 
@@ -2329,14 +2329,26 @@ class MiniCam extends LivelitWindow {
         return this.state.geometries[index];
     }
 
-    private __expandHelper(geometry: verso.Geometry) {
+    get selectedToolpath() {
+        let index = this.state.selectedGeometryIndex;
+        if (index >= this.state.toolpaths.length) {
+            return undefined;
+        }
+        return this.state.toolpaths[index];
+    }
+
+    private __expandHelper(geometries: verso.Geometry[]) {
         // @ts-ignore
         let mc: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
-        let cam = new Cam(geometry);
-        let gCode = cam.getGcode();
-        let tp = new verso.Toolpath(geometry.filepath || '', gCode);
-        mc.setState(_ => ({ gCode: gCode, geometries: [geometry] }));
-        return tp;
+        let selectedGeom = mc.selectedGeometry;
+        let tps = geometries.map((currentGeom) => {
+            let cam = new Cam(currentGeom);
+            let gCode = cam.getGcode();
+            let tp = new verso.Toolpath(currentGeom.filepath || '', gCode);
+            return tp;
+        });
+        mc.setState(_ => ({ geometries: geometries, toolpaths: tps }));
+        return tps;
     }
 
     expand() : string {
@@ -2382,9 +2394,10 @@ class MiniCam extends LivelitWindow {
     }
 
     renderInstructions() {
+        let selectedToolpath = this.selectedToolpath;
         let instElements : JSX.Element[] = [];
-        if (this.state.gCode) {
-            instElements = this.state.gCode
+        if (selectedToolpath) {
+            instElements = selectedToolpath.instructions
                 .map((inst, idx) => {
                 return (
                     <div className={`inst-list-item`}
@@ -2400,22 +2413,25 @@ class MiniCam extends LivelitWindow {
     handleParamChange() {
     }
 
-    renderGalleryItem(geometry: verso.Geometry) {
-        // const maybeHighlight = this.state.selectedUrl === url
-        //                        ? 'gallery-highlight' : '';
-        const maybeHighlight = 'gallery-highlight';
+    setSelectedGeometry(geomIdx: number) {
+        this.setState(_ => ({ selectedGeometryIndex: geomIdx }));
+    }
+
+    renderGalleryItem(geometry: verso.Geometry, geomIdx: number) {
+        const maybeHighlight = geomIdx === this.state.selectedGeometryIndex
+                               ? 'gallery-highlight' : '';
         return <div className={`gallery-item ${maybeHighlight}`}
                     data-geometry-name={name}
-                    // onClick={this.setSelectedGeometryUrlAndRerun.bind(this, url)}
-                    key={geometry.filename}>
+                    onClick={this.setSelectedGeometry.bind(this, geomIdx)}
+                    key={geomIdx}>
                     <img src={geometry.filepath}
                          className="gallery-image"/>
                </div>;
     }
 
     renderGeometries() {
-        let galleryItems = this.state.geometries.map((geometry) => {
-            return this.renderGalleryItem(geometry);
+        let galleryItems = this.state.geometries.map((geometry, idx) => {
+            return this.renderGalleryItem(geometry, idx);
         });
         return (
             <div className="gallery">
