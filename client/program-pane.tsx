@@ -1781,16 +1781,30 @@ class ToolpathVisualizer extends LivelitWindow {
         }
     }
 
+    private __expandHelper(machine: verso.Machine, toolpaths: verso.Toolpath[],
+                           vizSpace: verso.VisualizationSpace) {
+        if (!toolpaths.length) {
+            console.error('Dispatcher needs an array of toolpaths.');
+            return;
+        }
+        // @ts-ignore
+        let tv: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
+        tv.setArguments(machine, toolpaths, vizSpace).then(_ => {
+            tv.state.toolpaths.forEach((toolpath) => {
+                tv.renderWithInterpreter(toolpath, tv.state.currentInterpreterId);
+            });
+        });
+        // VizSpace will initially be returned empty but will be populated via
+        // the promise .then chain above.
+        return vizSpace;
+    }
+
     expand() : string {
-        let s = `async function ${this.functionName}(machine, toolpaths, vizSpace) {`;
-        s += `let tv = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
-        s += `await tv.setArguments(machine, toolpaths, vizSpace);`;
-        s += `tv.state.toolpaths.forEach((toolpath) => {`;
-        s += `tv.renderWithInterpreter(toolpath, tv.state.currentInterpreterId);`;
-        s += `});`;
-        s += `return vizSpace;`;
-        s += `}`;
-        return s;
+        let fnString = this.__expandHelper.toString();
+        fnString = fnString.replace('__expandHelper', this.functionName);
+        fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
+        fnString = 'async function ' + fnString;
+        return fnString;
     }
 
     async finishDeployment() : Promise<void>{
