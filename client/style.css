@@ -461,6 +461,19 @@ pre code.hljs {
     border: 1px solid whitesmoke;
 }
 
+#dispatch-terminal {
+    border: 1px dashed whitesmoke;
+    color: whitesmoke;
+    margin-top: 20px;
+    height: 25px;
+    overflow-y: scroll;
+    font-size: 10px;
+    cursor: text;
+    margin-left: 0px;
+    padding-left: 15px;
+    width: 92.5%;
+}
+
 #main-canvas {
     height: 100%;
     width: 100%;

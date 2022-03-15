@@ -253,7 +253,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         });
     }
 
-    __getModules() : LivelitWindow[] {
+    private __getModules() : LivelitWindow[] {
         let modules : LivelitWindow[] = [];
         if (this.modulePaneRef.current) {
             let maybeNullMods = this.modulePaneRef.current.getModules();
@@ -2091,6 +2091,10 @@ class Dispatcher extends LivelitWindow {
         return this.state.toolpaths[this.state.currentToolpathIndex];
     }
 
+    get isFree() {
+        return this.state.machineState === 'free';
+    }
+
     private __expandHelper(machine: verso.Machine, toolpaths: verso.Toolpath[]) {
         if (!toolpaths.length) {
             console.error('Dispatcher needs an array of toolpaths.');
@@ -2146,13 +2150,16 @@ class Dispatcher extends LivelitWindow {
 
     renderMachineState() {
         return (
-            <div></div>
+            <div className="subtitle">
+                Machine status: {this.state.machineState}
+            </div>
         );
     }
 
     renderTerminal() {
         return (
-            <div></div>
+            <input type="text" id="dispatch-terminal"
+                 placeholder="; Enter G-code to adjust the tool prior to dispatch."></input>
         );
     }
 
@@ -2192,8 +2199,16 @@ class Dispatcher extends LivelitWindow {
         return (
             <div className={`dispatcher content ${maybeHidden}`}>
                 { this.renderMachineState() }
-                { this.renderToolpathChoices() }
                 { this.renderTerminal() }
+               <div onClick={this.placeholder.bind(this)}
+                    className="button" id="dispatch-send-snippet">
+                   Send Snippet
+               </div>
+                { this.renderToolpathChoices() }
+               <div onClick={this.placeholder.bind(this)}
+                    className="button" id="dispatch-send-toolpath">
+                   Dispatch
+               </div>
             </div>
         );
     }
