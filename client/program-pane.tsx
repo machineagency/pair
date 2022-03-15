@@ -2052,11 +2052,17 @@ class MachineInitializer extends LivelitWindow {
     }
 }
 
+type MachineState = 'free' | 'busy'
+
 interface DispatcherProps extends LivelitProps {
     ref: React.RefObject<Dispatcher>;
 };
 
 interface DispatcherState extends LivelitState {
+    machine?: verso.Machine;
+    toolpaths?: verso.Toolpath[];
+    currentToolpathIndex: number;
+    machineState: MachineState;
 };
 
 class Dispatcher extends LivelitWindow {
@@ -2070,17 +2076,38 @@ class Dispatcher extends LivelitWindow {
         this.props = props;
         this.state = {
             windowOpen: props.windowOpen,
-            valueSet: false
+            valueSet: false,
+            machine: undefined,
+            toolpaths: undefined,
+            currentToolpathIndex: 0,
+            machineState: 'free'
         };
     }
 
-    // FIXME: this doesn't properly apply saved homographies yet
+    get currentToolpath() {
+        if (!this.state.toolpaths || this.state.toolpaths.length === 0) {
+            return null;
+        }
+        return this.state.toolpaths[this.state.currentToolpathIndex];
+    }
+
+    private __expandHelper(machine: verso.Machine, toolpaths: verso.Toolpath[]) {
+        if (!toolpaths.length) {
+            console.error('Dispatcher needs an array of toolpaths.');
+            return;
+        }
+        // @ts-ignore
+        let mc: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
+        mc.setState(_ => ({ machine: machine, toolpaths: toolpaths }));
+        return undefined;
+    }
+
     expand() : string {
-        let s = `async function ${this.functionName}(machine) {`;
-        s += `let mi = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
-        s += `return machine;`;
-        s += `}`;
-        return s;
+        let fnString = this.__expandHelper.toString();
+        fnString = fnString.replace('__expandHelper', this.functionName);
+        fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
+        fnString = 'async function ' + fnString;
+        return fnString;
     }
 
     saveValue() {
@@ -2117,43 +2144,59 @@ class Dispatcher extends LivelitWindow {
         );
     }
 
-    }
-
-    loadSavedValue() {
-            // TODO
-        return undefined;
-    }
-
-    clearSavedValue() {
-        return new Promise<void>((resolve) => {
-            localStorage.removeItem(this.functionName);
-            this.setState(_ => {
-                return {
-                    valueSet: false
-                }
-            }, resolve);
-        });
-    }
-
-    renderValue() {
-        let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
-        let display = `Machine(initialized: maybe)`;
+    renderMachineState() {
         return (
-            <div className={`module-value ${grayedIffUnset}`}
-                 key={`${this.titleKey}-value`}>
-                 { display }
+            <div></div>
+        );
+    }
+
+    renderTerminal() {
+        return (
+            <div></div>
+        );
+    }
+
+    placeholder() {
+    }
+
+    renderToolpathChoices() {
+        if (!this.state.toolpaths) {
+            return;
+        }
+        let interpreterDoms = this.state.toolpaths
+                                  .map((tp: verso.Toolpath,
+                                        idx: number) => {
+            let maybeHighlight = idx === this.state.currentToolpathIndex
+                                ? 'highlight' : '';
+            return (
+                <div className={`viz-interpreter-item ${maybeHighlight}`}
+                     key={idx}
+                     data-toolpath-index={idx}
+                     onClick={this.placeholder.bind(this)}>
+                    <span className="interpreter-name param-key"
+                          data-interpreter-id={idx}>
+                         { `Toolpath ${idx}` }
+                    </span>
+                </div>
+            );
+        });
+        return (
+            <div id="cam-compiler-list" className="boxed-list">
+                { interpreterDoms }
             </div>
         );
     }
 
-    // render() {
-    //     let maybeHidden = this.state.windowOpen ? '' : 'hidden';
-    //     return (
-    //         <div className={`machine-initializer content ${maybeHidden}`}>
-    //             Hi
-    //         </div>
-    //     );
-    // }
+    renderContent() {
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return (
+            <div className={`dispatcher content ${maybeHidden}`}>
+                { this.renderMachineState() }
+                { this.renderToolpathChoices() }
+                { this.renderTerminal() }
+            </div>
+        );
+    }
 }
 
 interface DisplayProps extends LivelitProps {
