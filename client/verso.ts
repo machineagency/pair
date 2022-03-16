@@ -1033,12 +1033,33 @@ export class VisualizationSpace {
 
 export type CamOperationType = 'engrave' | 'pocket' | 'drill';
 
-export interface CamOperation {
+export class CamOperation {
     operationType: CamOperationType;
     topHeight: number;
     depthHeight: number;
     cutSpeed: number;
     plungeSpeed: number;
+
+    static defaultOperation: CamOperation = {
+        operationType: 'engrave',
+        topHeight: 15,
+        depthHeight: 5,
+        cutSpeed: 5,
+        plungeSpeed: 5
+    };
+
+    constructor(incompleteOperation: any) {
+        this.operationType = incompleteOperation.operationType
+                                || CamOperation.defaultOperation.operationType;
+        this.topHeight = incompleteOperation.topHeight
+                                || CamOperation.defaultOperation.topHeight;
+        this.depthHeight = incompleteOperation.depthHeight
+                                || CamOperation.defaultOperation.depthHeight;
+        this.cutSpeed = incompleteOperation.operationType
+                                || CamOperation.defaultOperation.cutSpeed;
+        this.plungeSpeed = incompleteOperation.plungeSpeed
+                                || CamOperation.defaultOperation.plungeSpeed;
+    };
 };
 
 export class Cam {

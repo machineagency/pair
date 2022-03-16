@@ -2321,6 +2321,7 @@ class MiniCam extends LivelitWindow {
             valueSet: false,
             selectedGeometryIndex: 0,
             geometries: [],
+            operations: [],
             toolpaths: []
         };
     }
@@ -2341,17 +2342,25 @@ class MiniCam extends LivelitWindow {
         return this.state.toolpaths[index];
     }
 
-    private __expandHelper(geometries: verso.Geometry[]) {
+    private __expandHelper(geometries: verso.Geometry[],
+                           operations: verso.CamOperation[]) {
         // @ts-ignore
         let mc: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
         let selectedGeom = mc.selectedGeometry;
-        let tps = geometries.map((currentGeom) => {
-            let cam = new Cam(currentGeom);
+        let tps = geometries.map((currentGeom, geomIndex) => {
+            let operation = operations[geomIndex];
+            let cam = new verso.Cam(currentGeom, operation);
             let gCode = cam.getGcode();
             let tp = new verso.Toolpath(currentGeom.filepath || '', gCode);
             return tp;
         });
-        mc.setState(_ => ({ geometries: geometries, toolpaths: tps }));
+        mc.setState(_ => {
+            return {
+                geometries: geometries,
+                operations: operations,
+                toolpaths: tps
+            };
+        });
         return tps;
     }
 
