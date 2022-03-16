@@ -2334,6 +2334,14 @@ class MiniCam extends LivelitWindow {
         return this.state.geometries[index];
     }
 
+    get selectedOperation() {
+        let index = this.state.selectedGeometryIndex;
+        if (index >= this.state.operations.length) {
+            return verso.CamOperation.defaultOperation;
+        }
+        return this.state.operations[index];
+    }
+
     get selectedToolpath() {
         let index = this.state.selectedGeometryIndex;
         if (index >= this.state.toolpaths.length) {
@@ -2344,6 +2352,10 @@ class MiniCam extends LivelitWindow {
 
     private __expandHelper(geometries: verso.Geometry[],
                            operations: verso.CamOperation[]) {
+        if (geometries.length !== operations.length) {
+            console.error('The length of geometries and operations must match.');
+            return [];
+        }
         // @ts-ignore
         let mc: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
         let selectedGeom = mc.selectedGeometry;
@@ -2453,24 +2465,30 @@ class MiniCam extends LivelitWindow {
         );
     }
 
-    renderControls() {
+    renderOperationPreview() {
         return (
-            <form onChange={this.handleParamChange.bind(this)}>
-                <input type="radio" name="op-type" id="mini-cam-radio-engrave"
-                       value="engrave" defaultChecked={true}/>
-                <label htmlFor="mini-cam-radio-engrave">Engrave</label>
-                <input type="radio" name="op-type" id="mini-cam-radio-pocket"
-                       value="pocket"/>
-                <label htmlFor="mini-cam-radio-Pocket">Pocket</label><br/>
-                <label htmlFor="mini-cam-depth">Top Height</label>
-                <input type="text" id="mini-cam-top" placeholder="15"/><br/>
-                <label htmlFor="mini-cam-depth">Depth Height</label>
-                <input type="text" id="mini-cam-depth" placeholder="5"/><br/>
-                <label htmlFor="mini-cam-depth">Cut Speed</label>
-                <input type="text" id="mini-cam-cut-speed" placeholder="5"/><br/>
-                <label htmlFor="mini-cam-depth">Plunge Speed</label>
-                <input type="text" id="mini-cam-plunge-speed" placeholder="5"/><br/>
-            </form>
+            <div>
+                <div className="help-text">Operation Type</div>
+                <div className="help-text" id="mini-cam-optype">
+                       { this.selectedOperation.operationType }
+                </div>
+                <div className="help-text">Top Height</div>
+                <div className="help-text" id="mini-cam-top">
+                       { this.selectedOperation.topHeight }
+                </div>
+                <div className="help-text">Depth Height</div>
+                <div className="help-text" id="mini-cam-depth">
+                       { this.selectedOperation.depthHeight }
+                </div>
+                <div className="help-text">Cut Speed</div>
+                <div className="help-text" id="mini-cam-cut-speed">
+                       { this.selectedOperation.cutSpeed }
+                </div>
+                <div className="help-text">Plunge Speed</div>
+                <div className="help-text" id="mini-cam-plunge-speed">
+                       { this.selectedOperation.plungeSpeed }
+                </div>
+            </div>
         );
     }
 
@@ -2480,7 +2498,7 @@ class MiniCam extends LivelitWindow {
             <div className={`mini-cam content ${maybeHidden}`}>
                 { this.renderGeometries() }
                 <div className="subtitle">Parameters for: {this.selectedGeometry?.filename}</div>
-                { this.renderControls() }
+                { this.renderOperationPreview() }
                 { this.renderInstructions() }
             </div>
         );
