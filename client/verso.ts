@@ -1039,6 +1039,7 @@ export class CamOperation {
     depthHeight: number;
     cutSpeed: number;
     plungeSpeed: number;
+    [index: string]: CamOperationType | number;
 
     static defaultOperation: CamOperation = {
         operationType: 'engrave',

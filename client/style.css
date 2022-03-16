@@ -395,6 +395,11 @@ pre code.hljs {
     cursor: pointer;
 }
 
+.param-item {
+    padding: 5px;
+    cursor: not-allowed;
+}
+
 #program-console {
     border: 1px solid whitesmoke;
     color: whitesmoke;

@@ -2466,28 +2466,22 @@ class MiniCam extends LivelitWindow {
     }
 
     renderOperationPreview() {
+        let opValues = Object.keys(this.selectedOperation).map((opKey, idx) => {
+            return (
+                <div className="param-item"
+                     key={idx}>
+                    <span className="param-key">
+                         { opKey }
+                    </span>
+                    <span className="param-value">
+                         { this.selectedOperation[opKey] }
+                    </span>
+                </div>
+            );
+        });
         return (
-            <div>
-                <div className="help-text">Operation Type</div>
-                <div className="help-text" id="mini-cam-optype">
-                       { this.selectedOperation.operationType }
-                </div>
-                <div className="help-text">Top Height</div>
-                <div className="help-text" id="mini-cam-top">
-                       { this.selectedOperation.topHeight }
-                </div>
-                <div className="help-text">Depth Height</div>
-                <div className="help-text" id="mini-cam-depth">
-                       { this.selectedOperation.depthHeight }
-                </div>
-                <div className="help-text">Cut Speed</div>
-                <div className="help-text" id="mini-cam-cut-speed">
-                       { this.selectedOperation.cutSpeed }
-                </div>
-                <div className="help-text">Plunge Speed</div>
-                <div className="help-text" id="mini-cam-plunge-speed">
-                       { this.selectedOperation.plungeSpeed }
-                </div>
+            <div className="boxed-list">
+                { opValues }
             </div>
         );
     }
