@@ -1055,7 +1055,7 @@ export class CamOperation {
                                 || CamOperation.defaultOperation.topHeight;
         this.depthHeight = incompleteOperation.depthHeight
                                 || CamOperation.defaultOperation.depthHeight;
-        this.cutSpeed = incompleteOperation.operationType
+        this.cutSpeed = incompleteOperation.cutSpeed
                                 || CamOperation.defaultOperation.cutSpeed;
         this.plungeSpeed = incompleteOperation.plungeSpeed
                                 || CamOperation.defaultOperation.plungeSpeed;
