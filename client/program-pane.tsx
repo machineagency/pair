@@ -16,7 +16,6 @@ import { mm, px, ISA, GeometryFiletype } from './verso.js';
 import { FormatUtil } from './format-util.js'
 import { VisualizationInterpreters,
          InterpreterSignature } from './visualization-interpreters.js'
-import { Cam } from './cam.js'
 (window as any).mm = mm;
 (window as any).px = px;
 
@@ -2301,8 +2300,10 @@ interface MiniCamProps extends LivelitProps {
 };
 
 interface MiniCamState extends LivelitState {
-    toolpaths: verso.Toolpath[];
     geometries: verso.Geometry[];
+    // Each geometry has an associated operation
+    operations: verso.CamOperation[];
+    toolpaths: verso.Toolpath[];
     selectedGeometryIndex: number;
 };
 
