@@ -111,7 +111,7 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
             programLinesDom.addEventListener('keyup', (event: KeyboardEvent) => {
                 if (FormatUtil.isCharKeypress(event)) {
                     clearTimeout(this.rerunTimeout);
-                    this.rerunTimeout = setTimeout(() => {
+                    this.rerunTimeout = window.setTimeout(() => {
                         this.rerun();
                     }, delay);
                 }
