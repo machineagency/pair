@@ -741,10 +741,21 @@ export class Geometry {
     }
 }
 
+export class Port {
+    path: string;
+    baudRate: number;
+
+    constructor(path: string, baudRate: number) {
+        this.path = path;
+        this.baudRate = baudRate;
+    }
+}
+
 export class Machine {
     machineName: string;
     tabletop?: Tabletop;
     initialized: boolean;
+    serialPort?: Object;
 
     constructor(machineName: string) {
         this.machineName = machineName;
