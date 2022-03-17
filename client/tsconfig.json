@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "es2021",
-    "module": "commonjs",
+    "module": "es2020",
     "sourceMap": true,
     "moduleResolution": "node",
     "strict": true,
@@ -14,6 +14,6 @@
       "./*.ts", "./*.tsx"
   ],
   "typeRoots": [
-      "node_modules/@types"
+      "../node_modules/@types"
   ]
 }
