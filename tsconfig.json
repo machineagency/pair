@@ -10,8 +10,10 @@
     "allowSyntheticDefaultImports": true,
     "allowUmdGlobalAccess": true
   },
-  "files": [
-      "main.ts", "verso.ts", "ui-root.tsx", "program-pane.tsx",
-      "visualization-interpreters.ts"
+  "include": [
+      "client/*.ts", "client/*.tsx", "./*.ts"
+  ],
+  "typeRoots": [
+      "node_modules/@types"
   ]
 }

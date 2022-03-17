@@ -1,4 +1,5 @@
-'use strict';
+import { Database, Statement } from 'better-sqlite3';
+import { Express, Application, Handler, Request, Response } from 'express';
 
 const IDENTITY_COEFFS = '1,0,0,0,1,0,0,0,1';
 
@@ -9,7 +10,7 @@ const bodyParser     = require('body-parser');
 const path           = require('path');
 const fs             = require('fs');
 const ps             = require('python-shell');
-const Database       = require('better-sqlite3');
+const bsDatabase     = require('better-sqlite3');
 
 // configuration ===========================================
 let port = process.env.PORT || 3000; // set our port
@@ -18,8 +19,8 @@ app.use(express.static(__dirname + '/client')); // set the static files location
 const shell = new ps.PythonShell('./cp_interpreter.py', {});
 
 // database ===========================================
-const db = new Database('verso.db', {});
-let initWorkflowTable = (db) => {
+const db = new bsDatabase('verso.db', {});
+let initWorkflowTable = (db: Database) => {
     let query = db.prepare('CREATE TABLE IF NOT EXISTS Workflows ('
         + 'progName TEXT NOT NULL,'
         + 'progText TEXT NOT NULL'
@@ -27,13 +28,13 @@ let initWorkflowTable = (db) => {
     query.run();
 };
 
-let workflowTableIsEmpty = (db) => {
+let workflowTableIsEmpty = (db: Database) => {
     let query = db.prepare('SELECT * FROM Workflows;');
     let maybeRows = query.all();
     return maybeRows.length === 0;
 };
 
-let addWorkflow = (db, workflowName, workflowText) => {
+let addWorkflow = (db: Database, workflowName: string, workflowText: string) => {
     let query = db.prepare('INSERT INTO Workflows '
         + `VALUES ('${workflowName}', '${workflowText}');`);
     query.run();
@@ -52,7 +53,7 @@ if (workflowTableIsEmpty(db)) {
  * we cannot unbind shell.on handlers and so cannot set them in routes. */
 shell.currRpcResponse = undefined;
 shell.currRpcName = '';
-shell.on('message', (message) => {
+shell.on('message', (message: string) => {
     if (shell.currRpcName === 'choosePoint') {
         let xyPair = message;
         let parsedPair = xyPair.split(',').map(s => parseInt(s));
@@ -68,7 +69,7 @@ shell.on('message', (message) => {
     else if (shell.currRpcName === 'detectFaceBoxes') {
         try {
             let arrayOfArrays = JSON.parse(message);
-            let boxes = arrayOfArrays.map(box => {
+            let boxes = arrayOfArrays.map((box: number[]) => {
                 return {
                     topLeftX: box[0],
                     topLeftY: box[1],
@@ -95,7 +96,7 @@ shell.on('message', (message) => {
     else if (shell.currRpcName === 'generateInstructions') {
         let instText = fs.readFileSync(__dirname + '/volatile/plot_instructions.txt')
                          .toString();
-        let instructions = instText.split('\n').filter(inst => !!inst);
+        let instructions = instText.split('\n').filter((inst: string) => !!inst);
         shell.currRpcResponse.status(200).json({
             instructions: instructions
         });
@@ -121,7 +122,7 @@ shell.on('message', (message) => {
 
 let attachRoutesAndStart = () => {
 
-    app.get('/workflows', (req, res) => {
+    app.get('/workflows', (req: Request, res: Response) => {
         let query;
         if (req.query.workflowName) {
             query = db.prepare('SELECT * FROM Workflows '
@@ -150,13 +151,14 @@ let attachRoutesAndStart = () => {
         }
     });
 
-    app.put('/workflows', (req, res) => {
+    app.put('/workflows', (req: Request, res: Response) => {
         let workflowName = req.query.workflowName;
         let workflowText = req.query.workflowText;
         if (!(workflowName && workflowText)) {
             res.status(400).send();
             return;
         }
+        workflowText = workflowText.toString();
         workflowText = workflowText.replaceAll('\'', '\'\'');
         workflowText = workflowText.replaceAll('\\n', '\n');
         let maybeRows = db.prepare(`SELECT * FROM Workflows WHERE progName='${workflowName}'`)
@@ -195,7 +197,7 @@ let attachRoutesAndStart = () => {
         }
     });
 
-    app.delete('/workflows', (req, res) => {
+    app.delete('/workflows', (req: Request, res: Response) => {
         let workflowName = req.query.workflowName;
         if (!workflowName) {
             res.status(400).send();
@@ -214,32 +216,32 @@ let attachRoutesAndStart = () => {
         }
     });
 
-    app.get('/machine/drawEnvelope', (req, res) => {
+    app.get('/machine/drawEnvelope', (req: Request, res: Response) => {
         shell.send('draw_envelope');
         res.status(200).send();
     });
 
-    app.get('/machine/drawToolpath', (req, res) => {
+    app.get('/machine/drawToolpath', (req: Request, res: Response) => {
         let svg_string = req.query['svgString']
         shell.send('draw_toolpath '+ svg_string);
         res.status(200).send();
     });
 
-    app.get('/machine/generatePreview', (req, res) => {
+    app.get('/machine/generatePreview', (req: Request, res: Response) => {
         let svg_string = req.query['svgString']
         shell.currRpcResponse = res;
         shell.currRpcName = 'generatePreview';
         shell.send('generate_preview '+ svg_string);
     });
 
-    app.get('/machine/generateInstructions', (req, res) => {
+    app.get('/machine/generateInstructions', (req: Request, res: Response) => {
         let svg_string = req.query['svgString']
         shell.currRpcResponse = res;
         shell.currRpcName = 'generateInstructions';
         shell.send('generate_instructions '+ svg_string);
     });
 
-    app.get('/camera/takePhoto', (req, res) => {
+    app.get('/camera/takePhoto', (req: Request, res: Response) => {
         /* Format: 'c0,c1,...,c8' */
         let coeffs = req.query['coeffs'] || IDENTITY_COEFFS;
         shell.currRpcResponse = res;
@@ -247,7 +249,7 @@ let attachRoutesAndStart = () => {
         shell.send(`take_photo ${coeffs}`);
     });
 
-    app.get('/camera/warpLastPhoto', (req, res) => {
+    app.get('/camera/warpLastPhoto', (req: Request, res: Response) => {
         /* Format: 'c0,c1,...,c8' */
         let coeffs = req.query['coeffs']
         shell.currRpcResponse = res;
@@ -256,20 +258,20 @@ let attachRoutesAndStart = () => {
     });
 
     // TODO: pass in photo as parameter
-    app.get('/image/detectFaceBoxes', (req, res) => {
+    app.get('/image/detectFaceBoxes', (req: Request, res: Response) => {
         shell.currRpcResponse = res;
         shell.currRpcName = 'detectFaceBoxes';
         shell.send('detect_face_boxes');
     });
 
-    app.get('/geometries', (req, res) => {
-        let names = fs.readdirSync('./geometries').map((file) => {
+    app.get('/geometries', (req: Request, res: Response) => {
+        let names = fs.readdirSync('./geometries').map((file: string) => {
             return file;
         });
         res.status(200).json({ names: names });
     });
 
-    app.get('/geometry/:name', (req, res) => {
+    app.get('/geometry/:name', (req: Request, res: Response) => {
         res.sendFile(__dirname + `/geometries/${req.params.name}`);
     });
 
@@ -279,10 +281,10 @@ let attachRoutesAndStart = () => {
     });
 }
 
-function seedDatabase(db) {
+function seedDatabase(db: Database) {
     const workflowHeadersDir = 'workflows/headers/';
     const workflowImplementationDir = 'workflows/implementations/';
-    fs.readdir(workflowHeadersDir, (err, files) => {
+    fs.readdir(workflowHeadersDir, (err: string, files: string[]) => {
         if (err) {
             throw err;
         }
@@ -294,12 +296,12 @@ function seedDatabase(db) {
                 let fullFilename = workflowHeadersDir + filename;
                 let jsFilename = filename.split('.')[0] + '.js';
                 let jsFullFileName = workflowImplementationDir + jsFilename;
-                fs.readFile(fullFilename, (err, headerData) => {
+                fs.readFile(fullFilename, (err: string, headerData: string) => {
                     if (err) {
                         throw err;
                     }
                     let headerObj = JSON.parse(headerData);
-                    fs.readFile(jsFullFileName, (err, jsData) => {
+                    fs.readFile(jsFullFileName, (err: string, jsData: string) => {
                         if (err) {
                             console.error(`Missing JS for: ${filename}.`);
                             throw err;
