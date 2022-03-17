@@ -1,5 +1,6 @@
 import { Database, Statement } from 'better-sqlite3';
 import { Express, Application, Handler, Request, Response } from 'express';
+import { SerialPort, SerialPortMock } from 'serialport';
 
 const IDENTITY_COEFFS = '1,0,0,0,1,0,0,0,1';
 
@@ -13,7 +14,14 @@ const ps             = require('python-shell');
 const bsDatabase     = require('better-sqlite3');
 
 // configuration ===========================================
-let port = process.env.PORT || 3000; // set our port
+const SERVER_PORT = process.env.PORT || 3000; // set our port
+// For testing
+SerialPortMock.binding.createPort('/dev/JUBILEE', { echo: true, record: true });
+SerialPortMock.binding.createPort('/dev/LASER_CUTTER', { echo: true, record: true });
+interface DevicePorts {
+    [index: string]: SerialPortMock;
+}
+const DEVICE_PORTS: DevicePorts = {};
 app.use(bodyParser.json()); // for parsing application/json
 app.use(express.static(__dirname + '/client')); // set the static files location /public/img will be /img for users
 const shell = new ps.PythonShell('./cp_interpreter.py', {});
@@ -275,8 +283,43 @@ let attachRoutesAndStart = () => {
         res.sendFile(__dirname + `/geometries/${req.params.name}`);
     });
 
-    app.listen(port, () => {
-        console.log("Running on port: " + port);
+    // List device's UNIX ports, whether open or not.
+    app.get('/ports/paths', (req: Request, res: Response) => {
+    });
+
+    // List ports opened and wrapped in the SerialPort API.
+    app.get('/ports', (req: Request, res: Response) => {
+    });
+
+    // Initialize a new device port.
+    app.put('/ports', (req: Request, res: Response) => {
+        const DEFAULT_BAUD_RATE = 115200;
+        let pathQuery = req.query.path;
+        let baudRateQuery = req.query.baudRate;
+        SerialPortMock.list().then((list) => console.log(list));
+        if (!pathQuery || !baudRateQuery) {
+            res.status(400).json({ message: 'Need a valid path a baudrate.' });
+        }
+        else {
+            let path = pathQuery.toString();
+            let baudRate = parseInt(baudRateQuery.toString()) || DEFAULT_BAUD_RATE;
+            let devicePort = new SerialPortMock({
+                path: path,
+                baudRate: baudRate,
+            }, (err: Error | null) => {
+                if (err) {
+                    res.status(500).json({ message: err.message });
+                }
+                else {
+                    DEVICE_PORTS[path] = devicePort;
+                    res.status(200).json({ message: 'Port opened successfully.' });
+                }
+            });
+        }
+    });
+
+    app.listen(SERVER_PORT, () => {
+        console.log("Running on port: " + SERVER_PORT);
         exports = module.exports = app;
     });
 }
