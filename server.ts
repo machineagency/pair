@@ -1,6 +1,7 @@
 import { Database, Statement } from 'better-sqlite3';
 import { Express, Application, Handler, Request, Response } from 'express';
 import { SerialPort, SerialPortMock } from 'serialport';
+import { ReadlineParser } from '@serialport/parser-readline';
 
 const IDENTITY_COEFFS = '1,0,0,0,1,0,0,0,1';
 
@@ -18,10 +19,7 @@ const SERVER_PORT = process.env.PORT || 3000; // set our port
 // For testing
 SerialPortMock.binding.createPort('/dev/JUBILEE', { echo: true, record: true });
 SerialPortMock.binding.createPort('/dev/LASER_CUTTER', { echo: true, record: true });
-interface DevicePorts {
-    [index: string]: SerialPortMock;
-}
-const DEVICE_PORTS: DevicePorts = {};
+const DEVICE_PORTS: SerialPortMock[] = [];
 app.use(bodyParser.json()); // for parsing application/json
 app.use(express.static(__dirname + '/client')); // set the static files location /public/img will be /img for users
 const shell = new ps.PythonShell('./cp_interpreter.py', {});
@@ -285,10 +283,23 @@ let attachRoutesAndStart = () => {
 
     // List device's UNIX ports, whether open or not.
     app.get('/ports/paths', (req: Request, res: Response) => {
+        SerialPortMock.list().then((list) => {
+            res.status(200).json({
+                paths: list
+            });
+        })
+        .catch((error) => {
+            res.status(500).json({
+                message: error
+            });
+        });
     });
 
     // List ports opened and wrapped in the SerialPort API.
     app.get('/ports', (req: Request, res: Response) => {
+        res.status(200).json({
+            ports: JSON.stringify(DEVICE_PORTS)
+        });
     });
 
     // Initialize a new device port.
@@ -311,11 +322,65 @@ let attachRoutesAndStart = () => {
                     res.status(500).json({ message: err.message });
                 }
                 else {
-                    DEVICE_PORTS[path] = devicePort;
-                    res.status(200).json({ message: 'Port opened successfully.' });
+                    let parser = devicePort.pipe(new ReadlineParser());
+                    let devicePortId = DEVICE_PORTS.push(devicePort);
+                    res.status(200).json({
+                        id: devicePortId,
+                        message: 'Port opened successfully.'
+                    });
                 }
             });
         }
+    });
+
+    app.get('/port/:portId/', (req: Request, res: Response) => {
+        let portId = parseInt(req.params.portId);
+        if (isNaN(portId) || portId >= DEVICE_PORTS.length) {
+            res.status(400).json({ message: 'Invalid port id.' });
+        }
+        else {
+            let port = DEVICE_PORTS[portId];
+            res.status(200).json({
+                message: JSON.stringify(port)
+            });
+        }
+    });
+
+    app.put('/port/:portId/instructions', (req: Request, res: Response) => {
+        let portId = parseInt(req.params.portId);
+        if (isNaN(portId) || portId >= DEVICE_PORTS.length) {
+            res.status(400).json({ message: 'Invalid port id.' });
+        }
+        let rawInstructions = req.query.instructions;
+        if (!rawInstructions) {
+            res.status(400).json({ message: 'No instructions sent.' });
+            return;
+        }
+        let instructions: string[];
+        try {
+            instructions = JSON.parse(rawInstructions.toString());
+        }
+        catch (e) {
+            res.status(400).json({ message: 'Could not parse instructions.' });
+            return;
+        }
+        let port = DEVICE_PORTS[portId];
+        port.write(instructions);
+        // TODO: wait for response.
+        res.status(200).json({ message: 'Instructions sent.' });
+    });
+
+    app.get('/port/:portId/position', (req: Request, res: Response) => {
+        let portId = parseInt(req.params.portId);
+        if (isNaN(portId) || portId >= DEVICE_PORTS.length) {
+            res.status(400).json({ message: 'Invalid port id.' });
+        }
+        let port = DEVICE_PORTS[portId];
+        port.on('data', () => {
+            // TODO: what goes here, how do we access data?
+        });
+        let positionQueryGCode = 'M114\n';
+        port.write(positionQueryGCode);
     });
 
     app.listen(SERVER_PORT, () => {
