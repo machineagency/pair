@@ -744,10 +744,37 @@ export class Geometry {
 export class Port {
     path: string;
     baudRate: number;
+    isOpen: boolean;
+    private backendPortId: number;
 
     constructor(path: string, baudRate: number) {
         this.path = path;
         this.baudRate = baudRate;
+        this.isOpen = false;
+        this.backendPortId = -1;
+    }
+
+    async connect() {
+        let url = `/ports?path=${this.path}&baudRate=${this.baudRate}`;
+        return new Promise<boolean>((resolve, reject) => {
+            return fetch(url, { method: 'PUT' }).then((response) => {
+                if (response.ok) {
+                    return response.json();
+                }
+                else {
+                    console.error('Tried to open a port, didn\'t get a proper response.');
+                    reject();
+                }
+            }).then((portOpenJson) => {
+                if (!portOpenJson.id) {
+                    console.error('Tried to open a port, didn\'t get a proper response.');
+                    resolve(false);
+                }
+                this.backendPortId = portOpenJson.id;
+                this.isOpen = true;
+                resolve(true);
+            });
+        });
     }
 }
 
@@ -755,7 +782,7 @@ export class Machine {
     machineName: string;
     tabletop?: Tabletop;
     initialized: boolean;
-    serialPort?: Object;
+    port?: Port;
 
     constructor(machineName: string) {
         this.machineName = machineName;

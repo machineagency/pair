@@ -1909,6 +1909,7 @@ interface MachineInitializerState extends LivelitState {
     axisZHomed: boolean;
     portPaths: string[];
     selectedPortPathIndex: number;
+    port?: verso.Port;
 };
 
 class MachineInitializer extends LivelitWindow {
@@ -1933,6 +1934,13 @@ class MachineInitializer extends LivelitWindow {
             selectedPortPathIndex: 0
         };
         this.fetchPortPaths();
+    }
+
+    get selectedPortPath() {
+        if (this.state.selectedPortPathIndex >= this.state.portPaths.length) {
+            return undefined;
+        }
+        return this.state.portPaths[this.state.selectedPortPathIndex];
     }
 
     fetchPortPaths() {
@@ -2003,6 +2011,20 @@ class MachineInitializer extends LivelitWindow {
         return 42;
     }
 
+    private connect() {
+        const machineBaudRate = 115200;
+        let chosenPath = this.selectedPortPath;
+        if (!chosenPath) {
+            return;
+        }
+        let port = new verso.Port(chosenPath, machineBaudRate);
+        port.connect().then((successfulConnection) => {
+            if (successfulConnection) {
+                this.setState((prevState) => ({ connected: true }));
+            }
+        });
+    }
+
     renderSnippet(snippetText: string) {
         let detabbedSnippet = snippetText.replaceAll('\n    ', '\n');
         return (
@@ -2069,8 +2091,8 @@ class MachineInitializer extends LivelitWindow {
                    </div>
                    <br/>
                    { this.renderPortPaths() }
-                   { this.renderSnippet(this.placeholder.toString()) }
-                   <div onClick={this.placeholder.bind(this)}
+                   { this.renderSnippet(this.connect.toString()) }
+                   <div onClick={this.connect.bind(this)}
                         className="button" id="mi-connect">
                        Send Code
                    </div>
