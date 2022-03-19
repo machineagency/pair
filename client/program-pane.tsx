@@ -1961,7 +1961,11 @@ class MachineInitializer extends LivelitWindow {
 
     expand() : string {
         let s = `async function ${this.functionName}(machine) {`;
-        s += `let d = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `let mi = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `if (mi.state.initialized) {`;
+        s += `machine.initialzed = true;`;
+        s += `machine.port = mi.state.port;`;
+        s += `}`;
         s += `return machine;`;
         s += `}`;
         return s;
@@ -2033,9 +2037,12 @@ class MachineInitializer extends LivelitWindow {
         port.writeInstructions([`G28 ${axisUpper}`]).then((response) => {
             if (response) {
                 // TODO: actually check response.
+                let newAxesHomed = this.state.axesHomed.concat([axis]);
+                let initialized = newAxesHomed.length === 4;
                 this.setState((prevState: MachineInitializerState) => {
                     return {
-                        axesHomed: prevState.axesHomed.concat([axis])
+                        axesHomed: newAxesHomed,
+                        initialized: initialized
                     }
                 });
             }
