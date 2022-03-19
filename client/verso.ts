@@ -7,6 +7,7 @@
 
 export type GeometryFiletype = 'svg' | 'stl';
 export type ISA = 'gcode' | 'ebb' | 'unknown';
+export type Axis = 'x' | 'y' | 'z' | 'u' | 'w';
 
 interface VersoNameable extends paper.Group {
     versoName: string;
@@ -754,7 +755,7 @@ export class Port {
         this.backendPortId = -1;
     }
 
-    async connect() {
+    connect() {
         let url = `/ports?path=${this.path}&baudRate=${this.baudRate}`;
         return new Promise<boolean>((resolve, reject) => {
             return fetch(url, { method: 'PUT' }).then((response) => {
@@ -766,13 +767,40 @@ export class Port {
                     reject();
                 }
             }).then((portOpenJson) => {
-                if (!portOpenJson.id) {
+                if (portOpenJson.id === undefined) {
                     console.error('Tried to open a port, didn\'t get a proper response.');
                     resolve(false);
                 }
                 this.backendPortId = portOpenJson.id;
                 this.isOpen = true;
                 resolve(true);
+            });
+        });
+    }
+
+    writeInstructions(instructions: string[]) {
+        return new Promise<string>((resolve, reject) => {
+            // if (!this.isOpen) { reject() };
+            let portId = this.backendPortId;
+            let url = `/ports/${portId}/instructions`;
+            let body = { instructions: instructions };
+            fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json;charset=utf-8'
+                },
+                body: JSON.stringify(body)
+            }).then((response) => {
+                if (response.ok) {
+                    return response.json();
+                }
+                else {
+                    reject(response.statusText);
+                }
+            }).then((responseJson) => {
+                resolve(responseJson.message);
+            }).catch((error) => {
+                reject(error);
             });
         });
     }

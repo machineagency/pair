@@ -1903,10 +1903,7 @@ interface MachineInitializerProps extends LivelitProps {
 interface MachineInitializerState extends LivelitState {
     initialized: boolean;
     connected: boolean;
-    axisUHomed: boolean;
-    axisXHomed: boolean;
-    axisYHomed: boolean;
-    axisZHomed: boolean;
+    axesHomed: verso.Axis[];
     portPaths: string[];
     selectedPortPathIndex: number;
     port?: verso.Port;
@@ -1926,10 +1923,7 @@ class MachineInitializer extends LivelitWindow {
             valueSet: false,
             initialized: false,
             connected: false,
-            axisUHomed: false,
-            axisXHomed: false,
-            axisYHomed: false,
-            axisZHomed: false,
+            axesHomed: [],
             portPaths: [],
             selectedPortPathIndex: 0
         };
@@ -2020,7 +2014,30 @@ class MachineInitializer extends LivelitWindow {
         let port = new verso.Port(chosenPath, machineBaudRate);
         port.connect().then((successfulConnection) => {
             if (successfulConnection) {
-                this.setState((prevState) => ({ connected: true }));
+                this.setState((prevState) => {
+                    return {
+                        connected: true,
+                        port: port
+                    };
+                });
+            }
+        });
+    }
+
+    private homeAxis(axis: verso.Axis) {
+        let port = this.state.port;
+        if (!port || !port.isOpen) {
+            return;
+        }
+        let axisUpper = axis.toUpperCase();
+        port.writeInstructions([`G28 ${axisUpper}`]).then((response) => {
+            if (response) {
+                // TODO: actually check response.
+                this.setState((prevState: MachineInitializerState) => {
+                    return {
+                        axesHomed: prevState.axesHomed.concat([axis])
+                    }
+                });
             }
         });
     }
@@ -2039,15 +2056,15 @@ class MachineInitializer extends LivelitWindow {
     }
 
     grayIffUAxisNotHomed() {
-        return this.state.axisUHomed ? '' : 'grayed';
+        return this.state.axesHomed.includes('u') ? '' : 'grayed';
     }
 
     grayIffYAxisNotHomed() {
-        return this.state.axisYHomed ? '' : 'grayed';
+        return this.state.axesHomed.includes('y') ? '' : 'grayed';
     }
 
     grayIffZAxisNotHomed() {
-        return this.state.axisZHomed ? '' : 'grayed';
+        return this.state.axesHomed.includes('z') ? '' : 'grayed';
     }
 
     setSelectedPortPathIndex(index: number) {
@@ -2097,38 +2114,25 @@ class MachineInitializer extends LivelitWindow {
                        Send Code
                    </div>
                    <div className="help-text">
-                       2. Home the U axis.
+                       2. Home the U, Y, Z, then X axes.
                    </div>
-                   { this.renderSnippet(this.placeholder.toString()) }
-                   <div onClick={this.placeholder.bind(this)}
+                   { this.renderSnippet(this.homeAxis.toString()) }
+                   <div onClick={this.homeAxis.bind(this, 'u')}
                         className={`button ${this.grayIffUnconnected()}`} id="mi-home-u">
-                       Send Code
+                       Home U
                    </div>
-                   <div className="help-text">
-                       3. Home the Y axis.
-                   </div>
-                   { this.renderSnippet(this.placeholder.toString()) }
-                   <div onClick={this.placeholder.bind(this)}
+                   <div onClick={this.homeAxis.bind(this, 'y')}
                         className={`button ${this.grayIffUAxisNotHomed()}`} id="mi-home-y">
-                       Send Code
+                       Home Y
                    </div>
-                   <div className="help-text">
-                       4. Home the Z axis.
-                   </div>
-                   { this.renderSnippet(this.placeholder.toString()) }
-                   <div onClick={this.placeholder.bind(this)}
+                   <div onClick={this.homeAxis.bind(this, 'z')}
                         className={`button ${this.grayIffYAxisNotHomed()}`} id="mi-home-z">
-                       Send Code
+                       Home Z
                    </div>
-                   <div className="help-text">
-                       5. Home the X axis.
+                   <div onClick={this.homeAxis.bind(this, 'x')}
+                        className={`button ${this.grayIffZAxisNotHomed()}`} id="mi-home-x">
+                       Home X
                    </div>
-                   { this.renderSnippet(this.placeholder.toString()) }
-                   <div onClick={this.placeholder.bind(this)}
-                        className={`button ${this.grayIffYAxisNotHomed()}`} id="mi-home-x">
-                       Send Code
-                   </div>
-                   { this.applyButton }
                </div>;
     }
 }
