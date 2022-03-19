@@ -305,7 +305,8 @@ let attachRoutesAndStart = () => {
         });
     });
 
-    // Initialize a new device port.
+    // Initialize a new device port and return its assigned id.
+    // If a port already exists with this path, return that port's id.
     app.put('/ports', (req: Request, res: Response) => {
         const DEFAULT_BAUD_RATE = 115200;
         let pathQuery = req.query.path;
@@ -315,6 +316,15 @@ let attachRoutesAndStart = () => {
         }
         else {
             let path = pathQuery.toString();
+            let maybeExistingPort = DEVICE_PORTS.find((port) => port.path === path);
+            if (maybeExistingPort) {
+                let portId = DEVICE_PORTS.indexOf(maybeExistingPort);
+                    res.status(200).json({
+                        id: portId,
+                        message: 'Hardware port has already been opened.'
+                    });
+                    return;
+            }
             let baudRate = parseInt(baudRateQuery.toString()) || DEFAULT_BAUD_RATE;
             let devicePort = new SerialPortMock({
                 path: path,
@@ -325,7 +335,7 @@ let attachRoutesAndStart = () => {
                 }
                 else {
                     let parser = devicePort.pipe(new ReadlineParser());
-                    let devicePortId = DEVICE_PORTS.push(devicePort);
+                    let devicePortId = DEVICE_PORTS.push(devicePort) - 1;
                     DEVICE_PORT_PARSERS.push(parser);
                     res.status(200).json({
                         id: devicePortId,
@@ -362,12 +372,19 @@ let attachRoutesAndStart = () => {
             return;
         }
         let instructions = instructionJson.instructions;
+        if (!instructions) {
+            res.status(400).json({ message: 'Body has no instruction field.' });
+            return;
+        }
         let port = DEVICE_PORTS[portId];
         let parser = DEVICE_PORT_PARSERS[portId];
-        parser.on('data', (data) => {
+        let respondWithFirstLineAndFlush = (data: string) => {
             res.status(200).json({ message: data });
-        });
-        let serializedInstructions = instructions.join('\n');
+            port.flush();
+            parser.removeListener('data', respondWithFirstLineAndFlush);
+        };
+        parser.on('data', respondWithFirstLineAndFlush);
+        let serializedInstructions = instructions.join('\n') + '\n';
         port.write(serializedInstructions);
     });
 
