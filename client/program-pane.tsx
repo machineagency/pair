@@ -1907,6 +1907,8 @@ interface MachineInitializerState extends LivelitState {
     axisXHomed: boolean;
     axisYHomed: boolean;
     axisZHomed: boolean;
+    portPaths: string[];
+    selectedPortPathIndex: number;
 };
 
 class MachineInitializer extends LivelitWindow {
@@ -1927,8 +1929,33 @@ class MachineInitializer extends LivelitWindow {
             axisXHomed: false,
             axisYHomed: false,
             axisZHomed: false,
+            portPaths: [],
+            selectedPortPathIndex: 0
         };
+        this.fetchPortPaths();
     }
+
+    fetchPortPaths() {
+        let url = '/portPaths';
+        fetch(url).then((response) => {
+            if (response.ok) {
+                return response.json();
+            }
+            else {
+                throw new Error();
+            }
+        }).then((pathsJson) => {
+            let pathObjs = pathsJson.paths;
+            let paths: string[];
+            if (!pathObjs) {
+                paths = [];
+            }
+            else {
+                paths = pathObjs.map((obj: any) => obj.path);
+            }
+            this.setState((prevState) => ({ portPaths: paths }));
+        });
+    };
 
     expand() : string {
         let s = `async function ${this.functionName}(machine) {`;
@@ -1977,11 +2004,12 @@ class MachineInitializer extends LivelitWindow {
     }
 
     renderSnippet(snippetText: string) {
+        let detabbedSnippet = snippetText.replaceAll('\n    ', '\n');
         return (
             <pre id="viz-implementation-box" className="code-box"><code>
-                { snippetText }
+                { `function ${detabbedSnippet}` }
             </code></pre>
-            );
+        );
     }
 
     grayIffUnconnected() {
@@ -2000,6 +2028,33 @@ class MachineInitializer extends LivelitWindow {
         return this.state.axisZHomed ? '' : 'grayed';
     }
 
+    setSelectedPortPathIndex(index: number) {
+        this.setState((prevState) => ({ selectedPortPathIndex: index }));
+    };
+
+    renderPortPaths() {
+        let portPathDoms = this.state.portPaths.map((path, idx) => {
+            let maybeHighlight = idx === this.state.selectedPortPathIndex
+                                    ? 'highlight' : '';
+            return (
+                <div className={`viz-interpreter-item ${maybeHighlight}`}
+                     key={idx}
+                     data-toolpath-index={idx}
+                     onClick={this.setSelectedPortPathIndex.bind(this, idx)}>
+                    <span className="interpreter-name param-key"
+                          data-interpreter-id={idx}>
+                         { path }
+                    </span>
+                </div>
+            );
+        });
+        return (
+            <div className="boxed-list">
+                { portPathDoms }
+            </div>
+        );
+    }
+
     renderContent() {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return <div className={`tabletop-calibrator content ${maybeHidden}`}
@@ -2012,6 +2067,8 @@ class MachineInitializer extends LivelitWindow {
                    <div className="help-text">
                        1. Connect to the machine.
                    </div>
+                   <br/>
+                   { this.renderPortPaths() }
                    { this.renderSnippet(this.placeholder.toString()) }
                    <div onClick={this.placeholder.bind(this)}
                         className="button" id="mi-connect">
