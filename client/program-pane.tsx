@@ -316,7 +316,6 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         });
     }
 
-
     generateModules() {
         return new Promise<void>((resolve, reject) => {
             let currentProgLinesDom = document.getElementById('program-lines');
@@ -1928,6 +1927,8 @@ class MachineInitializer extends LivelitWindow {
             selectedPortPathIndex: 0
         };
         this.fetchPortPaths();
+        // TODO: check if machine port is actually open and homed, so we don't
+        // have to do the whole thing over again if it is.
     }
 
     get selectedPortPath() {
@@ -2005,10 +2006,6 @@ class MachineInitializer extends LivelitWindow {
         );
     }
 
-    placeholder() {
-        return 42;
-    }
-
     private connect() {
         const machineBaudRate = 115200;
         let chosenPath = this.selectedPortPath;
@@ -2043,6 +2040,10 @@ class MachineInitializer extends LivelitWindow {
                     return {
                         axesHomed: newAxesHomed,
                         initialized: initialized
+                    }
+                }, () => {
+                    if (initialized) {
+                        RERUN();
                     }
                 });
             }
