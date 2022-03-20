@@ -154,6 +154,14 @@ class ProgramUtil {
                     key: text
                 };
                 return <Display {...displayProps}></Display>;
+            case 'projector':
+                const projectorProps: ProjectorProps = {
+                    ref: livelitRef as React.RefObject<Projector>,
+                    valueSet: false,
+                    windowOpen: true,
+                    key: text
+                };
+                return <Projector {...projectorProps}></Projector>;
             default:
                 return null;
         }
@@ -2636,5 +2644,88 @@ class MiniCam extends LivelitWindow {
         );
     }
 }
+
+interface ProjectorProps extends LivelitProps {
+    ref: React.RefObject<Projector>;
+};
+
+interface ProjectorState extends LivelitState {
+    projectorValue: string;
+}
+;
+class Projector extends LivelitWindow {
+    props: ProjectorProps;
+    state: ProjectorState;
+
+    constructor(props: ProjectorProps) {
+        super(props);
+        this.titleText = 'Projector';
+        this.functionName = '$projector';
+        this.props = props;
+        this.state = {
+            windowOpen: props.windowOpen,
+            valueSet: false,
+            projectorValue: 'nothing'
+        };
+    }
+
+    private __expandHelper(tabletop: verso.Tabletop, vizSpace: verso.VisualizationSpace) {
+        // @ts-ignore
+        let pr: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
+    }
+
+    expand() : string {
+        let fnString = this.__expandHelper.toString();
+        fnString = fnString.replace('__expandHelper', this.functionName);
+        fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
+        fnString = 'async function ' + fnString;
+        return fnString;
+    }
+
+    saveValue() {
+        return new Promise<void>((resolve) => {
+            // TODO
+            resolve();
+        });
+    }
+
+    loadSavedValue() {
+            // TODO
+        return undefined;
+    }
+
+    clearSavedValue() {
+        return new Promise<void>((resolve) => {
+            localStorage.removeItem(this.functionName);
+            this.setState(_ => {
+                return {
+                    valueSet: false
+                }
+            }, resolve);
+        });
+    }
+
+    renderValue() {
+        let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
+        let projector = `Machine(initialized: maybe)`;
+        return (
+            <div className={`module-value ${grayedIffUnset}`}
+                 key={`${this.titleKey}-value`}>
+            </div>
+        );
+    }
+
+    renderContent() {
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return (
+            <div className={`machine-initializer content ${maybeHidden}`}>
+                <div id="projector-box">
+                    { this.state.projectorValue || 'nothing' }
+                </div>
+            </div>
+        );
+    }
+}
+
 
 export { ProgramPane };
