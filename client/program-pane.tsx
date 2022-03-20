@@ -2145,7 +2145,7 @@ class MachineInitializer extends LivelitWindow {
     }
 }
 
-type MachineState = 'free' | 'busy'
+type MachineState = 'disconnected' | 'free' | 'busy'
 
 interface DispatcherProps extends LivelitProps {
     ref: React.RefObject<Dispatcher>;
@@ -2173,7 +2173,7 @@ class Dispatcher extends LivelitWindow {
             machine: undefined,
             toolpaths: undefined,
             currentToolpathIndex: 0,
-            machineState: 'free'
+            machineState: 'disconnected'
         };
     }
 
@@ -2195,7 +2195,15 @@ class Dispatcher extends LivelitWindow {
         }
         // @ts-ignore
         let mc: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
-        mc.setState(_ => ({ machine: machine, toolpaths: toolpaths }));
+        mc.setState(_ => {
+            let machineState = machine.initialized && machine.port?.isOpen
+                                ? 'free' : 'disconnected';
+            return {
+                machine: machine,
+                toolpaths: toolpaths,
+                machineState: machineState
+            }
+        });
         return undefined;
     }
 
@@ -2256,7 +2264,33 @@ class Dispatcher extends LivelitWindow {
         );
     }
 
-    placeholder() {
+    sendSnippet() {
+       let snippetDom = document.getElementById('dispatch-send-snippet');
+       if (!snippetDom || !this.state.machine ||
+           !this.state.machine.port || !this.isFree) { return; }
+       let snippet = snippetDom.innerText;
+       // TODO: validation
+       this.state.machine.port.writeInstructions([snippet])
+           .then((response) => {
+               // TODO: set busy/free again, make a mini console
+               console.log(response);
+           });
+    }
+
+    dispatchSelectedToolpath() {
+        if (this.currentToolpath && this.state.machine
+            && this.state.machine.port && this.isFree) {
+            this.state.machine.port
+                .writeInstructions(this.currentToolpath.instructions)
+                .then((response) => {
+                    // TODO: set busy/free again, make a mini console
+                    console.log(response);
+                });
+        }
+    }
+
+    setCurrentToolpathIndex(index: number) {
+        this.setState((prevState) => ({ currentToolpathIndex: index }));
     }
 
     renderToolpathChoices() {
@@ -2272,7 +2306,7 @@ class Dispatcher extends LivelitWindow {
                 <div className={`viz-interpreter-item ${maybeHighlight}`}
                      key={idx}
                      data-toolpath-index={idx}
-                     onClick={this.placeholder.bind(this)}>
+                     onClick={this.setCurrentToolpathIndex.bind(this, idx)}>
                     <span className="interpreter-name param-key"
                           data-interpreter-id={idx}>
                          { `Toolpath ${idx}` }
@@ -2289,17 +2323,20 @@ class Dispatcher extends LivelitWindow {
 
     renderContent() {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        let grayIffNotFree = this.isFree ? '' : 'grayed';
         return (
             <div className={`dispatcher content ${maybeHidden}`}>
                 { this.renderMachineState() }
                 { this.renderTerminal() }
-               <div onClick={this.placeholder.bind(this)}
-                    className="button" id="dispatch-send-snippet">
+               <div onClick={this.sendSnippet.bind(this)}
+                    className={`button ${grayIffNotFree}`}
+                    id="dispatch-send-snippet">
                    Send Snippet
                </div>
                 { this.renderToolpathChoices() }
-               <div onClick={this.placeholder.bind(this)}
-                    className="button" id="dispatch-send-toolpath">
+               <div onClick={this.dispatchSelectedToolpath.bind(this)}
+                    className={`button ${grayIffNotFree}`}
+                    id="dispatch-send-toolpath">
                    Dispatch
                </div>
             </div>
