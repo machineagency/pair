@@ -82,7 +82,7 @@ class ProgramUtil {
                     tabletop: undefined,
                     ref: livelitRef as React.RefObject<TabletopCalibrator>,
                     valueSet: false,
-                    windowOpen: false,
+                    windowOpen: true,
                     key: text
                 };
                 return <TabletopCalibrator {...tcProps}>
@@ -763,7 +763,7 @@ interface TabletopCalibratorProps extends LivelitProps {
 };
 
 interface TabletopCalibratorState extends LivelitState {
-    pixelToPhysical?: Homography;
+    homography?: Homography;
 };
 
 class TabletopCalibrator extends LivelitWindow {
@@ -781,43 +781,24 @@ class TabletopCalibrator extends LivelitWindow {
         let maybeSavedHomography = this.loadSavedValue();
         this.state = {
             windowOpen: props.windowOpen,
-            pixelToPhysical: maybeSavedHomography,
+            homography: maybeSavedHomography,
             valueSet: !!maybeSavedHomography
         };
         this.applyButton = <div className="button apply-btn"
                                 id="apply-tabletop-homography"
-                                onClick={this.calculateHomography.bind(this)}>
+                                onClick={this.calculateAndSetHomography.bind(this)}>
                                 Apply
                             </div>
     }
-
-    // FIXME: this doesn't properly apply saved homographies yet
-    // expand() : string {
-    //     let s = `async function ${this.functionName}(machine) {`;
-    //     s += `let tc = PROGRAM_PANE.getLivelitWithName(\'$tabletopCalibrator\');`;
-    //     s += `tc.tabletop = new verso.Tabletop(machine);`;
-    //     s += 'if (!tc.state.valueSet) {';
-    //     s += 'await tc.openWindow();';
-    //     s += `await tc.applyTabletopHomography();`;
-    //     s += `await tc.saveValue();`;
-    //     s += 'await tc.closeWindow();';
-    //     s += '}';
-    //     s += 'else {';
-    //     s += 'tc.tabletop.homography = tc.state.pixelToPhysical;';
-    //     s += '}';
-    //     s += `machine.tabletop = tc.tabletop;`;
-    //     s += `return tc.tabletop;`;
-    //     s += `}`;
-    //     return s;
-    // }
 
     private __expandHelper(machine: verso.Machine) {
         // @ts-ignore
         let tc: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
         let tabletop = new verso.Tabletop(machine);
         tc.tabletop = tabletop;
-        if (tc.state.pixelToPhysical) {
-            tc.tabletop.workEnvelope.homography = tc.state.pixelToPhysical;
+        if (tc.state.homography) {
+            tc.tabletop.workEnvelope
+                .setHomographyAndRedrawCorners(tc.state.homography);
         }
         // FIXME: remove the need to set this
         machine.tabletop = tabletop;
@@ -840,19 +821,24 @@ class TabletopCalibrator extends LivelitWindow {
         this.tabletop?.toggleWorkEnvelopeCalibration();
     }
 
-    calculateHomography() {
-        this.tabletop?.setHomographyFromCalibration();
+    calculateAndSetHomography() {
+        let h = this.tabletop?.calculateHomographyFromCalibration();
+        this.setState(_ => {
+            return {
+                homography: h,
+            }
+        });
+        this.saveValue().then(_ => RERUN());
     }
 
     saveValue() {
         return new Promise<void>((resolve) => {
             if (this.tabletop) {
-                let h = this.tabletop.workEnvelope.homography;
+                let h = this.state.homography;
                 let hSerialized = JSON.stringify(h);
                 localStorage.setItem(this.functionName, hSerialized);
                 this.setState(_ => {
                     return {
-                        pixelToPhysical: h,
                         valueSet: true
                     }
                 }, resolve);
@@ -887,7 +873,7 @@ class TabletopCalibrator extends LivelitWindow {
             localStorage.removeItem(this.functionName);
             this.setState(_ => {
                 return {
-                    pixelToPhysical: undefined,
+                    homography: undefined,
                     valueSet: false
                 }
             }, resolve);
@@ -897,10 +883,10 @@ class TabletopCalibrator extends LivelitWindow {
     renderValue() {
         let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
         let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
-        let value = this.state.pixelToPhysical
-                        ? this.state.pixelToPhysical.coeffs.toString()
+        let value = this.state.homography
+                        ? this.state.homography.coeffs.toString()
                         : '?';
-        let display = `Tabletop(WorkEnvelope(pixelToPhysical: `
+        let display = `Tabletop(WorkEnvelope(homography: `
                       + `[${value}]))`;
         return (
             <div className={`module-value ${grayedIffUnset}`}

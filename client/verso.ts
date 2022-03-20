@@ -144,7 +144,7 @@ export class Tabletop {
                     this.toggleWorkEnvelopeCalibration();
                 }
                 else {
-                    this.setHomographyFromCalibration();
+                    this.calculateHomographyFromCalibration();
                 }
             }
             // TODO: think about how to handle copy and application of
@@ -179,12 +179,12 @@ export class Tabletop {
         this.workEnvelope.sizeLabel.fillColor = new paper.Color('cyan');
     }
 
-    setHomographyFromCalibration() : void {
+    calculateHomographyFromCalibration() : Homography {
         this.workEnvelope.path.selected = false;
         this.interactionMode = InteractionMode.defaultState;
         this.workEnvelope.sizeLabel.fillColor = new paper.Color('red');
         let h = this.workEnvelope.calculateHomography();
-        this.workEnvelope.homography = h;
+        return h;
     }
 
     loadToolpath(toolpath: Toolpath) {
@@ -260,7 +260,7 @@ export class WorkEnvelope {
     path: paper.Path = new paper.Path();
     sizeLabel: paper.PointText;
     originalCornerPoints: paper.Point[];
-    homography: Homography;
+    private homography: Homography;
 
     constructor(tabletop: Tabletop, width: number, height: number) {
         this.tabletop = tabletop;
@@ -341,6 +341,16 @@ export class WorkEnvelope {
         let h = PerspT(srcFlat, dstFlat);
         return h;
     }
+
+    setHomographyAndRedrawCorners(h: Homography) {
+        this.path.segments.forEach((segment, cornerNumber) => {
+            let xIdx = cornerNumber * 2;
+            let yIdx = (cornerNumber * 2) + 1;
+            segment.point.x = h.dstPts[xIdx];
+            segment.point.y = h.dstPts[yIdx];
+        });
+        this.homography = h;
+    };
 
     redrawForSize(newSize: paper.Size) {
         this.width = newSize.width * MM_TO_PX;
