@@ -2380,14 +2380,26 @@ class Display extends LivelitWindow {
         };
     }
 
-    // FIXME: this doesn't properly apply saved homographies yet
+    private __expandHelper(value: any) {
+        // @ts-ignore
+        let d: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
+        let stringifiedValue: string;
+        try {
+            stringifiedValue = JSON.stringify(value)
+        }
+        catch (TypeError) {
+            stringifiedValue = '<cyclic object>';
+        }
+        d.setState(_ => ({ displayValue: stringifiedValue }));
+        return value;
+    }
+
     expand() : string {
-        let s = `async function ${this.functionName}(value) {`;
-        s += `let d = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
-        s += `d.setState(_ => ({ displayValue: JSON.stringify(value) }));`
-        s += `return value;`;
-        s += `}`;
-        return s;
+        let fnString = this.__expandHelper.toString();
+        fnString = fnString.replace('__expandHelper', this.functionName);
+        fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
+        fnString = 'async function ' + fnString;
+        return fnString;
     }
 
     saveValue() {
@@ -2428,7 +2440,7 @@ class Display extends LivelitWindow {
         return (
             <div className={`machine-initializer content ${maybeHidden}`}>
                 <div id="display-box">
-                    { JSON.stringify(this.state.displayValue) || 'nothing' }
+                    { this.state.displayValue || 'nothing' }
                 </div>
             </div>
         );
