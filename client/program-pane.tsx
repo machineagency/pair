@@ -1963,7 +1963,7 @@ class MachineInitializer extends LivelitWindow {
         let s = `async function ${this.functionName}(machine) {`;
         s += `let mi = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
         s += `if (mi.state.initialized) {`;
-        s += `machine.initialzed = true;`;
+        s += `machine.initialized = true;`;
         s += `machine.port = mi.state.port;`;
         s += `}`;
         s += `return machine;`;
