@@ -7,7 +7,10 @@ let tabletop = await $tabletopCalibrator(machine);
 let baseGeometry = await (new verso.Geometry(tabletop)).loadRemoteFile('wave.svg');
 let firstGeometry = baseGeometry.placeAt(new verso.Point(mm(10), mm(10)), tabletop);
 let secondGeometry = baseGeometry.placeAt(new verso.Point(mm(40), mm(10)), tabletop);
-let tps = await $miniCam([firstGeometry, secondGeometry]);
+let firstOperation = new verso.CamOperation({ cutSpeed: 5 });
+let secondOperation = new verso.CamOperation({ cutSpeed: 10 });
+let tps = await $miniCam([firstGeometry, secondGeometry],
+                         [firstOperation, secondOperation]);
 let vizSpace = new verso.VisualizationSpace(machine);
 $toolpathVisualizer(machine, tps, vizSpace);
 // Pick which toolpath to try and dispatch.
