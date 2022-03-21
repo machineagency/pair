@@ -1734,14 +1734,13 @@ class ToolpathVisualizer extends LivelitWindow {
     }
 
     async setArguments(machine: verso.Machine,
-                       toolpaths: verso.Toolpath[],
-                       visualizationSpace: verso.VisualizationSpace) {
+                       toolpaths: verso.Toolpath[]) {
         return new Promise<void>((resolve) => {
             this.setState(_ => {
                 return {
                     machine: machine,
                     toolpaths: toolpaths,
-                    visualizationSpace: visualizationSpace
+                    visualizationSpace: new verso.VisualizationSpace(machine)
                 };
             }, resolve);
         });
@@ -1763,15 +1762,16 @@ class ToolpathVisualizer extends LivelitWindow {
     setInterpreterFromClick (event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
         let interpreterItemDom = event.target as HTMLDivElement;
         let interpreterId = interpreterItemDom.dataset.interpreterId;
-        this.state.toolpaths.forEach((toolpath) => {
-            if (interpreterId && !isNaN(parseInt(interpreterId))) {
-                let id = parseInt(interpreterId);
-                this.renderWithInterpreter(toolpath, id);
-            }
+        if (!interpreterId || isNaN(parseInt(interpreterId))) {
+            return;
+        }
+        let id = parseInt(interpreterId);
+        this.setState(_ => ({ currentInterpreterId: id }), () => {
+            this.renderWithInterpreter(id);
         });
     }
 
-    renderWithInterpreter(toolpath: verso.Toolpath, interpreterId: number) {
+    renderWithInterpreter(interpreterId: number) {
         if (!this.state.visualizationSpace) {
             throw Error('Cannot set interpreter without viz space.');
         }
@@ -1799,29 +1799,36 @@ class ToolpathVisualizer extends LivelitWindow {
         }
     }
 
-    private __expandHelper(machine: verso.Machine, toolpaths: verso.Toolpath[],
-                           vizSpace: verso.VisualizationSpace) {
+    private async __expandHelper(machine: verso.Machine, toolpaths: verso.Toolpath[]) {
         if (!toolpaths.length) {
             console.error('Dispatcher needs an array of toolpaths.');
             return;
         }
         // @ts-ignore
         let tv: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
-        tv.setArguments(machine, toolpaths, vizSpace).then(_ => {
-            tv.state.toolpaths.forEach((toolpath) => {
-                tv.renderWithInterpreter(toolpath, tv.state.currentInterpreterId);
-            });
+        await tv.setArguments(machine, toolpaths);
+        let populatedVizSpace = await tv.populateVizSpace();
+        return populatedVizSpace;
+    }
+
+    private async populateVizSpace() {
+        return new Promise<verso.VisualizationSpace>((resolve, reject) => {
+            if (!this.state.visualizationSpace) {
+                reject();
+                return;
+            }
+            this.renderWithInterpreter(this.state.currentInterpreterId);
+            resolve(this.state.visualizationSpace);
         });
-        // VizSpace will initially be returned empty but will be populated via
-        // the promise .then chain above.
-        return vizSpace;
     }
 
     expand() : string {
         let fnString = this.__expandHelper.toString();
         fnString = fnString.replace('__expandHelper', this.functionName);
         fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
-        fnString = 'async function ' + fnString;
+        // Because the to-be-macrofied function is async, the toString adds
+        // "async" at the beginning, so we need to replace it properly.
+        fnString = fnString.replace('async', 'async function');
         return fnString;
     }
 
