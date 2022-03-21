@@ -884,8 +884,22 @@ class TabletopCalibrator extends LivelitWindow {
                     homography: undefined,
                     valueSet: false
                 }
-            }, resolve);
+            }, () => {
+                RERUN();
+                resolve();
+            });
         });
+    }
+
+    renderClearButton() {
+        let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
+        return (
+            <div className={`clear-btn ${hiddenIffUnset}`}
+                 onClick={this.clearSavedValue.bind(this)}
+                 key={`${this.titleKey}-clear-value`}>
+                Clear
+            </div>
+        );
     }
 
     renderValue() {
@@ -908,6 +922,7 @@ class TabletopCalibrator extends LivelitWindow {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return <div className={`tabletop-calibrator content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
+                    { this.renderClearButton() }
                    <div className="help-text">
                        1. Draw a border around the work envelope with the
                        machine.
