@@ -16,10 +16,12 @@ const bsDatabase     = require('better-sqlite3');
 
 // configuration ===========================================
 const SERVER_PORT = process.env.PORT || 3000; // set our port
-// For testing
+// For testing — change PORT_DEBUG to false to work with real ports—true otherwise.
+const PORT_DEBUG = true;
 SerialPortMock.binding.createPort('/dev/JUBILEE', { echo: true, record: true });
 SerialPortMock.binding.createPort('/dev/LASER_CUTTER', { echo: true, record: true });
-const DEVICE_PORTS: SerialPortMock[] = [];
+const DEVICE_PORTS: SerialPort[] = [];
+const DEVICE_PORT_MOCKS: SerialPortMock[] = [];
 const DEVICE_PORT_PARSERS: ReadlineParser[] = [];
 app.use(bodyParser.json()); // for parsing application/json
 app.use(express.static(__dirname + '/client')); // set the static files location /public/img will be /img for users
@@ -284,7 +286,8 @@ let attachRoutesAndStart = () => {
 
     // List device's UNIX ports, whether open or not.
     app.get('/portPaths', (req: Request, res: Response) => {
-        SerialPortMock.list().then((list) => {
+        let PortType = PORT_DEBUG ? SerialPortMock : SerialPort;
+        PortType.list().then((list) => {
             res.status(200).json({
                 paths: list
             });
@@ -326,33 +329,55 @@ let attachRoutesAndStart = () => {
                     return;
             }
             let baudRate = parseInt(baudRateQuery.toString()) || DEFAULT_BAUD_RATE;
-            let devicePort = new SerialPortMock({
-                path: path,
-                baudRate: baudRate,
-            }, (err: Error | null) => {
-                if (err) {
-                    res.status(500).json({ message: err.message });
-                }
-                else {
-                    let parser = devicePort.pipe(new ReadlineParser());
-                    let devicePortId = DEVICE_PORTS.push(devicePort) - 1;
-                    DEVICE_PORT_PARSERS.push(parser);
-                    res.status(200).json({
-                        id: devicePortId,
-                        message: 'Port opened successfully.'
-                    });
-                }
-            });
+            if (PORT_DEBUG) {
+                let devicePort = new SerialPortMock({
+                    path: path,
+                    baudRate: baudRate,
+                }, (err: Error | null) => {
+                    if (err) {
+                        res.status(500).json({ message: err.message });
+                    }
+                    else {
+                        let parser = devicePort.pipe(new ReadlineParser());
+                        let devicePortId = DEVICE_PORT_MOCKS.push(devicePort) - 1;
+                        DEVICE_PORT_PARSERS.push(parser);
+                        res.status(200).json({
+                            id: devicePortId,
+                            message: 'Port opened successfully.'
+                        });
+                    }
+                });
+            }
+            else {
+                let devicePort = new SerialPort({
+                    path: path,
+                    baudRate: baudRate,
+                }, (err: Error | null) => {
+                    if (err) {
+                        res.status(500).json({ message: err.message });
+                    }
+                    else {
+                        let parser = devicePort.pipe(new ReadlineParser());
+                        let devicePortId = DEVICE_PORTS.push(devicePort) - 1;
+                        DEVICE_PORT_PARSERS.push(parser);
+                        res.status(200).json({
+                            id: devicePortId,
+                            message: 'Port opened successfully.'
+                        });
+                    }
+                });
+            }
         }
     });
 
     app.get('/ports/:portId/', (req: Request, res: Response) => {
         let portId = parseInt(req.params.portId);
-        if (isNaN(portId) || portId >= DEVICE_PORTS.length) {
+        let portList = PORT_DEBUG ? DEVICE_PORT_MOCKS : DEVICE_PORTS;
+        if (isNaN(portId) || portId >= portList.length) {
             res.status(400).json({ message: 'Invalid port id.' });
         }
         else {
-            let port = DEVICE_PORTS[portId];
+            let port = portList[portId];
             res.status(200).json({
                 message: `<DevicePort - id: ${portId}, path: ${port.path}>`
             });
@@ -362,7 +387,8 @@ let attachRoutesAndStart = () => {
     // Expects a body with the format { "instructions" : [ <string>* ] }
     app.put('/ports/:portId/instructions', (req: Request, res: Response) => {
         let portId = parseInt(req.params.portId);
-        if (isNaN(portId) || portId >= DEVICE_PORTS.length) {
+        let portList = PORT_DEBUG ? DEVICE_PORT_MOCKS : DEVICE_PORTS;
+        if (isNaN(portId) || portId >= portList.length) {
             res.status(400).json({ message: 'Invalid port id.' });
             return;
         }
@@ -376,7 +402,7 @@ let attachRoutesAndStart = () => {
             res.status(400).json({ message: 'Body has no instruction field.' });
             return;
         }
-        let port = DEVICE_PORTS[portId];
+        let port = portList[portId];
         let parser = DEVICE_PORT_PARSERS[portId];
         let respondWithFirstLineAndFlush = (data: string) => {
             res.status(200).json({ message: data });
@@ -390,11 +416,12 @@ let attachRoutesAndStart = () => {
 
     app.get('/ports/:portId/position', (req: Request, res: Response) => {
         let portId = parseInt(req.params.portId);
-        if (isNaN(portId) || portId >= DEVICE_PORTS.length) {
+        let portList = PORT_DEBUG ? DEVICE_PORT_MOCKS : DEVICE_PORTS;
+        if (isNaN(portId) || portId >= portList.length) {
             res.status(400).json({ message: 'Invalid port id.' });
             return;
         }
-        let port = DEVICE_PORTS[portId];
+        let port = portList[portId];
         let parser = DEVICE_PORT_PARSERS[portId];
         parser.on('data', (data) => {
             console.log(`Received data: ${data}`);
