@@ -11,7 +11,6 @@ let firstOperation = new verso.CamOperation({ cutSpeed: 5 });
 let secondOperation = new verso.CamOperation({ cutSpeed: 10 });
 let tps = await $miniCam([firstGeometry, secondGeometry],
                          [firstOperation, secondOperation]);
-let vizSpace = new verso.VisualizationSpace(machine);
-$toolpathVisualizer(machine, tps, vizSpace);
+let vizSpace = await $toolpathVisualizer(machine, tps);
 // Pick which toolpath to try and dispatch.
 await $dispatcher(machine, tps);

@@ -31,7 +31,6 @@ let geometries = anchorPoints.map((anchor, anchorIndex) => {
 let testTp = await $miniCam(baseGeometry);
 // let toolpaths = geometries.map((geometry) => toolpathGenerator(geometry));
 // Visualize each toolpath.
-let vizSpace = new verso.VisualizationSpace(machine);
-$toolpathVisualizer(machine, testTp, vizSpace);
+let vizSpace = await $toolpathVisualizer(machine, [testTp]);
 // Pick which toolpath to try and dispatch.
 await $dispatcher(machine, testTp);
