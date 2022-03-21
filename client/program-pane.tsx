@@ -1776,7 +1776,6 @@ class ToolpathVisualizer extends LivelitWindow {
             throw Error('Cannot set interpreter without viz space.');
         }
         this.state.visualizationSpace.removeAllViz();
-        // let interpreter = eval(`VisualizationInterpreters.${interpreterName}`);
         let interpreter = this.currentInterpreter;
         this.state.toolpaths.forEach((toolpath) => {
             if (!interpreter) { throw new Error(); }

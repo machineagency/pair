@@ -55,7 +55,7 @@ export class Tabletop {
     constructor(machine: Machine) {
         this.machine = machine;
         this.project = (paper as any).project;
-        this.tool = new paper.Tool();
+        this.tool = (paper as any).tool || new paper.Tool();
         this.toolpaths = [];
         this.workEnvelope = new WorkEnvelope(this,
                                              machine.workEnvelopeDimensions.x,
