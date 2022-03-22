@@ -253,6 +253,11 @@ pre code.hljs {
     border: 1px solid whitesmoke;
 }
 
+.livelit-window .image-thumbnail img {
+    max-height: 100%;
+    max-width: 100%;
+}
+
 .livelit-window input[type="text"] {
       background-color: #23241f;
       color: whitesmoke;

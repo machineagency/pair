@@ -930,6 +930,18 @@ export class VisualizationSpace {
         (window as any).vs = this;
     }
 
+    cloneCamera() {
+        return this.camera.clone();
+    }
+
+    cloneScene() {
+        return this.scene.clone();
+    }
+
+    get domElement() {
+        return this.threeRenderer?.domElement;
+    }
+
     addVizWithName(vizGroup: THREE.Group, interpreterName: string) {
         vizGroup.name = interpreterName;
         this.vizGroup.add(vizGroup);

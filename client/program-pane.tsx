@@ -2671,7 +2671,7 @@ interface ProjectorProps extends LivelitProps {
 };
 
 interface ProjectorState extends LivelitState {
-    projectorValue: string;
+    bitmapDataUrl: string;
 }
 ;
 class Projector extends LivelitWindow {
@@ -2686,21 +2686,35 @@ class Projector extends LivelitWindow {
         this.state = {
             windowOpen: props.windowOpen,
             valueSet: false,
-            projectorValue: 'nothing'
+            bitmapDataUrl: ''
         };
     }
 
-    private __expandHelper(tabletop: verso.Tabletop, vizSpace: verso.VisualizationSpace) {
+    private async __expandHelper(tabletop: verso.Tabletop, vizSpace: verso.VisualizationSpace) {
         // @ts-ignore
         let pr: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
+        await pr.generateBitmapFromVizSpace(vizSpace);
+        return 'okay';
     }
 
     expand() : string {
         let fnString = this.__expandHelper.toString();
         fnString = fnString.replace('__expandHelper', this.functionName);
         fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
-        fnString = 'async function ' + fnString;
+        fnString = fnString.replace('async', 'async function');
         return fnString;
+    }
+
+    generateBitmapFromVizSpace(vizSpace: verso.VisualizationSpace) {
+        return new Promise<void>((resolve, reject) => {
+            let canvasDom = vizSpace.domElement;
+            if (!canvasDom) {
+                console.log('Cannot find a canvas DOM.');
+                return;
+            }
+            let dataUrl = canvasDom.toDataURL('image/png');
+            this.setState(_ => ({ bitmapDataUrl: dataUrl }), resolve);
+        });
     }
 
     saveValue() {
@@ -2741,7 +2755,11 @@ class Projector extends LivelitWindow {
         return (
             <div className={`machine-initializer content ${maybeHidden}`}>
                 <div id="projector-box">
-                    { this.state.projectorValue || 'nothing' }
+                   <div className="image-thumbnail">
+                       <img src={this.state.bitmapDataUrl}
+                            id="projector-bitmap"
+                            alt="projection bitmap"/>
+                   </div>
                 </div>
             </div>
         );
