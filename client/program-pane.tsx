@@ -2766,5 +2766,186 @@ class Projector extends LivelitWindow {
     }
 }
 
+interface InstructionBuilderProps extends LivelitProps {
+    ref: React.RefObject<InstructionBuilder>;
+};
+
+interface InstructionBuilderState extends LivelitState {
+    instructionBuilderValue: string;
+};
+
+class InstructionBuilder extends LivelitWindow {
+    props: InstructionBuilderProps;
+    state: InstructionBuilderState;
+
+    constructor(props: InstructionBuilderProps) {
+        super(props);
+        this.titleText = 'InstructionBuilder';
+        this.functionName = '$instructionBuilder';
+        this.props = props;
+        this.state = {
+            windowOpen: props.windowOpen,
+            valueSet: false,
+            instructionBuilderValue: 'nothing'
+        };
+    }
+
+    private __expandHelper(value: any) {
+        // @ts-ignore
+        let d: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
+        let stringifiedValue: string;
+        try {
+            stringifiedValue = JSON.stringify(value)
+        }
+        catch (TypeError) {
+            stringifiedValue = '<cyclic object>';
+        }
+        d.setState(_ => ({ instructionBuilderValue: stringifiedValue }));
+        return value;
+    }
+
+    expand() : string {
+        let fnString = this.__expandHelper.toString();
+        fnString = fnString.replace('__expandHelper', this.functionName);
+        fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
+        fnString = 'async function ' + fnString;
+        return fnString;
+    }
+
+    saveValue() {
+        return new Promise<void>((resolve) => {
+            // TODO
+            resolve();
+        });
+    }
+
+    loadSavedValue() {
+            // TODO
+        return undefined;
+    }
+
+    clearSavedValue() {
+        return new Promise<void>((resolve) => {
+            localStorage.removeItem(this.functionName);
+            this.setState(_ => {
+                return {
+                    valueSet: false
+                }
+            }, resolve);
+        });
+    }
+
+    renderValue() {
+        let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
+        let instructionBuilder = `Machine(initialized: maybe)`;
+        return (
+            <div className={`module-value ${grayedIffUnset}`}
+                 key={`${this.titleKey}-value`}>
+            </div>
+        );
+    }
+
+    renderContent() {
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return (
+            <div className={`machine-initializer content ${maybeHidden}`}>
+                <div id="instructionBuilder-box">
+                    { this.state.instructionBuilderValue || 'nothing' }
+                </div>
+            </div>
+        );
+    }
+}
+
+interface ArraySlicerProps extends LivelitProps {
+    ref: React.RefObject<ArraySlicer>;
+};
+
+interface ArraySlicerState extends LivelitState {
+    arraySlicerValue: string;
+};
+
+class ArraySlicer extends LivelitWindow {
+    props: ArraySlicerProps;
+    state: ArraySlicerState;
+
+    constructor(props: ArraySlicerProps) {
+        super(props);
+        this.titleText = 'ArraySlicer';
+        this.functionName = '$arraySlicer';
+        this.props = props;
+        this.state = {
+            windowOpen: props.windowOpen,
+            valueSet: false,
+            arraySlicerValue: 'nothing'
+        };
+    }
+
+    private __expandHelper(value: any) {
+        // @ts-ignore
+        let d: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
+        let stringifiedValue: string;
+        try {
+            stringifiedValue = JSON.stringify(value)
+        }
+        catch (TypeError) {
+            stringifiedValue = '<cyclic object>';
+        }
+        d.setState(_ => ({ arraySlicerValue: stringifiedValue }));
+        return value;
+    }
+
+    expand() : string {
+        let fnString = this.__expandHelper.toString();
+        fnString = fnString.replace('__expandHelper', this.functionName);
+        fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
+        fnString = 'async function ' + fnString;
+        return fnString;
+    }
+
+    saveValue() {
+        return new Promise<void>((resolve) => {
+            // TODO
+            resolve();
+        });
+    }
+
+    loadSavedValue() {
+            // TODO
+        return undefined;
+    }
+
+    clearSavedValue() {
+        return new Promise<void>((resolve) => {
+            localStorage.removeItem(this.functionName);
+            this.setState(_ => {
+                return {
+                    valueSet: false
+                }
+            }, resolve);
+        });
+    }
+
+    renderValue() {
+        let grayedIffUnset = this.state.valueSet ? '' : 'grayed';
+        let arraySlicer = `Machine(initialized: maybe)`;
+        return (
+            <div className={`module-value ${grayedIffUnset}`}
+                 key={`${this.titleKey}-value`}>
+            </div>
+        );
+    }
+
+    renderContent() {
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return (
+            <div className={`machine-initializer content ${maybeHidden}`}>
+                <div id="arraySlicer-box">
+                    { this.state.arraySlicerValue || 'nothing' }
+                </div>
+            </div>
+        );
+    }
+}
 
 export { ProgramPane };
