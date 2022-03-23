@@ -1767,7 +1767,11 @@ class ToolpathVisualizer extends LivelitWindow {
         }
         let id = parseInt(interpreterId);
         this.setState(_ => ({ currentInterpreterId: id }), () => {
-            this.renderWithInterpreter(id);
+            // After setting the interpreter, we need to re-run and let the
+            // rendering be handled in the expand function rather than do
+            // re-rendering here, because we need the new vizSpace returned
+            // from the function to propagate down the program.
+            RERUN();
         });
     }
 
@@ -2710,6 +2714,7 @@ class Projector extends LivelitWindow {
             let canvasDom = vizSpace.domElement;
             if (!canvasDom) {
                 console.log('Cannot find a canvas DOM.');
+                reject();
                 return;
             }
             let dataUrl = canvasDom.toDataURL('image/png');
