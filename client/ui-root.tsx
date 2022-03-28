@@ -40,7 +40,7 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
         // Now fetch the workflow text from the server
         this.populateWorkflows();
         // Once we have text, do the rest of the setup
-        programPane.bindNativeConsoleToProgramConsole();
+        // programPane.bindNativeConsoleToProgramConsole();
         programPane.generateModules()
         .then(() => {
             programPane.runAllLines();
