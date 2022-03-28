@@ -1107,7 +1107,7 @@ export class VisualizationSpace {
         return envelopeGroup;
     }
 
-    computeOverheadView() {
+    pivotCameraToBirdsEye() {
         // TODO
     }
 
