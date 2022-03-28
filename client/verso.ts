@@ -5,6 +5,7 @@
 /** This file contains all primitives in the (expanded) Verso language.
  */
 
+export type Instruction = string;
 export type GeometryFiletype = 'svg' | 'stl';
 export type ISA = 'gcode' | 'ebb' | 'unknown';
 export type Axis = 'x' | 'y' | 'z' | 'u' | 'w';

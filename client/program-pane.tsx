@@ -162,6 +162,22 @@ class ProgramUtil {
                     key: text
                 };
                 return <Projector {...projectorProps}></Projector>;
+            case 'instructionBuilder':
+                const instructionBuilderProps: InstructionBuilderProps = {
+                    ref: livelitRef as React.RefObject<InstructionBuilder>,
+                    valueSet: false,
+                    windowOpen: true,
+                    key: text
+                };
+                return <InstructionBuilder {...instructionBuilderProps}></InstructionBuilder>;
+            case 'arraySlicer':
+                const arraySlicerProps: ArraySlicerProps = {
+                    ref: livelitRef as React.RefObject<ArraySlicer>,
+                    valueSet: false,
+                    windowOpen: true,
+                    key: text
+                };
+                return <ArraySlicer {...arraySlicerProps}></ArraySlicer>;
             default:
                 return null;
         }
@@ -1182,10 +1198,22 @@ class CameraCalibrator extends LivelitWindow {
         );
     }
 
+    renderClearButton() {
+        let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
+        return (
+            <div className={`clear-btn ${hiddenIffUnset}`}
+                 onClick={this.clearSavedValue.bind(this)}
+                 key={`${this.titleKey}-clear-value`}>
+                Clear
+            </div>
+        );
+    }
+
     renderContent() {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return <div className={`camera-calibrator content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
+                    { this.renderClearButton() }
                    <div className="help-text">
                        1. Draw a border around the work envelope with the
                        machine (skip if it's already there).
@@ -2776,57 +2804,93 @@ interface InstructionBuilderProps extends LivelitProps {
 };
 
 interface InstructionBuilderState extends LivelitState {
-    instructionBuilderValue: string;
+    paramSet: InstructionParamsG0;
+    paramBounds: InstructionParamsG0;
+};
+
+interface InstructionParamsG0 {
+    x: number;
+    y: number;
+    z: number;
+    e: number;
+    f: number;
+    [index: string]: number;
 };
 
 class InstructionBuilder extends LivelitWindow {
     props: InstructionBuilderProps;
     state: InstructionBuilderState;
 
+    static params_G0: InstructionParamsG0 = {
+        x: 0, y: 0, z: 0, e: 0, f: 0
+    };
+
     constructor(props: InstructionBuilderProps) {
         super(props);
-        this.titleText = 'InstructionBuilder';
+        this.titleText = 'Instruction Builder';
         this.functionName = '$instructionBuilder';
         this.props = props;
         this.state = {
             windowOpen: props.windowOpen,
             valueSet: false,
-            instructionBuilderValue: 'nothing'
+            paramSet: {
+                x: 0, y: 0, z: 0, e: 0, f: 0
+            },
+            paramBounds: {
+                x: 300, y: 300, z: 300, e: 1000, f: 1000
+            }
         };
     }
 
-    private __expandHelper(value: any) {
+    private async __expandHelper(paramBounds: InstructionParamsG0) {
         // @ts-ignore
-        let d: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
-        let stringifiedValue: string;
-        try {
-            stringifiedValue = JSON.stringify(value)
+        let ib: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
+        if (paramBounds) {
+            await ib.setArguments(paramBounds);
         }
-        catch (TypeError) {
-            stringifiedValue = '<cyclic object>';
-        }
-        d.setState(_ => ({ instructionBuilderValue: stringifiedValue }));
-        return value;
+        return ib.generateInstructionFromStoredParams();
     }
 
     expand() : string {
         let fnString = this.__expandHelper.toString();
         fnString = fnString.replace('__expandHelper', this.functionName);
         fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
-        fnString = 'async function ' + fnString;
+        fnString = fnString.replace('async', 'async function');
         return fnString;
     }
 
+    setArguments(paramBounds: InstructionParamsG0) {
+        return new Promise<void>((resolve, reject) => {
+            this.setState(_ => ({ paramBounds }), resolve);
+        });
+    }
+
+    generateInstructionFromStoredParams() {
+        let paramSet = this.state.paramSet;
+        let op = 'G0 ';
+        let xArg = paramSet.x !== undefined ? `X${paramSet.x} ` : '';
+        let yArg = paramSet.y !== undefined ? `Y${paramSet.y} ` : '';
+        let zArg = paramSet.z !== undefined ? `Z${paramSet.z} ` : '';
+        let eArg = paramSet.e !== undefined ? `E${paramSet.e} ` : '';
+        let fArg = paramSet.f !== undefined ? `F${paramSet.f} ` : '';
+        let inst = [op, xArg, yArg, zArg, eArg, fArg].join('').trim();
+        return inst;
+    };
+
     saveValue() {
         return new Promise<void>((resolve) => {
-            // TODO
+            let stringifiedParams = JSON.stringify(this.state.paramSet);
+            localStorage.setItem(this.functionName, stringifiedParams);
             resolve();
         });
     }
 
     loadSavedValue() {
-            // TODO
-        return undefined;
+        let stringifiedParams = localStorage.getItem(this.functionName);
+        if (!stringifiedParams) {
+            return undefined;
+        }
+        return JSON.parse(stringifiedParams);
     }
 
     clearSavedValue() {
@@ -2850,12 +2914,92 @@ class InstructionBuilder extends LivelitWindow {
         );
     }
 
+    updateParams(event: React.ChangeEvent<HTMLInputElement>) {
+        let input = event.target;
+        let valueNum = isNaN(parseInt(input.value))
+            ? 0 : parseInt(input.value);
+        let paramName = input.dataset.paramName as string;
+        if (!paramName) { return; }
+        let paramSetCopy = Object.assign({}, this.state.paramSet);
+        paramSetCopy[paramName] = valueNum;
+        this.setState(_ => {
+            return {
+                paramSet: paramSetCopy
+            };
+        });
+    }
+
+    renderInputForParamName(paramName: string) {
+        let value = this.state.paramSet[paramName];
+        if (paramName === 'e' || paramName === 'f') {
+            const defaultBound = 100;
+            let maybeBound = this.state.paramBounds[paramName];
+            let bound: number;
+            if (maybeBound === undefined) {
+                bound = defaultBound;
+            }
+            else {
+                bound = maybeBound;
+            }
+            let currentValue = this.state.paramSet[paramName] !== undefined
+                                ? this.state.paramSet[paramName] : 0;
+            return (
+                <input type="range" min="0" max={bound}
+                       className="slider"
+                       placeholder={value.toString()}
+                       data-param-name={paramName}
+                       onChange={this.updateParams.bind(this)}
+                       id={`instruction-builder-slider-${paramName}`}>
+                </input>
+            );
+        }
+        else {
+            return (
+                <input type="text"
+                       placeholder={value.toString()}
+                       data-param-name={paramName}
+                       onChange={this.updateParams.bind(this)}>
+                </input>
+            );
+        }
+    }
+
+    renderInstructionParams() {
+        return Object.keys(InstructionBuilder.params_G0)
+            .map((paramName, paramIdx) => {
+            let value = this.state.paramSet[paramName];
+            return (
+                <div className="param-item"
+                     key={paramIdx}>
+                    <span className="param-key">
+                         { paramName }
+                    </span>
+                    <span className="param-value">
+                        { this.renderInputForParamName(paramName) }
+                    </span>
+                </div>
+            );
+        });
+    }
+
+    renderInstruction() {
+        let instruction = this.generateInstructionFromStoredParams();
+        return (
+            <div className="display-box">
+                <div className="title">
+                    { instruction }
+                </div>
+            </div>
+        );
+    }
+
     renderContent() {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return (
-            <div className={`machine-initializer content ${maybeHidden}`}>
-                <div id="instructionBuilder-box">
-                    { this.state.instructionBuilderValue || 'nothing' }
+            <div className={`instruction-builder content ${maybeHidden}`}>
+                <div id="instruction-builder-box">
+                    { this.renderInstruction() }
+                    { this.renderInstructionParams() }
                 </div>
             </div>
         );
