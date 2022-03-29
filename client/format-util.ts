@@ -1,7 +1,7 @@
 // From: https://zserge.com/posts/js-editor/
 export class FormatUtil {
 
-    static isCharKeypress(e: KeyboardEvent) {
+    static isCharKeypress(e: React.KeyboardEvent<HTMLDivElement>) {
         // Alphanumeric || space || backspace
         return e.keyCode >= 0x30 || e.keyCode == 0x20 || e.keyCode == 0x08
             || e.keyCode == 0x09;
