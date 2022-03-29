@@ -42,9 +42,7 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
         // Once we have text, do the rest of the setup
         // programPane.bindNativeConsoleToProgramConsole();
         programPane.runAllLines();
-        this.setProgramLinesContentEditable();
         this.setTabKeypressHandler();
-        this.setProgramLinesRerunHandler();
     }
 
     async fetchWorkflows() : Promise<Workflow[]> {
@@ -91,29 +89,6 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
                 this.rerun();
             });
         });
-    }
-
-    setProgramLinesContentEditable() {
-        let programLinesDom = document.getElementById('program-lines');
-        if (programLinesDom) {
-            // programLinesDom.contentEditable = "true";
-            programLinesDom.spellcheck = false;
-        }
-    }
-
-    setProgramLinesRerunHandler() {
-        const delay = 250;
-        let programLinesDom = document.getElementById('program-lines');
-        if (programLinesDom) {
-            programLinesDom.addEventListener('keyup', (event: KeyboardEvent) => {
-                if (FormatUtil.isCharKeypress(event)) {
-                    clearTimeout(this.rerunTimeout);
-                    this.rerunTimeout = window.setTimeout(() => {
-                        this.rerun();
-                    }, delay);
-                }
-            });
-        }
     }
 
     setTabKeypressHandler() {
