@@ -195,7 +195,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         this.TEST_lines = [
             "let machine = new verso.Machine('axidraw');",
             "let tabletop = await $tabletopCalibrator(machine);",
-            "let geometry = await $geometryGallery(machine);",
+            "let geometry = await $geometryGallery(tabletop);",
             "let toolpath = await $axidrawDriver(machine, geometry);",
             "let vizSpace = await $toolpathVisualizer(machine, [toolpath]);",
             "let svg = await $projector(tabletop, vizSpace);",
