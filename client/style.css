@@ -148,6 +148,10 @@ pre code.hljs {
     margin: 0px;
 }
 
+.program-line-text:focus {
+    outline: none;
+}
+
 .program-line::before {
     content: counter(line);
     display: inline-block;
