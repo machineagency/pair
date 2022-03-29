@@ -90,7 +90,7 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
                 };
             }, () => {
                 let programPaneLines = this.currentWorkflowText;
-                programPane.injectText(programPaneLines);
+                // programPane.injectText(programPaneLines);
                 this.rerun();
             });
         });
@@ -138,12 +138,12 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
         let programPane = programPaneRef.current;
         // This might throw a massive security warning. It seems to happen when
         // we highlight lines that were not procedurally generated.
-        programPane.clearProgramConsole();
-        programPane.syntaxHighlightProgramLines();
-        programPane.generateModules()
-        .then(() => {
+        // programPane.clearProgramConsole();
+        // programPane.syntaxHighlightProgramLines();
+        // programPane.generateModules()
+        // .then(() => {
             programPane.runAllLines();
-        });
+        // });
     };
 
     protected handleWorkflowChange(event: React.ChangeEvent<HTMLSelectElement>) {
@@ -157,7 +157,7 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
             return { currentWorkflowName: workflowName };
         }, () => {
             let programPaneLines = this.currentWorkflowText;
-            programPane.injectText(programPaneLines);
+            // programPane.injectText(programPaneLines);
             this.rerun();
         });
     }

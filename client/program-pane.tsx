@@ -1,12 +1,12 @@
 /** This file contains React components for:
  *  - The program pane
- *  - All livelit windows and functionality as described in the Omar et al.
+ *  - All module windows and functionality as described in the Omar et al.
  *    paper.
- *  - Props of Livelit Components represent that livelit's parameter.
- *  - State of Livelit Components represent any GUI input elements within
- *    the livelit window whose splices will be used to write the expansion.
+ *  - Props of Module Components represent that module's parameter.
+ *  - State of Module Components represent any GUI input elements within
+ *    the module window whose splices will be used to write the expansion.
  *  - Class Properties thereof represent the model that will eventually be
- *    returned by the livelit. Note that we cannot rely on React state for this
+ *    returned by the module. Note that we cannot rely on React state for this
  *    because we need synchonicity.
  */
 
@@ -24,11 +24,11 @@ function RERUN() {
 }
 
 interface Props {};
-interface LivelitProps {
+interface ModuleProps {
     /* Ref created in the parent that is a React "special" prop included here
      * such that the parent (e.g. ModulePane) has a reference to the component
      * to which this Ref has been passed as "ref." */
-    ref: React.RefObject<LivelitWindow>;
+    ref: React.RefObject<VersoModule>;
     windowOpen: boolean;
     valueSet: boolean;
     key: string;
@@ -47,8 +47,8 @@ class ResetExecution extends Error {
 }
 
 class ProgramUtil {
-    static parseTextForLivelit(text: string,
-                               livelitRef: React.RefObject<LivelitWindow>)
+    static parseTextForModule(text: string,
+                               moduleRef: React.RefObject<VersoModule>)
                                : JSX.Element | null {
         const re = /\$\w+/;
         const maybeMatch = text.match(re);
@@ -56,11 +56,11 @@ class ProgramUtil {
         if (!maybeMatch) {
             return null;
         }
-        const livelitName = maybeMatch[0].slice(1);
-        switch (livelitName) {
+        const moduleName = maybeMatch[0].slice(1);
+        switch (moduleName) {
             case 'geometryGallery':
                 const ggProps: GeometryGalleryProps = {
-                    ref: livelitRef as React.RefObject<GeometryGallery>,
+                    ref: moduleRef as React.RefObject<GeometryGallery>,
                     valueSet: false,
                     windowOpen: true,
                     key: text
@@ -69,7 +69,7 @@ class ProgramUtil {
                        </GeometryGallery>;
             case 'pointPicker':
                 const ppProps: PointPickerProps = {
-                    ref: livelitRef as React.RefObject<PointPicker>,
+                    ref: moduleRef as React.RefObject<PointPicker>,
                     valueSet: false,
                     windowOpen: true,
                     key: text
@@ -80,7 +80,7 @@ class ProgramUtil {
                 const tcProps: TabletopCalibratorProps = {
                     machine: undefined,
                     tabletop: undefined,
-                    ref: livelitRef as React.RefObject<TabletopCalibrator>,
+                    ref: moduleRef as React.RefObject<TabletopCalibrator>,
                     valueSet: false,
                     windowOpen: true,
                     key: text
@@ -89,7 +89,7 @@ class ProgramUtil {
                        </TabletopCalibrator>;
             case 'cameraCalibrator':
                 const ccProps: CameraCalibratorProps = {
-                    ref: livelitRef as React.RefObject<CameraCalibrator>,
+                    ref: moduleRef as React.RefObject<CameraCalibrator>,
                     valueSet: false,
                     windowOpen: false,
                     key: text
@@ -98,7 +98,7 @@ class ProgramUtil {
             case 'faceFinder':
                 const ffProps: FaceFinderProps = {
                     camera: undefined,
-                    ref: livelitRef as React.RefObject<FaceFinder>,
+                    ref: moduleRef as React.RefObject<FaceFinder>,
                     valueSet: false,
                     windowOpen: true,
                     key: text
@@ -107,7 +107,7 @@ class ProgramUtil {
                        </FaceFinder>;
             case 'axidrawDriver':
                 const camProps: AxidrawDriverProps = {
-                    ref: livelitRef as React.RefObject<AxidrawDriver>,
+                    ref: moduleRef as React.RefObject<AxidrawDriver>,
                     valueSet: false,
                     windowOpen: true,
                     key: text
@@ -116,7 +116,7 @@ class ProgramUtil {
                        </AxidrawDriver>
             case 'toolpathVisualizer':
                 const tdProps: ToolpathVisualizerProps = {
-                    ref: livelitRef as React.RefObject<ToolpathVisualizer>,
+                    ref: moduleRef as React.RefObject<ToolpathVisualizer>,
                     valueSet: false,
                     windowOpen: true,
                     key: text
@@ -124,7 +124,7 @@ class ProgramUtil {
                 return <ToolpathVisualizer {...tdProps}></ToolpathVisualizer>;
             case 'machineInitializer':
                 const miProps: MachineInitializerProps = {
-                    ref: livelitRef as React.RefObject<MachineInitializer>,
+                    ref: moduleRef as React.RefObject<MachineInitializer>,
                     valueSet: false,
                     windowOpen: true,
                     key: text
@@ -132,7 +132,7 @@ class ProgramUtil {
                 return <MachineInitializer {...miProps}></MachineInitializer>;
             case 'dispatcher':
                 const dProps: DispatcherProps = {
-                    ref: livelitRef as React.RefObject<Dispatcher>,
+                    ref: moduleRef as React.RefObject<Dispatcher>,
                     valueSet: false,
                     windowOpen: true,
                     key: text
@@ -140,7 +140,7 @@ class ProgramUtil {
                 return <Dispatcher {...dProps}></Dispatcher>;
             case 'miniCam':
                 const mcProps: MiniCamProps = {
-                    ref: livelitRef as React.RefObject<MiniCam>,
+                    ref: moduleRef as React.RefObject<MiniCam>,
                     valueSet: false,
                     windowOpen: true,
                     key: text
@@ -148,7 +148,7 @@ class ProgramUtil {
                 return <MiniCam {...mcProps}></MiniCam>;
             case 'display':
                 const displayProps: DisplayProps = {
-                    ref: livelitRef as React.RefObject<Display>,
+                    ref: moduleRef as React.RefObject<Display>,
                     valueSet: false,
                     windowOpen: true,
                     key: text
@@ -156,7 +156,7 @@ class ProgramUtil {
                 return <Display {...displayProps}></Display>;
             case 'projector':
                 const projectorProps: ProjectorProps = {
-                    ref: livelitRef as React.RefObject<Projector>,
+                    ref: moduleRef as React.RefObject<Projector>,
                     valueSet: false,
                     windowOpen: true,
                     key: text
@@ -164,7 +164,7 @@ class ProgramUtil {
                 return <Projector {...projectorProps}></Projector>;
             case 'instructionBuilder':
                 const instructionBuilderProps: InstructionBuilderProps = {
-                    ref: livelitRef as React.RefObject<InstructionBuilder>,
+                    ref: moduleRef as React.RefObject<InstructionBuilder>,
                     valueSet: false,
                     windowOpen: true,
                     key: text
@@ -172,7 +172,7 @@ class ProgramUtil {
                 return <InstructionBuilder {...instructionBuilderProps}></InstructionBuilder>;
             case 'arraySlicer':
                 const arraySlicerProps: ArraySlicerProps = {
-                    ref: livelitRef as React.RefObject<ArraySlicer>,
+                    ref: moduleRef as React.RefObject<ArraySlicer>,
                     valueSet: false,
                     windowOpen: true,
                     key: text
@@ -186,17 +186,21 @@ class ProgramUtil {
 
 type ConsoleFn = (msg: string) => void;
 class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
-    livelitRefs: React.RefObject<LivelitWindow>[];
-    modulePaneRef: React.RefObject<ModulePane>;
+    moduleRefs: React.RefObject<VersoModule>[];
+    TEST_lines: string[];
 
     constructor(props: ProgramPaneProps) {
         super(props);
-        this.livelitRefs = [];
-        this.modulePaneRef = React.createRef<ModulePane>();
+        this.moduleRefs = [];
+        this.TEST_lines = [
+            'let camera = await $cameraCalibrator();',
+            'let machine = new verso.Machine(\'axidraw\');',
+            '$display(someInstruction);'
+        ];
     }
 
     componentDidMount() {
-        this.syntaxHighlightProgramLines();
+        // this.syntaxHighlightProgramLines();
     }
 
     syntaxHighlightProgramLines() {
@@ -261,36 +265,46 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         let programLinesDom = document.getElementById('program-lines');
         if (!programLinesDom) { return; }
         programLinesDom.innerHTML = '';
-        this.livelitRefs = [];
+        this.moduleRefs = [];
         let textLines = text.split('\n').filter(line => line !== '');
         let plDom;
         textLines.forEach((line, index) => {
             if (programLinesDom) {
-                const livelitRef = React.createRef<LivelitWindow>();
-                this.livelitRefs.push(livelitRef);
+                const moduleRef = React.createRef<VersoModule>();
+                this.moduleRefs.push(moduleRef);
                 plDom = document.createElement('div');
                 plDom.classList.add('program-line');
                 plDom.innerText = line;
                 programLinesDom.appendChild(plDom);
+
+                let maybeModule = ProgramUtil.parseTextForModule(line, moduleRef);
+                if (maybeModule) {
+                    // programLinesDom.appendChild(maybeModule);
+                }
+
+                // TODO
+                // 1. make it so that program lines have a state with regards to their
+                //    inner text. on change, we read whatever its inner text is and
+                //    update the state, causing maybe the modules to re-render.
+                // 2. pressing enter in the program pane makes a new program line
+                // 3. injecting text from database => return a bunch of program lines
+                // 4. syntax highlighting should be handled in the program line.
             }
         });
     }
 
-    private __getModules() : LivelitWindow[] {
-        let modules : LivelitWindow[] = [];
-        if (this.modulePaneRef.current) {
-            let maybeNullMods = this.modulePaneRef.current.getModules();
-            let nonNullMods = maybeNullMods.filter((mod) : mod is LivelitWindow => {
-                return mod !== null;
-            });
-            return nonNullMods;
-        }
-        else {
-            return [];
-        }
+    private __getModules() : VersoModule[] {
+        let modules : VersoModule[] = [];
+        let maybeModules = this.moduleRefs.map((ref) => {
+            return ref.current;
+        });
+        let nonNullMods = maybeModules.filter((mod) : mod is VersoModule => {
+            return mod !== null;
+        });
+        return nonNullMods;
     }
 
-    getLivelitWithName(functionName: string) : State {
+    getModuleWithName(functionName: string) : State {
         let modules = this.__getModules();
         let moduleWindow = modules.find((mod) => {
             return mod.functionName === functionName;
@@ -298,7 +312,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         return moduleWindow ? moduleWindow : {};
     }
 
-    gatherLivelitsAsFunctionDeclarations() : string {
+    gatherModulesAsFunctionDeclarations() : string {
         interface functionStatePair {
             functionName: string;
             state: State;
@@ -324,8 +338,8 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         };
         const PROGRAM_PANE = this;
         let innerProgText = extractProgramText();
-        let livelitFunctionDeclarations = this.gatherLivelitsAsFunctionDeclarations();
-        let progText  = `${livelitFunctionDeclarations}`;
+        let moduleFunctionDeclarations = this.gatherModulesAsFunctionDeclarations();
+        let progText  = `${moduleFunctionDeclarations}`;
         progText += `\n(async function() {`;
         progText += `paper.project.clear();`;
         progText += `let maybeVizSpaceDom = document.getElementById('visualization-space');`;
@@ -340,19 +354,39 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         });
     }
 
+    // mapLinesToModules(lineText: string) : JSX.Element[] {
+    //     let lines = lineText.split(';').filter(line => line !== '');
+    //     let modules = lines.map((lineText, lineIndex) => {
+    //         let moduleRef = React.createRef<VersoModule>();
+    //         this.moduleRefs.push(moduleRef);
+    //         return ProgramUtil.parseTextForModule(lineText, moduleRef);
+    //     });
+    //     let nonNullLiveLits = modules.filter((ll): ll is JSX.Element => {
+    //         return ll !== null;
+    //     });
+    //     return nonNullLiveLits;
+    // }
+
     generateModules() {
         return new Promise<void>((resolve, reject) => {
-            let currentProgLinesDom = document.getElementById('program-lines');
-            if (!currentProgLinesDom) { return; }
-            let currentProgLines = currentProgLinesDom.innerText
-                ? currentProgLinesDom.innerText
-                : this.props.loadedWorkflowText;
-            if (this.modulePaneRef.current) {
-                this.modulePaneRef.current.setState((prevState: ModulePaneState) => {
-                    return { text: currentProgLines }
-                }, resolve);
-            }
+            // TODO -- again - make modules appear ? here or elsewhere
+            resolve();
         });
+    }
+
+    renderLines() {
+        this.moduleRefs = [];
+        let programLines = this.TEST_lines.map((lineText, lineNumber) => {
+            let maybeModuleRef = React.createRef<VersoModule>();
+            this.moduleRefs.push(maybeModuleRef);
+            return (
+                <ProgramLine lineNumber={lineNumber}
+                             key={lineNumber}
+                             lineText={lineText}
+                             refForLivelit={maybeModuleRef}></ProgramLine>
+            );
+        });
+        return programLines;
     }
 
     render() {
@@ -360,6 +394,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
             <div id="program-pane">
                 <div id="program-lines-and-controls">
                     <div id="program-lines">
+                        { this.renderLines() }
                     </div>
                     <div id="program-console"></div>
                     <div id="program-controls" className="hidden">
@@ -374,81 +409,118 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
                         </div>
                     </div>
                 </div>
-                <ModulePane ref={this.modulePaneRef}></ModulePane>
             </div>
         );
     }
 }
 
-interface ModulePaneProps extends Props {
+interface ProgramLineProps {
+    lineNumber: number;
+    lineText: string;
+    refForLivelit: React.RefObject<VersoModule>;
 }
 
-interface ModulePaneState extends State {
-    text: string;
+interface ProgramLineState {
+    lineText: string;
+    highlight: boolean;
 }
 
-class ModulePane extends React.Component<ModulePaneProps, ModulePaneState> {
-    moduleRefs: React.RefObject<LivelitWindow>[];
-
-    constructor(props: ModulePaneProps) {
+class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
+    constructor(props: ProgramLineProps) {
         super(props);
-        this.moduleRefs = [];
         this.state = {
-            text: ''
+            lineText: props.lineText,
+            highlight: false
         };
     }
 
-    getModules() {
-        let modules = this.moduleRefs.map(ref => {
-            return ref ? ref.current : null;
-        });
-        let nonNullModules = modules.filter(maybeModule => maybeModule !== null);
-        return nonNullModules;
-    }
-
-    mapLinesToLivelits() : JSX.Element[] {
-        let lines = this.state.text.split(';').filter(line => line !== '');
-        let livelits = lines.map((lineText, lineIndex) => {
-            let moduleRef = React.createRef<LivelitWindow>();
-            this.moduleRefs.push(moduleRef);
-            return ProgramUtil.parseTextForLivelit(lineText, moduleRef);
-        });
-        let nonNullLiveLits = livelits.filter((ll): ll is JSX.Element => {
-            return ll !== null;
-        });
-        return nonNullLiveLits;
-    }
-
     render() {
+        const highlightClass = this.state.highlight ? 'pl-highlight' : '';
+        const lineNumber = this.props.lineNumber || 0;
+        const livelitWindow = ProgramUtil.parseTextForModule(
+                                this.state.lineText,
+                                this.props.refForLivelit);
         return (
-            <div id="module-pane" key="module-pane">
-                { this.mapLinesToLivelits() }
+            <div className={`program-line ${highlightClass}`}
+                 id={`line-${lineNumber - 1}`}>
+                 <div className="program-line-text">
+                     {this.state.lineText}
+                 </div>
+                 { livelitWindow }
             </div>
         );
     }
 }
 
-interface LivelitState {
+// interface ModulePaneProps extends Props {
+// }
+//
+// interface ModulePaneState extends State {
+//     text: string;
+// }
+//
+// class ModulePane extends React.Component<ModulePaneProps, ModulePaneState> {
+//     moduleRefs: React.RefObject<VersoModule>[];
+//
+//     constructor(props: ModulePaneProps) {
+//         super(props);
+//         this.moduleRefs = [];
+//         this.state = {
+//             text: ''
+//         };
+//     }
+//
+//     getModules() {
+//         let modules = this.moduleRefs.map(ref => {
+//             return ref ? ref.current : null;
+//         });
+//         let nonNullModules = modules.filter(maybeModule => maybeModule !== null);
+//         return nonNullModules;
+//     }
+//
+//     mapLinesToModules() : JSX.Element[] {
+//         let lines = this.state.text.split(';').filter(line => line !== '');
+//         let modules = lines.map((lineText, lineIndex) => {
+//             let moduleRef = React.createRef<VersoModule>();
+//             this.moduleRefs.push(moduleRef);
+//             return ProgramUtil.parseTextForModule(lineText, moduleRef);
+//         });
+//         let nonNullLiveLits = modules.filter((ll): ll is JSX.Element => {
+//             return ll !== null;
+//         });
+//         return nonNullLiveLits;
+//     }
+//
+//     render() {
+//         return (
+//             <div id="module-pane" key="module-pane">
+//                 { this.mapLinesToModules() }
+//             </div>
+//         );
+//     }
+// }
+
+interface ModuleState {
     windowOpen: boolean;
     valueSet: boolean;
 }
 
-class LivelitWindow extends React.Component {
+class VersoModule extends React.Component {
     titleText: string;
     functionName: string;
-    livelitClassName: string;
+    moduleClassName: string;
     titleKey: number;
     contentKey: number;
     applyButton?: JSX.Element;
-    props: LivelitProps;
-    state: LivelitState;
+    props: ModuleProps;
+    state: ModuleState;
 
-    constructor(props: LivelitProps) {
+    constructor(props: ModuleProps) {
         super(props);
         this.props = props;
-        this.titleText = 'Livelit Window';
-        this.functionName = '$livelit';
-        this.livelitClassName = 'livelit-window';
+        this.titleText = 'Module Window';
+        this.functionName = '$module';
+        this.moduleClassName = 'module-window';
         this.titleKey = 0;
         this.contentKey = 1;
         this.state = {
@@ -458,7 +530,7 @@ class LivelitWindow extends React.Component {
     }
 
     expand() : string {
-        return 'function livelitExpansion() { };';
+        return 'function moduleExpansion() { };';
     }
 
     async openWindow() {
@@ -480,7 +552,7 @@ class LivelitWindow extends React.Component {
 
     async _setWindowOpenState(open: boolean) {
         return new Promise<void>((resolve) => {
-            this.setState((prev: LivelitState) => {
+            this.setState((prev: ModuleState) => {
                 return { windowOpen: open };
             }, resolve);
         });
@@ -530,8 +602,8 @@ class LivelitWindow extends React.Component {
     }
 
     render() {
-        return <div className={this.livelitClassName}
-                    key={this.livelitClassName}>
+        return <div className={this.moduleClassName}
+                    key={this.moduleClassName}>
                     <div className="title-and-toggle-bar">
                         { this.renderTitle() }
                         { this.renderToggleButton() }
@@ -542,17 +614,17 @@ class LivelitWindow extends React.Component {
     }
 };
 
-interface GeometryGalleryProps extends LivelitProps {
+interface GeometryGalleryProps extends ModuleProps {
     ref: React.RefObject<GeometryGallery>;
     windowOpen: boolean;
 };
 
-interface GeometryGalleryState extends LivelitState {
+interface GeometryGalleryState extends ModuleState {
     selectedUrl: string;
     imageNameUrlPairs: [string, string][];
 };
 
-class GeometryGallery extends LivelitWindow {
+class GeometryGallery extends VersoModule {
     state: GeometryGalleryState;
 
     constructor(props: GeometryGalleryProps) {
@@ -594,7 +666,7 @@ class GeometryGallery extends LivelitWindow {
 
     expand() : string {
         let s = `async function ${this.functionName}(tabletop) {`;
-        s += `let gg = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `let gg = PROGRAM_PANE.getModuleWithName(\'${this.functionName}\');`;
         s += `await gg.init();`;
         s += `let geomUrl = gg.state.selectedUrl;`;
         s += `let geom = new verso.Geometry(tabletop);`;
@@ -747,15 +819,15 @@ class GeometryGallery extends LivelitWindow {
     }
 }
 
-interface PointPickerProps extends LivelitProps {
+interface PointPickerProps extends ModuleProps {
     ref: React.RefObject<PointPicker>;
     windowOpen: boolean;
 };
 
-class PointPicker extends LivelitWindow {
+class PointPicker extends VersoModule {
     props: PointPickerProps;
 
-    constructor(props: LivelitProps) {
+    constructor(props: ModuleProps) {
         super(props);
         this.props = props;
         this.titleText = 'Point Picker';
@@ -779,18 +851,18 @@ class PointPicker extends LivelitWindow {
     }
 }
 
-interface TabletopCalibratorProps extends LivelitProps {
+interface TabletopCalibratorProps extends ModuleProps {
     machine: verso.Machine | undefined;
     tabletop: verso.Tabletop | undefined;
     ref: React.RefObject<TabletopCalibrator>;
     windowOpen: boolean;
 };
 
-interface TabletopCalibratorState extends LivelitState {
+interface TabletopCalibratorState extends ModuleState {
     homography?: Homography;
 };
 
-class TabletopCalibrator extends LivelitWindow {
+class TabletopCalibrator extends VersoModule {
     state: TabletopCalibratorState;
     props: TabletopCalibratorProps;
     tabletop?: verso.Tabletop;
@@ -817,7 +889,7 @@ class TabletopCalibrator extends LivelitWindow {
 
     private __expandHelper(machine: verso.Machine) {
         // @ts-ignore
-        let tc: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
+        let tc: typeof this = PROGRAM_PANE.getModuleWithName(FUNCTION_NAME_PLACEHOLDER);
         let tabletop = new verso.Tabletop(machine);
         tc.tabletop = tabletop;
         if (tc.state.homography) {
@@ -963,12 +1035,12 @@ class TabletopCalibrator extends LivelitWindow {
     }
 }
 
-interface CameraCalibratorProps extends LivelitProps {
+interface CameraCalibratorProps extends ModuleProps {
     ref: React.RefObject<CameraCalibrator>;
     windowOpen: boolean;
 }
 
-interface CameraCalibratorState extends LivelitState {
+interface CameraCalibratorState extends ModuleState {
     unwarpedImageUrl: string;
     warpedImageUrl: string;
     /* Make this H optional rather than initializing it as an identity
@@ -977,8 +1049,8 @@ interface CameraCalibratorState extends LivelitState {
     selectedPoints: verso.Point[];
 };
 
-class CameraCalibrator extends LivelitWindow {
-    props: LivelitProps;
+class CameraCalibrator extends VersoModule {
+    props: ModuleProps;
     state: CameraCalibratorState;
     tabletop?: verso.Tabletop;
     camera: verso.Camera;
@@ -1097,7 +1169,7 @@ class CameraCalibrator extends LivelitWindow {
 
     expand() : string {
         let s = `async function ${this.functionName}(tabletop) {`;
-        s += `let cc = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `let cc = PROGRAM_PANE.getModuleWithName(\'${this.functionName}\');`;
         s += `cc.tabletop = tabletop;`;
         s += `cc.camera.tabletop = cc.tabletop;`;
         s += `if (!cc.state.valueSet) {`;
@@ -1254,19 +1326,19 @@ class CameraCalibrator extends LivelitWindow {
     }
 }
 
-interface FaceFinderProps extends LivelitProps {
+interface FaceFinderProps extends ModuleProps {
     camera?: verso.Camera;
     ref: React.RefObject<FaceFinder>;
     windowOpen: boolean;
 }
 
-interface FaceFinderState extends LivelitState {
+interface FaceFinderState extends ModuleState {
     imageTaken: boolean;
     imagePath: string;
     detectedRegions: verso.Region[];
 }
 
-class FaceFinder extends LivelitWindow {
+class FaceFinder extends VersoModule {
     state: FaceFinderState;
     camera?: verso.Camera;
     props: FaceFinderProps;
@@ -1308,7 +1380,7 @@ class FaceFinder extends LivelitWindow {
 
     expand() : string {
         let s = `async function ${this.functionName}(camera) {`;
-        s += `let ff = PROGRAM_PANE.getLivelitWithName(\'$faceFinder\');`;
+        s += `let ff = PROGRAM_PANE.getModuleWithName(\'$faceFinder\');`;
         s += `ff.camera = camera;`;
         s += `await ff.openWindow();`;
         s += `let regions = await ff.acceptDetectedRegions();`;
@@ -1399,8 +1471,8 @@ class FaceFinder extends LivelitWindow {
     }
 }
 
-class ToolpathDirectManipulator extends LivelitWindow {
-    constructor(props: LivelitProps) {
+class ToolpathDirectManipulator extends VersoModule {
+    constructor(props: ModuleProps) {
         super(props);
     }
 
@@ -1433,13 +1505,13 @@ class ToolpathDirectManipulator extends LivelitWindow {
     }
 }
 
-interface AxidrawDriverProps extends LivelitProps {
+interface AxidrawDriverProps extends ModuleProps {
     ref: React.RefObject<AxidrawDriver>;
     valueSet: boolean;
     windowOpen: boolean;
 }
 
-interface AxidrawDriverState extends LivelitState {
+interface AxidrawDriverState extends ModuleState {
     currentDriverName?: DriverName;
     machine: verso.Machine;
     geometry?: verso.Geometry;
@@ -1456,7 +1528,7 @@ interface SingleAxidrawDriver {
     isaOutput: CamIsaOutput;
 }
 
-class AxidrawDriver extends LivelitWindow {
+class AxidrawDriver extends VersoModule {
     state: AxidrawDriverState;
     drivers: SingleAxidrawDriver[];
 
@@ -1503,7 +1575,7 @@ class AxidrawDriver extends LivelitWindow {
 
     expand() : string {
         let s = `async function ${this.functionName}(machine, geometry) {`;
-        s += `let cc = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `let cc = PROGRAM_PANE.getModuleWithName(\'${this.functionName}\');`;
         s += `let toolpath;`;
         s += `await cc.setArguments(machine, geometry);`;
         s += `cc.generateToolpathWithCurrentDriver();`;
@@ -1681,13 +1753,13 @@ class AxidrawDriver extends LivelitWindow {
     }
 }
 
-interface ToolpathVisualizerProps extends LivelitProps {
+interface ToolpathVisualizerProps extends ModuleProps {
     ref: React.RefObject<ToolpathVisualizer>;
     valueSet: boolean;
     windowOpen: boolean;
 }
 
-interface ToolpathVisualizerState extends LivelitState {
+interface ToolpathVisualizerState extends ModuleState {
     machine: verso.Machine;
     toolpaths: verso.Toolpath[];
     visualizationSpace?: verso.VisualizationSpace;
@@ -1703,7 +1775,7 @@ interface VisualizerInterpreter {
     id: number;
 }
 
-class ToolpathVisualizer extends LivelitWindow {
+class ToolpathVisualizer extends VersoModule {
     state: ToolpathVisualizerState;
     interpreters: VisualizerInterpreter[];
 
@@ -1837,7 +1909,7 @@ class ToolpathVisualizer extends LivelitWindow {
             return;
         }
         // @ts-ignore
-        let tv: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
+        let tv: typeof this = PROGRAM_PANE.getModuleWithName(FUNCTION_NAME_PLACEHOLDER);
         await tv.setArguments(machine, toolpaths);
         let populatedVizSpace = await tv.populateVizSpace();
         return populatedVizSpace;
@@ -1954,11 +2026,11 @@ class ToolpathVisualizer extends LivelitWindow {
     }
 }
 
-interface MachineInitializerProps extends LivelitProps {
+interface MachineInitializerProps extends ModuleProps {
     ref: React.RefObject<MachineInitializer>;
 };
 
-interface MachineInitializerState extends LivelitState {
+interface MachineInitializerState extends ModuleState {
     initialized: boolean;
     connected: boolean;
     axesHomed: verso.Axis[];
@@ -1967,7 +2039,7 @@ interface MachineInitializerState extends LivelitState {
     port?: verso.Port;
 };
 
-class MachineInitializer extends LivelitWindow {
+class MachineInitializer extends VersoModule {
     props: MachineInitializerProps;
     state: MachineInitializerState;
 
@@ -2021,7 +2093,7 @@ class MachineInitializer extends LivelitWindow {
 
     expand() : string {
         let s = `async function ${this.functionName}(machine) {`;
-        s += `let mi = PROGRAM_PANE.getLivelitWithName(\'${this.functionName}\');`;
+        s += `let mi = PROGRAM_PANE.getModuleWithName(\'${this.functionName}\');`;
         s += `if (mi.state.initialized) {`;
         s += `machine.initialized = true;`;
         s += `machine.port = mi.state.port;`;
@@ -2206,18 +2278,18 @@ class MachineInitializer extends LivelitWindow {
 
 type MachineState = 'disconnected' | 'free' | 'busy'
 
-interface DispatcherProps extends LivelitProps {
+interface DispatcherProps extends ModuleProps {
     ref: React.RefObject<Dispatcher>;
 };
 
-interface DispatcherState extends LivelitState {
+interface DispatcherState extends ModuleState {
     machine?: verso.Machine;
     toolpaths?: verso.Toolpath[];
     currentToolpathIndex: number;
     machineState: MachineState;
 };
 
-class Dispatcher extends LivelitWindow {
+class Dispatcher extends VersoModule {
     props: DispatcherProps;
     state: DispatcherState;
 
@@ -2253,7 +2325,7 @@ class Dispatcher extends LivelitWindow {
             return;
         }
         // @ts-ignore
-        let mc: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
+        let mc: typeof this = PROGRAM_PANE.getModuleWithName(FUNCTION_NAME_PLACEHOLDER);
         mc.setState(_ => {
             let machineState = machine.initialized && machine.port?.isOpen
                                 ? 'free' : 'disconnected';
@@ -2403,15 +2475,15 @@ class Dispatcher extends LivelitWindow {
     }
 }
 
-interface DisplayProps extends LivelitProps {
+interface DisplayProps extends ModuleProps {
     ref: React.RefObject<Display>;
 };
 
-interface DisplayState extends LivelitState {
+interface DisplayState extends ModuleState {
     displayValue: string;
 };
 
-class Display extends LivelitWindow {
+class Display extends VersoModule {
     props: DisplayProps;
     state: DisplayState;
 
@@ -2429,7 +2501,7 @@ class Display extends LivelitWindow {
 
     private __expandHelper(value: any) {
         // @ts-ignore
-        let d: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
+        let d: typeof this = PROGRAM_PANE.getModuleWithName(FUNCTION_NAME_PLACEHOLDER);
         let stringifiedValue: string;
         try {
             stringifiedValue = JSON.stringify(value)
@@ -2494,11 +2566,11 @@ class Display extends LivelitWindow {
     }
 }
 
-interface MiniCamProps extends LivelitProps {
+interface MiniCamProps extends ModuleProps {
     ref: React.RefObject<MiniCam>;
 };
 
-interface MiniCamState extends LivelitState {
+interface MiniCamState extends ModuleState {
     geometries: verso.Geometry[];
     // Each geometry has an associated operation
     operations: verso.CamOperation[];
@@ -2506,7 +2578,7 @@ interface MiniCamState extends LivelitState {
     selectedGeometryIndex: number;
 };
 
-class MiniCam extends LivelitWindow {
+class MiniCam extends VersoModule {
     props: MiniCamProps;
     state: MiniCamState;
 
@@ -2556,7 +2628,7 @@ class MiniCam extends LivelitWindow {
             return [];
         }
         // @ts-ignore
-        let mc: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
+        let mc: typeof this = PROGRAM_PANE.getModuleWithName(FUNCTION_NAME_PLACEHOLDER);
         let selectedGeom = mc.selectedGeometry;
         let tps = geometries.map((currentGeom, geomIndex) => {
             let operation = operations[geomIndex];
@@ -2698,15 +2770,15 @@ class MiniCam extends LivelitWindow {
     }
 }
 
-interface ProjectorProps extends LivelitProps {
+interface ProjectorProps extends ModuleProps {
     ref: React.RefObject<Projector>;
 };
 
-interface ProjectorState extends LivelitState {
+interface ProjectorState extends ModuleState {
     bitmapDataUrl: string;
 }
 ;
-class Projector extends LivelitWindow {
+class Projector extends VersoModule {
     props: ProjectorProps;
     state: ProjectorState;
 
@@ -2724,7 +2796,7 @@ class Projector extends LivelitWindow {
 
     private async __expandHelper(tabletop: verso.Tabletop, vizSpace: verso.VisualizationSpace) {
         // @ts-ignore
-        let pr: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
+        let pr: typeof this = PROGRAM_PANE.getModuleWithName(FUNCTION_NAME_PLACEHOLDER);
         await pr.generateBitmapFromVizSpace(vizSpace);
         return 'okay';
     }
@@ -2799,11 +2871,11 @@ class Projector extends LivelitWindow {
     }
 }
 
-interface InstructionBuilderProps extends LivelitProps {
+interface InstructionBuilderProps extends ModuleProps {
     ref: React.RefObject<InstructionBuilder>;
 };
 
-interface InstructionBuilderState extends LivelitState {
+interface InstructionBuilderState extends ModuleState {
     paramSet: InstructionParamsG0;
     paramBounds: InstructionParamsG0;
 };
@@ -2817,7 +2889,7 @@ interface InstructionParamsG0 {
     [index: string]: number;
 };
 
-class InstructionBuilder extends LivelitWindow {
+class InstructionBuilder extends VersoModule {
     props: InstructionBuilderProps;
     state: InstructionBuilderState;
 
@@ -2844,7 +2916,7 @@ class InstructionBuilder extends LivelitWindow {
 
     private async __expandHelper(paramBounds: InstructionParamsG0) {
         // @ts-ignore
-        let ib: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
+        let ib: typeof this = PROGRAM_PANE.getModuleWithName(FUNCTION_NAME_PLACEHOLDER);
         if (paramBounds) {
             await ib.setArguments(paramBounds);
         }
@@ -3006,15 +3078,15 @@ class InstructionBuilder extends LivelitWindow {
     }
 }
 
-interface ArraySlicerProps extends LivelitProps {
+interface ArraySlicerProps extends ModuleProps {
     ref: React.RefObject<ArraySlicer>;
 };
 
-interface ArraySlicerState extends LivelitState {
+interface ArraySlicerState extends ModuleState {
     arraySlicerValue: string;
 };
 
-class ArraySlicer extends LivelitWindow {
+class ArraySlicer extends VersoModule {
     props: ArraySlicerProps;
     state: ArraySlicerState;
 
@@ -3032,7 +3104,7 @@ class ArraySlicer extends LivelitWindow {
 
     private __expandHelper(value: any) {
         // @ts-ignore
-        let d: typeof this = PROGRAM_PANE.getLivelitWithName(FUNCTION_NAME_PLACEHOLDER);
+        let d: typeof this = PROGRAM_PANE.getModuleWithName(FUNCTION_NAME_PLACEHOLDER);
         let stringifiedValue: string;
         try {
             stringifiedValue = JSON.stringify(value)
