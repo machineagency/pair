@@ -444,6 +444,10 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
         };
     }
 
+    handleTextChange() {
+        // TODO
+    }
+
     render() {
         const highlightClass = this.state.highlight ? 'pl-highlight' : '';
         const lineNumber = this.props.lineNumber || 0;
@@ -453,7 +457,8 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
         return (
             <div className={`program-line ${highlightClass}`}
                  id={`line-${lineNumber - 1}`}>
-                 <div className="program-line-text">
+                 <div className="program-line-text"
+                      onChange={this.handleTextChange.bind(this)}>
                      {this.state.lineText}
                  </div>
                  { livelitWindow }
@@ -938,9 +943,13 @@ class TabletopCalibrator extends VersoModule {
     }
 
     saveValue() {
-        return new Promise<void>((resolve) => {
+        return new Promise<void>((resolve, reject) => {
             if (this.tabletop) {
                 let h = this.state.homography;
+                if (!h) {
+                    console.warn('TabletopCalibrator: Could not save homography.');
+                    reject();
+                }
                 let hSerialized = JSON.stringify(h);
                 localStorage.setItem(this.functionName, hSerialized);
                 this.setState(_ => {
@@ -951,6 +960,7 @@ class TabletopCalibrator extends VersoModule {
             }
             else {
                 console.warn('TabletopCalibrator: Could not save homography.');
+                reject();
             }
         });
     }
@@ -964,10 +974,15 @@ class TabletopCalibrator extends VersoModule {
         }
         let coeffsStr = localStorage.getItem(this.functionName);
         if (coeffsStr) {
-            let revivedH = JSON.parse(coeffsStr) as RevivedHomography;
-            // Hopefully no numerical errors here.
-            let h = PerspT(revivedH.srcPts, revivedH.dstPts);
-            return h;
+            try {
+                let revivedH = JSON.parse(coeffsStr) as RevivedHomography;
+                // Hopefully no numerical errors here.
+                let h = PerspT(revivedH.srcPts, revivedH.dstPts);
+                return h;
+            }
+            catch (Error) {
+                return undefined;
+            }
         }
         else {
             return undefined;

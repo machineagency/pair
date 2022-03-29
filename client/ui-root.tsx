@@ -41,13 +41,10 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
         this.populateWorkflows();
         // Once we have text, do the rest of the setup
         // programPane.bindNativeConsoleToProgramConsole();
-        programPane.generateModules()
-        .then(() => {
-            programPane.runAllLines();
-            this.setProgramLinesContentEditable();
-            this.setTabKeypressHandler();
-            this.setProgramLinesRerunHandler();
-        });
+        programPane.runAllLines();
+        this.setProgramLinesContentEditable();
+        this.setTabKeypressHandler();
+        this.setProgramLinesRerunHandler();
     }
 
     async fetchWorkflows() : Promise<Workflow[]> {
