@@ -193,9 +193,14 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         super(props);
         this.moduleRefs = [];
         this.TEST_lines = [
-            'let camera = await $cameraCalibrator();',
-            'let machine = new verso.Machine(\'axidraw\');',
-            '$display(someInstruction);'
+            "let machine = new verso.Machine('axidraw');",
+            "let tabletop = await $tabletopCalibrator(machine);",
+            "let geometry = await $geometryGallery(machine);",
+            "let toolpath = await $axidrawDriver(machine, geometry);",
+            "let vizSpace = await $toolpathVisualizer(machine, [toolpath]);",
+            "let svg = await $projector(tabletop, vizSpace);",
+            "let someInstruction = await $instructionBuilder();",
+            "$display(someInstruction);"
         ];
     }
 
@@ -330,11 +335,16 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
 
     runAllLines() {
         const extractProgramText = () => {
-            let progLinesDom = document.getElementById('program-lines');
-            if (progLinesDom) {
-                return progLinesDom.innerText;
-            }
-            return '';
+            let programTextDoms = document.getElementsByClassName('program-line-text');
+            let lines = Array.from(programTextDoms).map((dom) => {
+                return (dom as HTMLDivElement).innerText;
+            });
+            return lines.join('\n');
+            // let progLinesDom = document.getElementById('program-lines');
+            // if (progLinesDom) {
+            //     return progLinesDom.innerText;
+            // }
+            // return '';
         };
         const PROGRAM_PANE = this;
         let innerProgText = extractProgramText();

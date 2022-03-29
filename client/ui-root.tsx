@@ -99,7 +99,7 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
     setProgramLinesContentEditable() {
         let programLinesDom = document.getElementById('program-lines');
         if (programLinesDom) {
-            programLinesDom.contentEditable = "true";
+            // programLinesDom.contentEditable = "true";
             programLinesDom.spellcheck = false;
         }
     }
