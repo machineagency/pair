@@ -352,8 +352,6 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         let progText  = `${moduleFunctionDeclarations}`;
         progText += `\n(async function() {`;
         progText += `paper.project.clear();`;
-        progText += `let maybeVizSpaceDom = document.getElementById('visualization-space');`;
-        progText += `if (maybeVizSpaceDom) { maybeVizSpaceDom.innerHTML = ''; }`;
         progText += `try {`;
         progText += `${innerProgText}`;
         progText += `} catch (e) { console.error(e); }`;
@@ -1835,6 +1833,7 @@ interface VisualizerInterpreter {
 class ToolpathVisualizer extends VersoModule {
     state: ToolpathVisualizerState;
     interpreters: VisualizerInterpreter[];
+    vizSpaceDomRef: React.RefObject<HTMLDivElement>;
 
     constructor(props: ToolpathVisualizerProps) {
         super(props);
@@ -1842,6 +1841,7 @@ class ToolpathVisualizer extends VersoModule {
         this.functionName = '$toolpathVisualizer';
         // TODO: move the interpreter methods somewhere else where we can declare
         // a type and also generate this.interpreters programatically.
+        this.vizSpaceDomRef = React.createRef<HTMLDivElement>();
         this.interpreters = [
             {
                 name: 'Basic Lines (G-code)',
@@ -1951,12 +1951,12 @@ class ToolpathVisualizer extends VersoModule {
     }
 
     componentDidUpdate() {
-        let implementationDom = document.getElementById('viz-implementation-box');
-        if (implementationDom) {
-            // FIXME: this results in an unescaped HTML warning from react
-            // which then seems to freeze the implementation shown. See if
-            // we can fix later if there's time.
-            // hljs.highlightElement(implementationDom);
+        let maybeVizSpaceDom = this.vizSpaceDomRef.current;
+        if (maybeVizSpaceDom && maybeVizSpaceDom.children.length > 1) {
+            let oldCanvas = maybeVizSpaceDom.children.item(0);
+            if (oldCanvas) {
+                oldCanvas.remove();
+            }
         }
     }
 
@@ -2074,6 +2074,10 @@ class ToolpathVisualizer extends VersoModule {
         return (
             <div className={`toolpath-visualizer content ${maybeHidden}`}
                  key={this.contentKey.toString()}>
+                <div id="visualization-space-container">
+                    <div id="visualization-space"
+                         ref={this.vizSpaceDomRef}></div>
+                </div>
                 <div className="bold-text">Visualization Interpreters</div>
                 { this.renderVizInterpreters() }
                 <div className="bold-text">Implementation</div>

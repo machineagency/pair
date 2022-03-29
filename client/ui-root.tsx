@@ -42,7 +42,7 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
         // Once we have text, do the rest of the setup
         // programPane.bindNativeConsoleToProgramConsole();
         programPane.runAllLines();
-        this.setTabKeypressHandler();
+        // this.setTabKeypressHandler();
     }
 
     async fetchWorkflows() : Promise<Workflow[]> {
@@ -91,16 +91,16 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
         });
     }
 
-    setTabKeypressHandler() {
-        let programLinesDom = document.getElementById('program-lines');
-        if (programLinesDom) {
-            programLinesDom.addEventListener('keydown', (e: KeyboardEvent) => {
-                if (programLinesDom && FormatUtil.isTabKeypress(e)) {
-                    FormatUtil.handleTabKeypress(e, programLinesDom);
-                }
-            });
-        }
-    }
+    // setTabKeypressHandler() {
+    //     let programLinesDom = document.getElementById('program-lines');
+    //     if (programLinesDom) {
+    //         programLinesDom.addEventListener('keydown', (event: KeyboardEvent) => {
+    //             if (programLinesDom && FormatUtil.isTabKeypress(e)) {
+    //                 FormatUtil.handleTabKeypress(e, programLinesDom);
+    //             }
+    //         });
+    //     }
+    // }
 
     rerun() {
         let programPaneRef = this.state.programPaneRef as React.RefObject<ProgramPane>;
@@ -192,9 +192,6 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
                     </div>
                     <ProgramPane loadedWorkflowText={this.currentWorkflowText}
                         ref={this.state.programPaneRef}></ProgramPane>
-                </div>
-                <div id="visualization-space-container">
-                    <div id="visualization-space"></div>
                 </div>
                 <div id="canvas-container">
                     <PaperCanvas></PaperCanvas>

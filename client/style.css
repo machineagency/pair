@@ -478,7 +478,7 @@ pre code.hljs {
 }
 
 #visualization-space canvas {
-    width: 70% !important;
+    width: 100% !important;
     height: 50% !important;
     border: 1px solid whitesmoke;
 }
