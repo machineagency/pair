@@ -209,11 +209,11 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     }
 
     syntaxHighlightProgramLines() {
-        let programLinesDom = document.getElementById('program-lines');
-        if (!programLinesDom) { return; }
-        const pos = FormatUtil.caret(programLinesDom);
-        FormatUtil.highlight(programLinesDom);
-        FormatUtil.setCaret(pos, programLinesDom);
+        // let programLinesDom = document.getElementById('program-lines');
+        // if (!programLinesDom) { return; }
+        // const pos = FormatUtil.caret(programLinesDom);
+        // FormatUtil.highlight(programLinesDom);
+        // FormatUtil.setCaret(pos, programLinesDom);
     }
 
     clearProgramConsole() {
