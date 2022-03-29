@@ -38,7 +38,7 @@ pre code.hljs {
     font-style: normal;
 }
 
-.livelit-window .button.grayed {
+.module-window .button.grayed {
     background-color: #888888;
     color: #222222;
     cursor: not-allowed;
@@ -177,22 +177,23 @@ pre code.hljs {
 
 /* Shared Livelit Styles */
 
-.livelit-window {
-    max-width: 90%;
-    margin-bottom: 10px;
+.module-window {
+    max-width: 60%;
+    margin: 10px 0px 10px 0px;
     border: 1px solid whitesmoke;
     padding: 10px;
     display: flex;
     flex-direction: column;
+    font-size: 8pt;
 }
 
-.livelit-window .title {
+.module-window .title {
     font-weight: bold;
     font-size: 10pt;
     margin-bottom: 10px;
 }
 
-.livelit-window .subtitle {
+.module-window .subtitle {
     font-weight: bold;
     margin-bottom: 5px;
 }
@@ -216,11 +217,11 @@ pre code.hljs {
     margin-left: auto;
 }
 
-.livelit-window .content {
+.module-window .content {
     margin-bottom: 10px;
 }
 
-.livelit-window .button {
+.module-window .button {
     height: 18px;
     width: 120px;
     background-color: whitesmoke;
@@ -236,29 +237,29 @@ pre code.hljs {
     padding-bottom: 4px;
 }
 
-.livelit-window .help-text {
+.module-window .help-text {
     margin-top: 10px;
     font-style: italic;
 }
 
-.livelit-window .bold-text {
+.module-window .bold-text {
     margin-top: 10px;
     font-weight: bold;
     font-style: italic;
 }
 
-.livelit-window .image-thumbnail {
+.module-window .image-thumbnail {
     height: 100%;
     width: 100%;
     border: 1px solid whitesmoke;
 }
 
-.livelit-window .image-thumbnail img {
+.module-window .image-thumbnail img {
     max-height: 100%;
     max-width: 100%;
 }
 
-.livelit-window input[type="text"] {
+.module-window input[type="text"] {
       background-color: #23241f;
       color: whitesmoke;
       font-family: 'JetBrains Mono', monospace;
