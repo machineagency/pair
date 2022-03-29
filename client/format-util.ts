@@ -32,7 +32,7 @@ export class FormatUtil {
         }
     }
 
-    static caret(programLinesDom: HTMLElement) : number {
+    static caret(programLineDom: HTMLDivElement) : number {
         const sel = window.getSelection();
         if (!sel) { return 0; }
         let range;
@@ -43,13 +43,13 @@ export class FormatUtil {
             return 0;
         }
         const prefix = range.cloneRange();
-        prefix.selectNodeContents(programLinesDom);
+        prefix.selectNodeContents(programLineDom);
         prefix.setEnd(range.endContainer, range.endOffset);
         return prefix.toString().length;
     }
 
-    static setCaret(pos: number, programLinesDom: HTMLElement) {
-        for (const node of programLinesDom.childNodes) {
+    static setCaret(pos: number, programLineDom: HTMLDivElement) {
+        for (const node of programLineDom.childNodes) {
             if (node.nodeType == Node.TEXT_NODE) {
                 let currNode = node as Text;
                 if (currNode.length >= pos) {
@@ -65,7 +65,7 @@ export class FormatUtil {
                     pos = pos - currNode.length;
                 }
             } else {
-                let currNode = node as HTMLElement;
+                let currNode = node as HTMLDivElement;
                 pos = FormatUtil.setCaret(pos, currNode);
                 if (pos < 0) {
                   return pos;
@@ -75,22 +75,22 @@ export class FormatUtil {
         return pos;
     };
 
-    static isTabKeypress(e: KeyboardEvent) {
+    static isTabKeypress(e: React.KeyboardEvent<HTMLDivElement>) {
         return e.which == 9;
     }
 
-    static handleTabKeypress(e: KeyboardEvent, programLinesDom: HTMLElement) {
+    static handleTabKeypress(e: React.KeyboardEvent<HTMLDivElement>, programLineDom: HTMLDivElement) {
         const tabDepth = 4;
         const magicalSpace = '\xa0';
         const tab = magicalSpace.repeat(tabDepth);
-        const pos = FormatUtil.caret(programLinesDom) + tab.length;
+        const pos = FormatUtil.caret(programLineDom) + tab.length;
         const sel = window.getSelection();
         if (!sel) { return; }
         const range = sel.getRangeAt(0);
         range.deleteContents();
         range.insertNode(document.createTextNode(tab));
-        FormatUtil.highlight(programLinesDom);
-        FormatUtil.setCaret(pos, programLinesDom);
+        FormatUtil.highlight(programLineDom);
+        FormatUtil.setCaret(pos, programLineDom);
         e.preventDefault();
     }
 }
