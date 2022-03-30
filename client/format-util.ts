@@ -7,29 +7,27 @@ export class FormatUtil {
             || e.keyCode == 0x09;
     }
 
-    static highlight(programLinesDom: HTMLElement) {
-        for (const node of programLinesDom.children) {
-            // Check if this line is solely a comment and if so process
-            // accordingly without making any other changes;
-            let s;
-            let commentRegex = /(\/\/.*)$/gm;
-            if ((node as HTMLElement).innerText.search(commentRegex) !== -1) {
-                s = (node as HTMLElement).innerText
-                    .replace(/(\/\/.*)$/gm, '<div class="comment">$1</div>');
-            }
-            else {
-                s = (node as HTMLElement).innerText
-                    // NOTE: we can only add class="..." after we replace quotes.
-                    .replace(/(".*?"|'.*?'|`.*?`)/g, '<em>$1</em>')
-                    .replace(
-                      /\b(await|async|new|if|else|do|while|switch|for|in|of|continue|break|return|typeof|function|var|const|let|\.length|\.\w+)(?=[^\w])/g,
-                      '<strong>$1</strong>',
-                    )
-                    .replace(/\b(\d+)/g, '<em><strong>$1</strong></em>')
-                    .replace(/(\$\w+)/g, '<div class="red">$1</div>');
-            }
-            node.innerHTML = s.split('\n').join('<br/>');
+    static highlight(plText: HTMLElement) {
+        // Check if this line is solely a comment and if so process
+        // accordingly without making any other changes;
+        let s;
+        let commentRegex = /(\/\/.*)$/gm;
+        if (plText.innerText.search(commentRegex) !== -1) {
+            s = plText.innerText
+                .replace(/(\/\/.*)$/gm, '<div class="comment">$1</div>');
         }
+        else {
+            s = plText.innerText
+                // NOTE: we can only add class="..." after we replace quotes.
+                .replace(/(".*?"|'.*?'|`.*?`)/g, '<em>$1</em>')
+                .replace(
+                  /\b(await|async|new|if|else|do|while|switch|for|in|of|continue|break|return|typeof|function|var|const|let|\.length|\.\w+)(?=[^\w])/g,
+                  '<strong>$1</strong>',
+                )
+                .replace(/\b(\d+)/g, '<em><strong>$1</strong></em>')
+                .replace(/(\$\w+)/g, '<div class="red">$1</div>');
+        }
+        plText.innerHTML = s.split('\n').join('<br/>');
     }
 
     static caret(programLineDom: HTMLDivElement) : number {

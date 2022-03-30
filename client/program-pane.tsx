@@ -447,6 +447,11 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
         this.textDomRef = React.createRef<HTMLDivElement>();
     }
 
+    componentDidMount() {
+        this.highlightSyntax();
+        this.setContentEditable();
+    }
+
     fireUpdateAndRerunHandler(event: React.KeyboardEvent<HTMLDivElement>) {
         const delay = 250;
         let textDom = this.textDomRef.current;
@@ -456,6 +461,7 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
             clearTimeout(this.updateAndRerunTimeout);
             this.updateAndRerunTimeout = window.setTimeout(() => {
                 this.setState(_ => ({ lineText: textSetByUser }));
+                this.highlightSyntax();
                 RERUN();
             }, delay);
         }
@@ -467,6 +473,14 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
         if (FormatUtil.isTabKeypress(event)) {
             FormatUtil.handleTabKeypress(event, textDom);
         }
+    }
+
+    highlightSyntax() {
+        let textDom = this.textDomRef.current;
+        if (!textDom) { return; }
+        const pos = FormatUtil.caret(textDom);
+        FormatUtil.highlight(textDom);
+        FormatUtil.setCaret(pos, textDom);
     }
 
     setContentEditable() {
@@ -1834,6 +1848,7 @@ class ToolpathVisualizer extends VersoModule {
     state: ToolpathVisualizerState;
     interpreters: VisualizerInterpreter[];
     vizSpaceDomRef: React.RefObject<HTMLDivElement>;
+    vizSpaceCamera?: THREE.Camera;
 
     constructor(props: ToolpathVisualizerProps) {
         super(props);
@@ -1874,6 +1889,7 @@ class ToolpathVisualizer extends VersoModule {
             }
         ];
         let maybeSavedInterpreterName = this.loadSavedValue();
+        this.vizSpaceCamera = undefined;
         this.state = {
             machine: new verso.Machine('TEMP'),
             toolpaths: [],

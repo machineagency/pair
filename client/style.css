@@ -146,6 +146,7 @@ pre code.hljs {
 .program-line-text {
     display: inline-block;
     margin: 0px;
+    width: 100%;
 }
 
 .program-line-text:focus {
