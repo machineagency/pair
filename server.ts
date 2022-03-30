@@ -274,8 +274,12 @@ let attachRoutesAndStart = () => {
     });
 
     app.get('/geometries', (req: Request, res: Response) => {
-        let names = fs.readdirSync('./geometries').map((file: string) => {
+        let possiblyHiddenNames: string[] = fs.readdirSync('./geometries')
+                                                .map((file: string) => {
             return file;
+        });
+        let names = possiblyHiddenNames.filter((name) => {
+            return name.length > 0 && name[0] !== '.';
         });
         res.status(200).json({ names: names });
     });
