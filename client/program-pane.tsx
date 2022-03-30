@@ -2094,9 +2094,9 @@ class ToolpathVisualizer extends VersoModule {
                     <div id="visualization-space"
                          ref={this.vizSpaceDomRef}></div>
                 </div>
-                <div className="bold-text">Visualization Interpreters</div>
+                <div className="bold-text">Toolpath Stylesheets</div>
                 { this.renderVizInterpreters() }
-                <div className="bold-text">Implementation</div>
+                <div className="bold-text">Current TSS Implementation</div>
                 { this.renderImplementation() }
            </div>
        );
