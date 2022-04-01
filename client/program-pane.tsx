@@ -257,12 +257,13 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         this.moduleRefs = [];
         let lines = this.props.loadedWorkflowText.split('\n')
             .filter((line) => line.length > 0);
-        let programLines = lines.map((lineText, lineNumber) => {
+        let programLines = lines.map((lineText, lineIndex) => {
+            let lineNumber = lineIndex + 1;
             let maybeModuleRef = React.createRef<VersoModule>();
             this.moduleRefs.push(maybeModuleRef);
             return (
                 <ProgramLine lineNumber={lineNumber}
-                             key={lineNumber}
+                             key={lineIndex}
                              lineText={lineText}
                              refForLivelit={maybeModuleRef}></ProgramLine>
             );
@@ -305,6 +306,8 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
     updateAndRerunTimeout: number;
     textDomRef: React.RefObject<HTMLDivElement>;
 
+    static textClassName = 'program-line-text';
+
     constructor(props: ProgramLineProps) {
         super(props);
         this.state = {
@@ -318,6 +321,50 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
     componentDidMount() {
         this.highlightSyntax();
         this.setContentEditable();
+    }
+
+    handleKeyUp(event: React.KeyboardEvent<HTMLDivElement>) {
+        const printableStart = 20;
+        const printableEnd = 126;
+        if (event.keyCode >= printableStart
+                    && event.keyCode <= printableEnd) {
+            this.fireUpdateAndRerunHandler(event);
+        }
+    }
+
+    handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+        const carriageReturn = 13;
+        const deleteKey = 127;
+        const tabKey = 9;
+        if (event.keyCode === carriageReturn) {
+            this.handleEnterKeypress(event);
+        }
+        else if (event.keyCode === deleteKey) {
+            this.handleDeleteKeypress(event);
+        }
+        else if (event.keyCode === tabKey) {
+            this.handleTabKeypress(event);
+        }
+    }
+
+    handleEnterKeypress(event: React.KeyboardEvent<HTMLDivElement>) {
+        event.preventDefault();
+        let emptyLine = '42;';
+        let plDom = event.target as HTMLDivElement;
+        let rawLineNumber = plDom.dataset.lineNumber;
+        if (!rawLineNumber) { console.error('uh oh'); return; }
+        let lineNumber = parseInt(rawLineNumber);
+        if (!lineNumber) { console.log('bad'); return; }
+        let lineIndex = lineNumber - 1;
+        let pltDoms = Array.from(document.getElementsByClassName(ProgramLine
+                                .textClassName)) as HTMLDivElement[];
+        let progLines = pltDoms.map(pltDom => pltDom.innerText);
+        let updatedProgLines = progLines.slice(0, lineNumber)
+                                .concat([emptyLine])
+                                .concat(progLines.slice(lineNumber));
+    }
+
+    handleDeleteKeypress(event: React.KeyboardEvent<HTMLDivElement>) {
     }
 
     fireUpdateAndRerunHandler(event: React.KeyboardEvent<HTMLDivElement>) {
@@ -365,17 +412,18 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
 
     render() {
         const highlightClass = this.state.highlight ? 'pl-highlight' : '';
-        const lineNumber = this.props.lineNumber || 0;
+        const lineNumber = this.props.lineNumber || -1;
         const livelitWindow = ProgramUtil.parseTextForModule(
                                 this.state.lineText,
                                 this.props.refForLivelit);
         return (
             <div className={`program-line ${highlightClass}`}
-                 id={`line-${lineNumber - 1}`}>
-                 <div className="program-line-text"
+                 id={`line-${lineNumber}`}>
+                 <div className={ProgramLine.textClassName}
                       ref={this.textDomRef}
-                      onKeyDown={this.handleTabKeypress.bind(this)}
-                      onKeyUp={this.fireUpdateAndRerunHandler.bind(this)}>
+                      data-line-number={lineNumber}
+                      onKeyDown={this.handleKeyDown.bind(this)}
+                      onKeyUp={this.handleKeyUp.bind(this)}>
                      {this.state.lineText}
                  </div>
                  { livelitWindow }
