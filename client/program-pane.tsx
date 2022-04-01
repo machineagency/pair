@@ -187,21 +187,10 @@ class ProgramUtil {
 type ConsoleFn = (msg: string) => void;
 class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     moduleRefs: React.RefObject<VersoModule>[];
-    TEST_lines: string[];
 
     constructor(props: ProgramPaneProps) {
         super(props);
         this.moduleRefs = [];
-        this.TEST_lines = [
-            "let machine = new verso.Machine('axidraw');",
-            "let tabletop = await $tabletopCalibrator(machine);",
-            "let geometry = await $geometryGallery(tabletop);",
-            "let toolpath = await $axidrawDriver(machine, geometry);",
-            "let vizSpace = await $toolpathVisualizer(machine, [toolpath]);",
-            "let svg = await $projector(tabletop, vizSpace);",
-            "let someInstruction = await $instructionBuilder();",
-            "$display(someInstruction);"
-        ];
     }
 
     componentDidMount() {
@@ -384,7 +373,9 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
 
     renderLines() {
         this.moduleRefs = [];
-        let programLines = this.TEST_lines.map((lineText, lineNumber) => {
+        let lines = this.props.loadedWorkflowText.split('\n')
+            .filter((line) => line.length > 0);
+        let programLines = lines.map((lineText, lineNumber) => {
             let maybeModuleRef = React.createRef<VersoModule>();
             this.moduleRefs.push(maybeModuleRef);
             return (
