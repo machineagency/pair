@@ -448,12 +448,17 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
         let textDom = this.textDomRef.current;
         if (!textDom) { return; }
         let textSetByUser = textDom.innerText;
+        let cursorPos = FormatUtil.caret(textDom);
         if (FormatUtil.isCharKeypress(event)) {
             clearTimeout(this.updateAndRerunTimeout);
             this.updateAndRerunTimeout = window.setTimeout(() => {
-                this.setState(_ => ({ lineText: textSetByUser }));
-                this.highlightSyntax();
-                RERUN();
+                this.setState(_ => ({ lineText: textSetByUser }), () => {
+                    this.highlightSyntax();
+                    if (textDom) {
+                        FormatUtil.setCaret(cursorPos, textDom);
+                    }
+                    RERUN();
+                });
             }, delay);
         }
     }
