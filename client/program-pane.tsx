@@ -2252,7 +2252,7 @@ class MachineInitializer extends VersoModule {
     renderSnippet(snippetText: string) {
         let detabbedSnippet = snippetText.replaceAll('\n    ', '\n');
         return (
-            <pre id="viz-implementation-box" className="code-box"><code>
+            <pre className="code-box"><code>
                 { `function ${detabbedSnippet}` }
             </code></pre>
         );
