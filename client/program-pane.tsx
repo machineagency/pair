@@ -329,26 +329,22 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
                 return (dom as HTMLDivElement).innerText;
             });
             return lines.join('\n');
-            // let progLinesDom = document.getElementById('program-lines');
-            // if (progLinesDom) {
-            //     return progLinesDom.innerText;
-            // }
-            // return '';
         };
+        this.clearWindowPaperObject();
         const PROGRAM_PANE = this;
         let innerProgText = extractProgramText();
         let moduleFunctionDeclarations = this.gatherModulesAsFunctionDeclarations();
         let progText  = `${moduleFunctionDeclarations}`;
         progText += `\n(async function() {`;
-        progText += `paper.project.clear();`;
         progText += `try {`;
         progText += `${innerProgText}`;
         progText += `} catch (e) { console.error(e); }`;
         progText += `})();`;
-        return new Promise<void>((resolve) => {
-            eval(progText);
-            resolve();
-        });
+        eval(progText);
+    }
+
+    private clearWindowPaperObject() {
+        (paper as any).project.clear();
     }
 
     // mapLinesToModules(lineText: string) : JSX.Element[] {
