@@ -193,100 +193,6 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         this.moduleRefs = [];
     }
 
-    componentDidMount() {
-        // this.syntaxHighlightProgramLines();
-    }
-
-    syntaxHighlightProgramLines() {
-        // let programLinesDom = document.getElementById('program-lines');
-        // if (!programLinesDom) { return; }
-        // const pos = FormatUtil.caret(programLinesDom);
-        // FormatUtil.highlight(programLinesDom);
-        // FormatUtil.setCaret(pos, programLinesDom);
-    }
-
-    clearProgramConsole() {
-        let programConsoleDom = document.getElementById('program-console');
-        if (!programConsoleDom) {
-            throw new Error('Cannot find program console while loading UI.');
-        }
-        programConsoleDom.innerText = '';
-        programConsoleDom.classList.remove('error-state');
-        programConsoleDom.classList.remove('warn-state');
-    }
-
-    bindNativeConsoleToProgramConsole() {
-        // FIXME: this entire thing needs to use a monad style because otherwise
-        // we will only show the LAST message per program run. Don't have time
-        // for this now.
-        let programConsoleDom = document.getElementById('program-console');
-        if (!programConsoleDom) {
-            throw new Error('Cannot find program console while loading UI.');
-        }
-        const consoleHandler = {
-            apply: (target: ConsoleFn, thisArg: any, argList: any) => {
-                if (!programConsoleDom) { return; }
-                let msg = argList[0] as string;
-                programConsoleDom.innerText = msg;
-                programConsoleDom.classList.remove('error-state');
-                programConsoleDom.classList.remove('warn-state');
-                if (target.name === 'error') {
-                    programConsoleDom.classList.add('error-state');
-                }
-                else if (target.name === 'warn') {
-                    programConsoleDom.classList.add('warn-state');
-                }
-                programConsoleDom.innerText = msg;
-                // Slight hack: if our messages was an error message, prepend
-                // the true line number to the beginning of the console DOM
-                // ONLY—not logging the number plus the error object because
-                // then we lose stacktrace info in the native inspector.
-                if (argList[0].lineNumber) {
-                    let lineNumber = argList[0].lineNumber;
-                    programConsoleDom.innerText = `Line ${lineNumber}: `
-                        + programConsoleDom.innerText;
-                }
-                return target(msg);
-            }
-        };
-        // FIXME: cannot unbind this uh oh
-        console.log = new Proxy(console.log, consoleHandler);
-        console.warn = new Proxy(console.warn, consoleHandler);
-        console.error = new Proxy(console.error, consoleHandler);
-    }
-
-    injectText(text: string) {
-        let programLinesDom = document.getElementById('program-lines');
-        if (!programLinesDom) { return; }
-        programLinesDom.innerHTML = '';
-        this.moduleRefs = [];
-        let textLines = text.split('\n').filter(line => line !== '');
-        let plDom;
-        textLines.forEach((line, index) => {
-            if (programLinesDom) {
-                const moduleRef = React.createRef<VersoModule>();
-                this.moduleRefs.push(moduleRef);
-                plDom = document.createElement('div');
-                plDom.classList.add('program-line');
-                plDom.innerText = line;
-                programLinesDom.appendChild(plDom);
-
-                let maybeModule = ProgramUtil.parseTextForModule(line, moduleRef);
-                if (maybeModule) {
-                    // programLinesDom.appendChild(maybeModule);
-                }
-
-                // TODO
-                // 1. make it so that program lines have a state with regards to their
-                //    inner text. on change, we read whatever its inner text is and
-                //    update the state, causing maybe the modules to re-render.
-                // 2. pressing enter in the program pane makes a new program line
-                // 3. injecting text from database => return a bunch of program lines
-                // 4. syntax highlighting should be handled in the program line.
-            }
-        });
-    }
-
     private __getModules() : VersoModule[] {
         let modules : VersoModule[] = [];
         let maybeModules = this.moduleRefs.map((ref) => {
@@ -347,26 +253,6 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         (paper as any).project.clear();
     }
 
-    // mapLinesToModules(lineText: string) : JSX.Element[] {
-    //     let lines = lineText.split(';').filter(line => line !== '');
-    //     let modules = lines.map((lineText, lineIndex) => {
-    //         let moduleRef = React.createRef<VersoModule>();
-    //         this.moduleRefs.push(moduleRef);
-    //         return ProgramUtil.parseTextForModule(lineText, moduleRef);
-    //     });
-    //     let nonNullLiveLits = modules.filter((ll): ll is JSX.Element => {
-    //         return ll !== null;
-    //     });
-    //     return nonNullLiveLits;
-    // }
-
-    generateModules() {
-        return new Promise<void>((resolve, reject) => {
-            // TODO -- again - make modules appear ? here or elsewhere
-            resolve();
-        });
-    }
-
     renderLines() {
         this.moduleRefs = [];
         let lines = this.props.loadedWorkflowText.split('\n')
@@ -391,12 +277,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
                     <div id="program-lines">
                         { this.renderLines() }
                     </div>
-                    <div id="program-console"></div>
                     <div id="program-controls" className="hidden">
-                        <div className={`pc-btn pc-compile`}
-                             onClick={this.generateModules.bind(this)}>
-                            Generate
-                        </div>
                         <div id="run-prog-btn"
                              className={`pc-btn pc-run}`}
                              onClick={this.runAllLines.bind(this)}>
@@ -502,54 +383,6 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
         );
     }
 }
-
-// interface ModulePaneProps extends Props {
-// }
-//
-// interface ModulePaneState extends State {
-//     text: string;
-// }
-//
-// class ModulePane extends React.Component<ModulePaneProps, ModulePaneState> {
-//     moduleRefs: React.RefObject<VersoModule>[];
-//
-//     constructor(props: ModulePaneProps) {
-//         super(props);
-//         this.moduleRefs = [];
-//         this.state = {
-//             text: ''
-//         };
-//     }
-//
-//     getModules() {
-//         let modules = this.moduleRefs.map(ref => {
-//             return ref ? ref.current : null;
-//         });
-//         let nonNullModules = modules.filter(maybeModule => maybeModule !== null);
-//         return nonNullModules;
-//     }
-//
-//     mapLinesToModules() : JSX.Element[] {
-//         let lines = this.state.text.split(';').filter(line => line !== '');
-//         let modules = lines.map((lineText, lineIndex) => {
-//             let moduleRef = React.createRef<VersoModule>();
-//             this.moduleRefs.push(moduleRef);
-//             return ProgramUtil.parseTextForModule(lineText, moduleRef);
-//         });
-//         let nonNullLiveLits = modules.filter((ll): ll is JSX.Element => {
-//             return ll !== null;
-//         });
-//         return nonNullLiveLits;
-//     }
-//
-//     render() {
-//         return (
-//             <div id="module-pane" key="module-pane">
-//                 { this.mapLinesToModules() }
-//             </div>
-//         );
-//     }
-// }
 
 interface ModuleState {
     windowOpen: boolean;

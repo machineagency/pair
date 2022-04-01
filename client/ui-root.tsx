@@ -39,10 +39,7 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
         let programPane = programPaneRef.current;
         // Now fetch the workflow text from the server
         this.populateWorkflows();
-        // Once we have text, do the rest of the setup
-        // programPane.bindNativeConsoleToProgramConsole();
         programPane.runAllLines();
-        // this.setTabKeypressHandler();
     }
 
     async fetchWorkflows() : Promise<Workflow[]> {
@@ -85,22 +82,10 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
                 };
             }, () => {
                 let programPaneLines = this.currentWorkflowText;
-                // programPane.injectText(programPaneLines);
                 this.rerun();
             });
         });
     }
-
-    // setTabKeypressHandler() {
-    //     let programLinesDom = document.getElementById('program-lines');
-    //     if (programLinesDom) {
-    //         programLinesDom.addEventListener('keydown', (event: KeyboardEvent) => {
-    //             if (programLinesDom && FormatUtil.isTabKeypress(e)) {
-    //                 FormatUtil.handleTabKeypress(e, programLinesDom);
-    //             }
-    //         });
-    //     }
-    // }
 
     rerun() {
         let programPaneRef = this.state.programPaneRef as React.RefObject<ProgramPane>;
@@ -108,14 +93,7 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
             return;
         }
         let programPane = programPaneRef.current;
-        // This might throw a massive security warning. It seems to happen when
-        // we highlight lines that were not procedurally generated.
-        // programPane.clearProgramConsole();
-        // programPane.syntaxHighlightProgramLines();
-        // programPane.generateModules()
-        // .then(() => {
-            programPane.runAllLines();
-        // });
+        programPane.runAllLines();
     };
 
     protected handleWorkflowChange(event: React.ChangeEvent<HTMLSelectElement>) {
@@ -129,7 +107,6 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
             return { currentWorkflowName: workflowName };
         }, () => {
             let programPaneLines = this.currentWorkflowText;
-            // programPane.injectText(programPaneLines);
             this.rerun();
         });
     }
