@@ -141,15 +141,11 @@ pre code.hljs {
 .program-line {
     counter-increment: line;
     color: #dedede;
-}
-
-.program-line-text {
-    display: inline-block;
     margin: 0px;
     width: 100%;
 }
 
-.program-line-text:focus {
+.program-line:focus {
     outline: none;
 }
 
