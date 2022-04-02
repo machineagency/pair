@@ -15,7 +15,7 @@ const ps             = require('python-shell');
 const bsDatabase     = require('better-sqlite3');
 
 // configuration ===========================================
-const SERVER_PORT = process.env.PORT || 3000; // set our port
+const SERVER_PORT = 3001; // set our port
 // For testing — change PORT_DEBUG to false to work with real ports—true otherwise.
 const PORT_DEBUG = true;
 SerialPortMock.binding.createPort('/dev/JUBILEE', { echo: true, record: true });
