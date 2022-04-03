@@ -56,8 +56,8 @@ export class Tabletop {
 
     constructor(machine: Machine) {
         this.machine = machine;
-        this.project = (paper as any).project;
-        this.tool = (paper as any).tool || new paper.Tool();
+        this.project = Paper.project;
+        this.tool = Paper.tool || new Paper.Tool();
         this.toolpaths = [];
         this.workEnvelope = new WorkEnvelope(this,
                                              machine.workEnvelopeDimensions.x,
@@ -65,7 +65,7 @@ export class Tabletop {
         this.interactionMode = InteractionMode.defaultState;
         this.moveEntireEnvelope = false;
         this.initMouseHandlers();
-        this.vizLayer = new paper.Layer();
+        this.vizLayer = new Paper.Layer();
         this.project.addLayer(this.vizLayer);
     }
 
@@ -101,7 +101,7 @@ export class Tabletop {
                     // TODO: make this more proper.
                     let sizeString = prompt('Enter envelope size: [width, height].');
                     if (sizeString) {
-                        let size = new paper.Size(JSON.parse(sizeString));
+                        let size = new Paper.Size(JSON.parse(sizeString));
                         this.workEnvelope.redrawForSize(size);
                         this.interactionMode = InteractionMode.defaultState;
                     }
@@ -157,7 +157,7 @@ export class Tabletop {
                     deep: true,
                     insert: false
                 });
-                let wePathGroup = new paper.Group([ wePathCopy ]);
+                let wePathGroup = new Paper.Group([ wePathCopy ]);
                 this.workEnvelope.applyInverseHomography(wePathGroup);
                 this.sendPaperItemToMachine(wePathGroup);
                 wePathGroup.remove();
@@ -178,13 +178,13 @@ export class Tabletop {
     toggleWorkEnvelopeCalibration() : void {
         this.workEnvelope.path.selected = true;
         this.interactionMode = InteractionMode.adjustEnvelope;
-        this.workEnvelope.sizeLabel.fillColor = new paper.Color('cyan');
+        this.workEnvelope.sizeLabel.fillColor = new Paper.Color('cyan');
     }
 
     calculateHomographyFromCalibration() : Homography {
         this.workEnvelope.path.selected = false;
         this.interactionMode = InteractionMode.defaultState;
-        this.workEnvelope.sizeLabel.fillColor = new paper.Color('red');
+        this.workEnvelope.sizeLabel.fillColor = new Paper.Color('red');
         let h = this.workEnvelope.calculateHomography();
         return h;
     }
@@ -259,7 +259,7 @@ export class WorkEnvelope {
     width: number;
     height: number;
     strokeWidth: number;
-    path: paper.Path = new paper.Path();
+    path: paper.Path = new Paper.Path();
     sizeLabel: paper.PointText;
     originalCornerPoints: paper.Point[];
     private homography: Homography;
@@ -284,26 +284,26 @@ export class WorkEnvelope {
     }
 
     _drawPath() : paper.Path {
-        let rect = new paper.Rectangle(
+        let rect = new Paper.Rectangle(
             this.anchor.x,
             this.anchor.y,
             this.width,
             this.height);
-        let path = new paper.Path.Rectangle(rect);
-        path.strokeColor = new paper.Color('red');
+        let path = new Paper.Path.Rectangle(rect);
+        path.strokeColor = new Paper.Color('red');
         path.strokeWidth = this.strokeWidth;
         return path;
     }
 
     _drawSizeLabel() : paper.PointText {
         let labelOffset = 30;
-        let labelAnchor = new paper.Point(
+        let labelAnchor = new Paper.Point(
             this.anchor.x,
             this.anchor.y + this.height + labelOffset
         );
         let widthMm = Math.round(this.width * PX_TO_MM);
         let heightMm = Math.round(this.height * PX_TO_MM);
-        let sizeLabel = new paper.PointText({
+        let sizeLabel = new Paper.PointText({
             point: labelAnchor,
             content: `(${widthMm}, ${heightMm})`,
             fillColor: 'red',
@@ -315,12 +315,12 @@ export class WorkEnvelope {
     }
 
     get anchor() : paper.Point {
-        return new paper.Point(this.strokeWidth * MM_TO_PX,
+        return new Paper.Point(this.strokeWidth * MM_TO_PX,
                                this.strokeWidth * MM_TO_PX);
     }
 
     get center() : paper.Point {
-        return new paper.Point(Math.floor(this.width / 2),
+        return new Paper.Point(Math.floor(this.width / 2),
                                Math.floor(this.height / 2));
     }
 
@@ -383,21 +383,21 @@ export class WorkEnvelope {
         let unpackHandleOut = (seg: paper.Segment) => [seg.handleOut.x, seg.handleOut.y];
         let transformPt = (pt: number[]) => transform(pt[0], pt[1]);
         groupToTransform.children.forEach((child) => {
-            if (child instanceof paper.Path) {
+            if (child instanceof Paper.Path) {
                 let segPoints: number[][] = child.segments.map(unpackSegment);
                 let handlesIn = child.segments.map(unpackHandleIn);
                 let handlesOut = child.segments.map(unpackHandleOut);
                 let transPts = segPoints.map(transformPt);
                 let newSegs = transPts.map((pt, idx) => {
-                    let newPt = new paper.Point(pt[0], pt[1]);
+                    let newPt = new Paper.Point(pt[0], pt[1]);
                     let hIn = handlesIn[idx];
                     let hOut = handlesOut[idx];
                     // Apparently we don't want to apply the homography to
                     // handles. If we do, we get wildly large handle positions
                     // from moving the upper left corner.
-                    let oldHIn = new paper.Point(hIn[0], hIn[1]);
-                    let oldHOut = new paper.Point(hOut[0], hOut[1]);
-                    return new paper.Segment(newPt, oldHIn, oldHOut);
+                    let oldHIn = new Paper.Point(hIn[0], hIn[1]);
+                    let oldHOut = new Paper.Point(hOut[0], hOut[1]);
+                    return new Paper.Segment(newPt, oldHIn, oldHOut);
                 });
                 child.segments = newSegs;
                 child.visible = true;
@@ -415,7 +415,7 @@ export class Toolpath {
     constructor(geometryUrl: string, instructions: string[]) {
         this.geometryUrl = geometryUrl;
         this.instructions = instructions;
-        this.vizGroup = new paper.Group();
+        this.vizGroup = new Paper.Group();
         this.isa = this.recognizeIsa(instructions);
         // TODO: vizGroup should be populated by the toolpath visualizers
         // and then rendered to the tabletop.
@@ -457,7 +457,7 @@ export class Point {
     paperPoint: paper.Point;
 
     constructor(x: number, y: number) {
-        this.paperPoint = new paper.Point(x, y);
+        this.paperPoint = new Paper.Point(x, y);
     }
 
     get x() {
@@ -524,11 +524,11 @@ export class Region {
     drawOnTabletop(tabletop: Tabletop) {
         let from: paper.Point = this.corners[0].paperPoint;
         let to: paper.Point = this.corners[3].paperPoint;
-        let rectPath = new paper.Path.Rectangle(from, to);
-        let paperGroup = new paper.Group([rectPath]);
+        let rectPath = new Paper.Path.Rectangle(from, to);
+        let paperGroup = new Paper.Group([rectPath]);
         tabletop.workEnvelope.applyHomographyToGroup(paperGroup);
         paperGroup.position.set(this.centroid.paperPoint);
-        paperGroup.strokeColor = new paper.Color(0x00ff00);
+        paperGroup.strokeColor = new Paper.Color(0x00ff00);
         paperGroup.strokeWidth = 1;
         tabletop.project.activeLayer.addChild(paperGroup);
         this._paperObj = paperGroup;
