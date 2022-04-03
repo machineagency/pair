@@ -636,10 +636,11 @@ export class Geometry {
     filepath?: string;
 
     // The string representation of the geometry e.g. the SVG string
-    stringRep?: string;
+    stringRep: string;
 
     constructor(tabletop: Tabletop) {
         this.tabletop = tabletop;
+        this.stringRep = '<svg></svg>';
     }
 
     get position() {
@@ -725,7 +726,7 @@ export class Geometry {
        else {
             let blob = await fileResult.clone().blob();
             let localUrl = URL.createObjectURL(blob);
-            this.stringRep = await fileResult.text();
+            this.stringRep = (await fileResult.text()).trim();
             return await this.loadIntoPaperCanvas(filename, localUrl);
        }
     }
@@ -733,17 +734,18 @@ export class Geometry {
     // FIXME: deprecate the paper functionality and just work with the string rep
     async loadIntoPaperCanvas(filename: string, filepath: string) : Promise<Geometry> {
         return new Promise<Geometry>((resolve, reject) => {
-            this.tabletop.project.importSVG(filepath, {
+            this.tabletop.project.importSVG(this.stringRep, {
                 expandShapes: true,
                 insert: false,
                 onError: () => {
+                    console.log(this);
                     console.warn('Could not load an SVG');
                     reject();
                 },
                 onLoad: (item: paper.Group, svgString: string) => {
                     this.tabletop.workEnvelope.applyHomographyToGroup(item);
-                    item.strokeColor = new paper.Color(0xffffff);
-                    item.position = new paper.Point(
+                    item.strokeColor = new Paper.Color(0xffffff);
+                    item.position = new Paper.Point(
                         item.bounds.width * 0.5 + this.tabletop.workEnvelope.anchor.x,
                         item.bounds.height * 0.5 + this.tabletop.workEnvelope.anchor.y
                     );
@@ -853,7 +855,7 @@ export class Machine {
                 deep: true,
                 insert: false
             });
-            let wePathGroup = new paper.Group([ wePathCopy ]);
+            let wePathGroup = new Paper.Group([ wePathCopy ]);
             this.tabletop.workEnvelope.applyInverseHomography(wePathGroup);
             this.tabletop.sendPaperItemToMachine(wePathGroup);
             wePathGroup.remove();
