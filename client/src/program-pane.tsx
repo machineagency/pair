@@ -320,37 +320,37 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     }
 
 
-    // renderLines() {
-    //     this.moduleRefs = [];
-    //     // let lines = this.props.loadedWorkflowText.split('\n')
-    //     let lines = this.state.cleanWorkflow.split('\n')
-    //         .filter((line) => line.length > 0);
-    //     let programLines = lines.map((lineText, lineIndex) => {
-    //         let lineNumber = lineIndex + 1;
-    //         let maybeModuleRef = React.createRef<VersoModule>();
-    //         this.moduleRefs.push(maybeModuleRef);
-    //         const livelitWindow = ProgramUtil.parseTextForModule(
-    //                                 lineText, maybeModuleRef);
-    //         let plAndMaybeLivelit = [
-    //              <div className={ProgramLine.textClassName}
-    //                   key={lineNumber}
-    //                   data-line-number={lineNumber}>
-    //                  {lineText}
-    //              </div>
-    //         ];
-    //         if (livelitWindow) {
-    //             plAndMaybeLivelit.push(livelitWindow);
-    //         }
-    //         return plAndMaybeLivelit;
-    //         // return (
-    //         //     <ProgramLine lineNumber={lineNumber}
-    //         //                  key={lineIndex}
-    //         //                  lineText={lineText}
-    //         //                  refForLivelit={maybeModuleRef}></ProgramLine>
-    //         // );
-    //     });
-    //     return programLines;
-    // }
+    renderLines() {
+        this.moduleRefs = [];
+        let lines = this.props.loadedWorkflowText.split('\n')
+        // let lines = this.state.cleanWorkflow.split('\n')
+            .filter((line) => line.length > 0);
+        let programLines = lines.map((lineText, lineIndex) => {
+            let lineNumber = lineIndex + 1;
+            let maybeModuleRef = React.createRef<VersoModule>();
+            this.moduleRefs.push(maybeModuleRef);
+            const livelitWindow = ProgramUtil.parseTextForModule(
+                                    lineText, maybeModuleRef);
+            let plAndMaybeLivelit = [
+                 <div className={ProgramLine.textClassName}
+                      key={lineNumber}
+                      data-line-number={lineNumber}>
+                     {lineText}
+                 </div>
+            ];
+            if (livelitWindow) {
+                plAndMaybeLivelit.push(livelitWindow);
+            }
+            return plAndMaybeLivelit;
+            // return (
+            //     <ProgramLine lineNumber={lineNumber}
+            //                  key={lineIndex}
+            //                  lineText={lineText}
+            //                  refForLivelit={maybeModuleRef}></ProgramLine>
+            // );
+        });
+        return programLines;
+    }
 
     onChange() {
     }
@@ -359,12 +359,13 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         return (
             <div id="program-pane">
                 <div id="program-lines-and-controls">
+                    {/*
                     <Editor
                         id="program-lines"
                         editorState={this.state.editorState}
                         onChange={this.onChange}>
                     </Editor>
-                    {/*
+                    */}
                     <div id="program-lines"
                          ref={this.programLinesRef}
                          tabIndex={0}
@@ -375,7 +376,6 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
                          spellCheck={false}>
                         { this.renderLines() }
                     </div>
-                    */}
                     <div id="program-controls" className="hidden">
                         <div id="run-prog-btn"
                              className={`pc-btn pc-run}`}
