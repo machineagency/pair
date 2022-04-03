@@ -20,7 +20,9 @@ import { VisualizationInterpreters,
 (window as any).mm = mm;
 (window as any).px = px;
 
-import { Editor, EditorState, ContentState } from 'draft-js';
+import { Editor, EditorState, ContentState, ContentBlock } from 'draft-js';
+import 'draft-js/dist/Draft.css';
+
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Paper from 'paper';
@@ -39,140 +41,35 @@ interface Props {};
 interface State {}
 
 class ProgramUtil {
-    static parseTextForModule(text: string,
-                               moduleRef: React.RefObject<VersoModule>)
-                               : JSX.Element | null {
+    static parseTextForModuleClassName(text: string) {
         const re = /\$\w+/;
         const maybeMatch = text.match(re);
         if (!maybeMatch) {
-            return null;
+            return PlainLine;
         }
         const moduleName = maybeMatch[0].slice(1);
-        switch (moduleName) {
-            case 'geometryGallery':
-                const ggProps: GeometryGalleryProps = {
-                    ref: moduleRef as React.RefObject<GeometryGallery>,
-                    valueSet: false,
-                    windowOpen: true,
-                    key: text
-                };
-                return <GeometryGallery {...ggProps}>
-                       </GeometryGallery>;
-            case 'pointPicker':
-                const ppProps: PointPickerProps = {
-                    ref: moduleRef as React.RefObject<PointPicker>,
-                    valueSet: false,
-                    windowOpen: true,
-                    key: text
-                };
-                return <PointPicker {...ppProps}>
-                       </PointPicker>;
-            case 'tabletopCalibrator':
-                const tcProps: TabletopCalibratorProps = {
-                    machine: undefined,
-                    tabletop: undefined,
-                    ref: moduleRef as React.RefObject<TabletopCalibrator>,
-                    valueSet: false,
-                    windowOpen: true,
-                    key: text
-                };
-                return <TabletopCalibrator {...tcProps}>
-                       </TabletopCalibrator>;
-            case 'cameraCalibrator':
-                const ccProps: CameraCalibratorProps = {
-                    ref: moduleRef as React.RefObject<CameraCalibrator>,
-                    valueSet: false,
-                    windowOpen: false,
-                    key: text
-                }
-                return <CameraCalibrator {...ccProps}></CameraCalibrator>;
-            case 'faceFinder':
-                const ffProps: FaceFinderProps = {
-                    camera: undefined,
-                    ref: moduleRef as React.RefObject<FaceFinder>,
-                    valueSet: false,
-                    windowOpen: true,
-                    key: text
-                };
-                return <FaceFinder {...ffProps}>
-                       </FaceFinder>;
-            case 'axidrawDriver':
-                const camProps: AxidrawDriverProps = {
-                    ref: moduleRef as React.RefObject<AxidrawDriver>,
-                    valueSet: false,
-                    windowOpen: true,
-                    key: text
-                };
-                return <AxidrawDriver {...camProps}>
-                       </AxidrawDriver>
-            case 'toolpathVisualizer':
-                const tdProps: ToolpathVisualizerProps = {
-                    ref: moduleRef as React.RefObject<ToolpathVisualizer>,
-                    valueSet: false,
-                    windowOpen: true,
-                    key: text
-                };
-                return <ToolpathVisualizer {...tdProps}></ToolpathVisualizer>;
-            case 'machineInitializer':
-                const miProps: MachineInitializerProps = {
-                    ref: moduleRef as React.RefObject<MachineInitializer>,
-                    valueSet: false,
-                    windowOpen: true,
-                    key: text
-                };
-                return <MachineInitializer {...miProps}></MachineInitializer>;
-            case 'dispatcher':
-                const dProps: DispatcherProps = {
-                    ref: moduleRef as React.RefObject<Dispatcher>,
-                    valueSet: false,
-                    windowOpen: true,
-                    key: text
-                };
-                return <Dispatcher {...dProps}></Dispatcher>;
-            case 'miniCam':
-                const mcProps: MiniCamProps = {
-                    ref: moduleRef as React.RefObject<MiniCam>,
-                    valueSet: false,
-                    windowOpen: true,
-                    key: text
-                };
-                return <MiniCam {...mcProps}></MiniCam>;
-            case 'display':
-                const displayProps: DisplayProps = {
-                    ref: moduleRef as React.RefObject<Display>,
-                    valueSet: false,
-                    windowOpen: true,
-                    key: text
-                };
-                return <Display {...displayProps}></Display>;
-            case 'projector':
-                const projectorProps: ProjectorProps = {
-                    ref: moduleRef as React.RefObject<Projector>,
-                    valueSet: false,
-                    windowOpen: true,
-                    key: text
-                };
-                return <Projector {...projectorProps}></Projector>;
-            case 'instructionBuilder':
-                const instructionBuilderProps: InstructionBuilderProps = {
-                    ref: moduleRef as React.RefObject<InstructionBuilder>,
-                    valueSet: false,
-                    windowOpen: true,
-                    key: text
-                };
-                return <InstructionBuilder {...instructionBuilderProps}></InstructionBuilder>;
-            case 'arraySlicer':
-                const arraySlicerProps: ArraySlicerProps = {
-                    ref: moduleRef as React.RefObject<ArraySlicer>,
-                    valueSet: false,
-                    windowOpen: true,
-                    key: text
-                };
-                return <ArraySlicer {...arraySlicerProps}></ArraySlicer>;
-            default:
-                return null;
+        interface NameTable {
+            [index: string]: any;
         }
-    }
+        const table = {
+            geometryGallery: GeometryGallery,
+            pointPicker: PointPicker,
+            tabletopCalibrator: TabletopCalibrator,
+            cameraCalibrator: CameraCalibrator,
+            faceFinder: FaceFinder,
+            axidrawDriver: AxidrawDriver,
+            toolpathVisualizer: ToolpathVisualizer,
+            machineInitializer: MachineInitializer,
+            dispatcher: Dispatcher,
+            miniCam: MiniCam,
+            display: Display,
+            projector: Projector,
+            instructionBuilder: InstructionBuilder,
+            arraySlicer: ArraySlicer,
+            default: PlainLine
+        } as NameTable;
+        return table[moduleName];
+    };
 }
 
 interface ProgramPaneProps {
@@ -184,12 +81,14 @@ interface ProgramPaneState {
 };
 class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     moduleRefs: React.RefObject<VersoModule>[];
+    modules: VersoModule[];
     programLinesRef: React.RefObject<HTMLDivElement>;
     updateAndRerunTimeout: number;
 
     constructor(props: ProgramPaneProps) {
         super(props);
         this.moduleRefs = [];
+        this.modules = [];
         this.state = {
             editorState: EditorState.createEmpty(),
             editorStateInitialized: false
@@ -215,20 +114,16 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         }
     }
 
-
-    componentDidUpdate() {
-        RERUN();
-    }
-
     private __getModules() : VersoModule[] {
-        let modules : VersoModule[] = [];
-        let maybeModules = this.moduleRefs.map((ref) => {
-            return ref.current;
-        });
-        let nonNullMods = maybeModules.filter((mod) : mod is VersoModule => {
-            return mod !== null;
-        });
-        return nonNullMods;
+        return this.modules;
+        // let modules : VersoModule[] = [];
+        // let maybeModules = this.moduleRefs.map((ref) => {
+        //     return ref.current;
+        // });
+        // let nonNullMods = maybeModules.filter((mod) : mod is VersoModule => {
+        //     return mod !== null;
+        // });
+        // return nonNullMods;
     }
 
     getModuleWithName(functionName: string) : State {
@@ -245,6 +140,9 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
             state: State;
         };
         let mods = this.__getModules();
+        let blocks = this.state.editorState.getCurrentContent().getBlockMap();
+        // console.log(blocks.toArray());
+        console.log(this.modules);
         let expandedFunctionStrings : string[] = [];
         mods.forEach((mod) => {
             if (mod) {
@@ -257,7 +155,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
 
     runAllLines() {
         const extractProgramText = () => {
-            let programTextDoms = document.getElementsByClassName('program-line');
+            let programTextDoms = document.getElementsByClassName('program-line-text');
             let lines = Array.from(programTextDoms).map((dom) => {
                 return (dom as HTMLDivElement).innerText;
             });
@@ -273,7 +171,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         progText += `${innerProgText}`;
         progText += `} catch (e) { console.error(e); }`;
         progText += `})();`;
-        eval(progText);
+        // eval(progText);
     }
 
     private clearWindowPaperObject() {
@@ -339,40 +237,30 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     }
 
 
-    renderLines() {
-        this.moduleRefs = [];
-        let lines = this.props.loadedWorkflowText.split('\n')
-        // let lines = this.state.cleanWorkflow.split('\n')
-            .filter((line) => line.length > 0);
-        let programLines = lines.map((lineText, lineIndex) => {
-            let lineNumber = lineIndex + 1;
-            let maybeModuleRef = React.createRef<VersoModule>();
-            this.moduleRefs.push(maybeModuleRef);
-            const livelitWindow = ProgramUtil.parseTextForModule(
-                                    lineText, maybeModuleRef);
-            let plAndMaybeLivelit = [
-                 <div className={ProgramLine.textClassName}
-                      key={lineNumber}
-                      data-line-number={lineNumber}>
-                     {lineText}
-                 </div>
-            ];
-            if (livelitWindow) {
-                plAndMaybeLivelit.push(livelitWindow);
-            }
-            return plAndMaybeLivelit;
-            // return (
-            //     <ProgramLine lineNumber={lineNumber}
-            //                  key={lineIndex}
-            //                  lineText={lineText}
-            //                  refForLivelit={maybeModuleRef}></ProgramLine>
-            // );
-        });
-        return programLines;
+    onChange(newState: EditorState) {
+        this.setState({ editorState: newState });
     }
 
-    onChange(es: EditorState) {
-        this.setState({ editorState: es });
+    myCallback(versoModule: VersoModule) {
+        this.modules.push(versoModule);
+    }
+
+    myBlockRenderer(block: ContentBlock) {
+        let text = block.getText();
+        let moduleRef = React.createRef<VersoModule>();
+        this.moduleRefs.push(moduleRef);
+        let moduleClass = ProgramUtil.parseTextForModuleClassName(text);
+        if (true) {
+            return {
+                component: PlainLine,
+                props: {
+                    lineText: text,
+                    ref: moduleRef,
+                    callback: this.myCallback.bind(this)
+                },
+                editable: true
+            };
+        }
     }
 
     render() {
@@ -382,6 +270,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
                     <div id="program-lines">
                         <Editor
                             editorState={this.state.editorState}
+                            blockRendererFn={this.myBlockRenderer.bind(this)}
                             onChange={this.onChange.bind(this)}>
                         </Editor>
                     </div>
@@ -421,125 +310,14 @@ interface ProgramLineState {
     highlight: boolean;
 }
 
-class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
-    updateAndRerunTimeout: number;
-    textDomRef: React.RefObject<HTMLDivElement>;
-
-    static textClassName = 'program-line';
-
-    constructor(props: ProgramLineProps) {
-        super(props);
-        this.state = {
-            lineText: props.lineText,
-            highlight: false
-        };
-        this.updateAndRerunTimeout = 0;
-        this.textDomRef = React.createRef<HTMLDivElement>();
-    }
-
-    componentDidMount() {
-        this.highlightSyntax();
-    }
-
-    handleKeyUp(event: React.KeyboardEvent<HTMLDivElement>) {
-        const backspace = 8;
-        const carriageReturn = 13;
-        const printableStart = 20;
-        const printableEnd = 126;
-        if (event.keyCode === backspace ||
-            event.keyCode === carriageReturn ||
-            (event.keyCode >= printableStart
-             && event.keyCode <= printableEnd)) {
-            this.fireUpdateAndRerunHandler(event);
-        }
-    }
-
-    handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-        const tabKey = 9;
-        if (event.keyCode === tabKey) {
-            this.handleTabKeypress(event);
-        }
-    }
-
-    fireUpdateAndRerunHandler(event: React.KeyboardEvent<HTMLDivElement>) {
-        const delay = 250;
-        let textDom = this.textDomRef.current;
-        if (!textDom) { return; }
-        let textSetByUser = textDom.innerText;
-        let cursorPos = FormatUtil.caret(textDom);
-        if (FormatUtil.isCharKeypress(event)) {
-            clearTimeout(this.updateAndRerunTimeout);
-            this.updateAndRerunTimeout = window.setTimeout(() => {
-                this.setState(_ => ({ lineText: textSetByUser }), () => {
-                    this.highlightSyntax();
-                    if (textDom) {
-                        FormatUtil.setCaret(cursorPos, textDom);
-                    }
-                    RERUN();
-                });
-            }, delay);
-        }
-    }
-
-    handleTabKeypress(event: React.KeyboardEvent<HTMLDivElement>) {
-        let textDom = this.textDomRef.current;
-        if (!textDom) { return; }
-        if (FormatUtil.isTabKeypress(event)) {
-            FormatUtil.handleTabKeypress(event, textDom);
-        }
-    }
-
-    highlightSyntax() {
-        let textDom = this.textDomRef.current;
-        if (!textDom) { return; }
-        const pos = FormatUtil.caret(textDom);
-        FormatUtil.highlight(textDom);
-        FormatUtil.setCaret(pos, textDom);
-    }
-
-    setContentEditable() {
-        let textDom = this.textDomRef.current;
-        if (!textDom) { return; }
-        textDom.contentEditable = "true";
-        textDom.spellcheck = false;
-    }
-
-    render() {
-        const highlightClass = this.state.highlight ? 'pl-highlight' : '';
-        const lineNumber = this.props.lineNumber || -1;
-        const livelitWindow = ProgramUtil.parseTextForModule(
-                                this.state.lineText,
-                                this.props.refForLivelit);
-        let plAndMaybeLivelit = [
-             <div className={ProgramLine.textClassName}
-                  ref={this.textDomRef}
-                  key={lineNumber}
-                  data-line-number={lineNumber}
-                  tabIndex={0}
-                  onKeyDown={this.handleKeyDown.bind(this)}
-                  onKeyUp={this.handleKeyUp.bind(this)}>
-                 {this.state.lineText}
-             </div>
-        ];
-        if (livelitWindow) {
-            plAndMaybeLivelit.push(livelitWindow);
-        }
-        return plAndMaybeLivelit;
-    }
-}
-
 interface ModuleState {
     windowOpen: boolean;
     valueSet: boolean;
 }
 interface ModuleProps {
-    /* Ref created in the parent that is a React "special" prop included here
-     * such that the parent (e.g. ModulePane) has a reference to the component
-     * to which this Ref has been passed as "ref." */
-    ref: React.RefObject<VersoModule>;
-    windowOpen: boolean;
     valueSet: boolean;
-    key: string;
+    lineText: string;
+    callback: (ms: ModuleState) => void;
 };
 
 class VersoModule extends React.Component {
@@ -549,20 +327,18 @@ class VersoModule extends React.Component {
     titleKey: number;
     contentKey: number;
     applyButton?: JSX.Element;
-    props: ModuleProps;
     state: ModuleState;
 
     constructor(props: ModuleProps) {
         super(props);
-        this.props = props;
         this.titleText = 'Module Window';
         this.functionName = '$module';
         this.moduleClassName = 'module-window';
         this.titleKey = 0;
         this.contentKey = 1;
         this.state = {
-            windowOpen: props.windowOpen,
-            valueSet: props.valueSet,
+            windowOpen: true,
+            valueSet: props.valueSet
         }
     }
 
@@ -639,22 +415,56 @@ class VersoModule extends React.Component {
     }
 
     render() {
-        return <div className={this.moduleClassName}
-                    contentEditable={false}
-                    key={this.moduleClassName}>
-                    <div className="title-and-toggle-bar">
-                        { this.renderTitle() }
-                        { this.renderToggleButton() }
-                    </div>
-                    { this.renderValue() }
-                    { this.renderContent() }
-               </div>
+        //@ts-ignore
+        let lineText = this.props.blockProps.lineText;
+        return (
+            <div className="program-line">
+                <div className="program-line-text">
+                    { lineText }
+                </div>
+                {/*
+                <div className={this.moduleClassName}
+                        contentEditable={false}
+                        key={this.moduleClassName}>
+                        <div className="title-and-toggle-bar">
+                            { this.renderTitle() }
+                            { this.renderToggleButton() }
+                        </div>
+                        { this.renderValue() }
+                        { this.renderContent() }
+                   </div>
+               */}
+              </div>
+       );
     }
 };
 
+interface PlainLineProps extends ModuleProps {
+}
+
+interface PlainLineState extends ModuleState {
+}
+
+class PlainLine extends VersoModule {
+    constructor(props: PlainLineProps) {
+        super(props);
+    }
+
+    render() {
+        //@ts-ignore
+        let lineText = this.props.blockProps.lineText;
+        return (
+            <div className="program-line">
+                <div className="program-line-text">
+                    { lineText }
+                </div>
+              </div>
+       );
+    }
+}
+
 interface GeometryGalleryProps extends ModuleProps {
     ref: React.RefObject<GeometryGallery>;
-    windowOpen: boolean;
 };
 
 interface GeometryGalleryState extends ModuleState {
@@ -672,9 +482,11 @@ class GeometryGallery extends VersoModule {
         this.state = {
             selectedUrl: '',
             imageNameUrlPairs: [],
-            windowOpen: props.windowOpen,
+            windowOpen: true,
             valueSet: props.valueSet
         };
+        //@ts-ignore
+        this.props.blockProps.callback(this);
     }
 
     async init() {
@@ -709,7 +521,8 @@ class GeometryGallery extends VersoModule {
         s += `let geomUrl = gg.state.selectedUrl;`;
         s += `let geom = new verso.Geometry(tabletop);`;
         s += `let geomName = gg.getGeometryNameForUrl(geomUrl);`;
-        s += `await geom.loadIntoPaperCanvas(geomName, geomUrl);`;
+        //s += 'debugger;';
+        s += `await geom.loadRemoteFile(geomName);`;
         s += `return geom;`;
         s += `}`;
         return s;
@@ -859,17 +672,18 @@ class GeometryGallery extends VersoModule {
 
 interface PointPickerProps extends ModuleProps {
     ref: React.RefObject<PointPicker>;
-    windowOpen: boolean;
 };
 
 class PointPicker extends VersoModule {
     props: PointPickerProps;
 
-    constructor(props: ModuleProps) {
+    constructor(props: PointPickerProps) {
         super(props);
         this.props = props;
         this.titleText = 'Point Picker';
         this.functionName = '$pointPicker';
+        //@ts-ignore
+        this.props.blockProps.callback(this);
     }
 
     renderContent() {
@@ -893,7 +707,6 @@ interface TabletopCalibratorProps extends ModuleProps {
     machine: verso.Machine | undefined;
     tabletop: verso.Tabletop | undefined;
     ref: React.RefObject<TabletopCalibrator>;
-    windowOpen: boolean;
 };
 
 interface TabletopCalibratorState extends ModuleState {
@@ -914,10 +727,12 @@ class TabletopCalibrator extends VersoModule {
         this.props = props;
         let maybeSavedHomography = this.loadSavedValue();
         this.state = {
-            windowOpen: props.windowOpen,
+            windowOpen: true,
             homography: maybeSavedHomography,
             valueSet: !!maybeSavedHomography
         };
+        //@ts-ignore
+        this.props.blockProps.callback(this);
         this.applyButton = <div className="button apply-btn"
                                 id="apply-tabletop-homography"
                                 onClick={this.calculateAndSetHomography.bind(this)}>
@@ -1089,7 +904,6 @@ class TabletopCalibrator extends VersoModule {
 
 interface CameraCalibratorProps extends ModuleProps {
     ref: React.RefObject<CameraCalibrator>;
-    windowOpen: boolean;
 }
 
 interface CameraCalibratorState extends ModuleState {
@@ -1132,10 +946,12 @@ class CameraCalibrator extends VersoModule {
             unwarpedImageUrl: '',
             warpedImageUrl: '',
             extrinsicTransform: maybeSavedExtrinsicTransform,
-            windowOpen: this.props.windowOpen,
+            windowOpen: true,
             valueSet: !!maybeSavedExtrinsicTransform,
             selectedPoints: []
         };
+        //@ts-ignore
+        this.props.blockProps.callback(this);
     }
 
     setImageToTableScaling(camera: verso.Camera) {
@@ -1388,7 +1204,6 @@ class CameraCalibrator extends VersoModule {
 interface FaceFinderProps extends ModuleProps {
     camera?: verso.Camera;
     ref: React.RefObject<FaceFinder>;
-    windowOpen: boolean;
 }
 
 interface FaceFinderState extends ModuleState {
@@ -1413,9 +1228,11 @@ class FaceFinder extends VersoModule {
             imageTaken: false,
             imagePath: './img/seattle-times.jpg',
             detectedRegions: [],
-            windowOpen: props.windowOpen,
+            windowOpen: true,
             valueSet: props.valueSet
         }
+        //@ts-ignore
+        this.props.blockProps.callback(this);
         this.photoButton = <div onClick={this.takePhoto.bind(this)}
                                 className="button" id="take-photo">
                                Take Photo
@@ -1610,9 +1427,11 @@ class AxidrawDriver extends VersoModule {
             machine: new verso.Machine('TEMP'),
             geometry: undefined,
             toolpath: undefined,
-            windowOpen: props.windowOpen,
+            windowOpen: true,
             valueSet: !!maybeSavedAxidrawDriverName
         };
+        //@ts-ignore
+        this.props.blockProps.callback(this);
     }
 
     async setArguments(machine: verso.Machine, geometry: verso.Geometry) {
@@ -1887,10 +1706,12 @@ class ToolpathVisualizer extends VersoModule {
             visualizationSpace: undefined,
             currentInterpreterId: maybeSavedInterpreterName
                                     || 0,
-            windowOpen: props.windowOpen,
+            windowOpen: true,
             valueSet: !!maybeSavedInterpreterName,
             selectedInstIndex: -1
         };
+        //@ts-ignore
+        this.props.blockProps.callback(this);
     }
 
     get currentInterpreter() {
@@ -2118,7 +1939,7 @@ class MachineInitializer extends VersoModule {
         this.functionName = '$machineInitializer';
         this.props = props;
         this.state = {
-            windowOpen: props.windowOpen,
+            windowOpen: true,
             valueSet: false,
             initialized: false,
             connected: false,
@@ -2126,6 +1947,8 @@ class MachineInitializer extends VersoModule {
             portPaths: [],
             selectedPortPathIndex: 0
         };
+        //@ts-ignore
+        this.props.blockProps.callback(this);
         this.fetchPortPaths();
         // TODO: check if machine port is actually open and homed, so we don't
         // have to do the whole thing over again if it is.
@@ -2368,13 +2191,15 @@ class Dispatcher extends VersoModule {
         this.functionName = '$dispatcher';
         this.props = props;
         this.state = {
-            windowOpen: props.windowOpen,
+            windowOpen: true,
             valueSet: false,
             machine: undefined,
             toolpaths: undefined,
             currentToolpathIndex: 0,
             machineState: 'disconnected'
         };
+        //@ts-ignore
+        this.props.blockProps.callback(this);
     }
 
     get currentToolpath() {
@@ -2563,10 +2388,12 @@ class Display extends VersoModule {
         this.functionName = '$display';
         this.props = props;
         this.state = {
-            windowOpen: props.windowOpen,
+            windowOpen: true,
             valueSet: false,
             displayValue: 'nothing'
         };
+        //@ts-ignore
+        this.props.blockProps.callback(this);
     }
 
     private __expandHelper(value: any) {
@@ -2658,13 +2485,15 @@ class MiniCam extends VersoModule {
         this.functionName = '$miniCam';
         this.props = props;
         this.state = {
-            windowOpen: props.windowOpen,
+            windowOpen: true,
             valueSet: false,
             selectedGeometryIndex: 0,
             geometries: [],
             operations: [],
             toolpaths: []
         };
+        //@ts-ignore
+        this.props.blockProps.callback(this);
     }
 
     get selectedGeometry() {
@@ -2860,10 +2689,12 @@ class Projector extends VersoModule {
         this.functionName = '$projector';
         this.props = props;
         this.state = {
-            windowOpen: props.windowOpen,
+            windowOpen: true,
             valueSet: false,
             bitmapDataUrl: ''
         };
+        //@ts-ignore
+        this.props.blockProps.callback(this);
     }
 
     private __expandHelper(tabletop: verso.Tabletop, vizSpace: verso.VisualizationSpace) {
@@ -2978,7 +2809,7 @@ class InstructionBuilder extends VersoModule {
         this.functionName = '$instructionBuilder';
         this.props = props;
         this.state = {
-            windowOpen: props.windowOpen,
+            windowOpen: true,
             valueSet: false,
             paramSet: {
                 x: 0, y: 0, z: 0, e: 0, f: 0
@@ -2987,6 +2818,8 @@ class InstructionBuilder extends VersoModule {
                 x: 300, y: 300, z: 300, e: 1000, f: 1000
             }
         };
+        //@ts-ignore
+        this.props.blockProps.callback(this);
     }
 
     private __expandHelper(paramBounds: InstructionParamsG0) {
@@ -3183,10 +3016,12 @@ class ArraySlicer extends VersoModule {
         this.functionName = '$arraySlicer';
         this.props = props;
         this.state = {
-            windowOpen: props.windowOpen,
+            windowOpen: true,
             valueSet: false,
             arraySlicerValue: 'nothing'
         };
+        //@ts-ignore
+        this.props.blockProps.callback(this);
     }
 
     private __expandHelper(value: any) {

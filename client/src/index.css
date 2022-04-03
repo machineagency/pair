@@ -138,7 +138,7 @@ pre code.hljs {
     outline: none;
 }
 
-.program-line {
+.program-line-text {
     counter-increment: line;
     color: #dedede;
     margin: 0px;
@@ -149,7 +149,7 @@ pre code.hljs {
     outline: none;
 }
 
-.program-line::before {
+.program-line-text::before {
     content: counter(line);
     display: inline-block;
     font-weight: bold;
