@@ -922,7 +922,7 @@ class TabletopCalibrator extends VersoModule {
         let fnString = this.__expandHelper.toString();
         fnString = fnString.replace('__expandHelper', this.functionName);
         fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
-        fnString = 'async function ' + fnString;
+        fnString = 'async ' + fnString;
         return fnString;
     }
 
@@ -1947,16 +1947,18 @@ class ToolpathVisualizer extends VersoModule {
         }
     }
 
-    private async __expandHelper(machine: verso.Machine, toolpaths: verso.Toolpath[]) {
+    private __expandHelper(machine: verso.Machine, toolpaths: verso.Toolpath[]) {
         if (!toolpaths.length) {
             console.error('Dispatcher needs an array of toolpaths.');
             return;
         }
         // @ts-ignore
         let tv: typeof this = PROGRAM_PANE.getModuleWithName(FUNCTION_NAME_PLACEHOLDER);
-        await tv.setArguments(machine, toolpaths);
-        let populatedVizSpace = await tv.populateVizSpace();
-        return populatedVizSpace;
+        return new Promise<verso.VisualizationSpace>((resolve, reject) => {
+            tv.setArguments(machine, toolpaths).then(_ => {
+                tv.populateVizSpace().then(vs => resolve(vs))
+            });
+        });
     }
 
     private async populateVizSpace() {
@@ -1974,9 +1976,7 @@ class ToolpathVisualizer extends VersoModule {
         let fnString = this.__expandHelper.toString();
         fnString = fnString.replace('__expandHelper', this.functionName);
         fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
-        // Because the to-be-macrofied function is async, the toString adds
-        // "async" at the beginning, so we need to replace it properly.
-        fnString = fnString.replace('async', 'async function');
+        fnString = 'async ' + fnString;
         return fnString;
     }
 
@@ -2566,7 +2566,7 @@ class Display extends VersoModule {
         let fnString = this.__expandHelper.toString();
         fnString = fnString.replace('__expandHelper', this.functionName);
         fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
-        fnString = 'async function ' + fnString;
+        fnString = 'async ' + fnString;
         return fnString;
     }
 
@@ -2845,18 +2845,21 @@ class Projector extends VersoModule {
         };
     }
 
-    private async __expandHelper(tabletop: verso.Tabletop, vizSpace: verso.VisualizationSpace) {
+    private __expandHelper(tabletop: verso.Tabletop, vizSpace: verso.VisualizationSpace) {
         // @ts-ignore
         let pr: typeof this = PROGRAM_PANE.getModuleWithName(FUNCTION_NAME_PLACEHOLDER);
-        await pr.generateBitmapFromVizSpace(vizSpace);
-        return 'okay';
+        return new Promise<void>((resolve, reject) => {
+            pr.generateBitmapFromVizSpace(vizSpace).then(_ => {
+                resolve();
+            });
+        });
     }
 
     expand() : string {
         let fnString = this.__expandHelper.toString();
         fnString = fnString.replace('__expandHelper', this.functionName);
         fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
-        fnString = fnString.replace('async', 'async function');
+        fnString = 'async ' + fnString;
         return fnString;
     }
 
@@ -2965,13 +2968,19 @@ class InstructionBuilder extends VersoModule {
         };
     }
 
-    private async __expandHelper(paramBounds: InstructionParamsG0) {
+    private __expandHelper(paramBounds: InstructionParamsG0) {
         // @ts-ignore
         let ib: typeof this = PROGRAM_PANE.getModuleWithName(FUNCTION_NAME_PLACEHOLDER);
-        if (paramBounds) {
-            await ib.setArguments(paramBounds);
-        }
-        return ib.generateInstructionFromStoredParams();
+        return new Promise<verso.Instruction>((resolve, reject) => {
+            if (paramBounds) {
+                ib.setArguments(paramBounds).then(_ => {
+                    resolve(ib.generateInstructionFromStoredParams());
+                });
+            }
+            else {
+                resolve(ib.generateInstructionFromStoredParams());
+            }
+        });
     }
 
     expand() : string {
@@ -2979,6 +2988,7 @@ class InstructionBuilder extends VersoModule {
         fnString = fnString.replace('__expandHelper', this.functionName);
         fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
         fnString = fnString.replace('async', 'async function');
+        fnString = 'async ' + fnString;
         return fnString;
     }
 
