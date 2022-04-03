@@ -7,6 +7,11 @@ body {
     background-color: #23241f;
 }
 
+/* Hack to get rid of create-react-app error overlay. */
+iframe {
+    display: none;
+}
+
 /* Bypass default Highlight.js padding. */
 pre code.hljs {
     padding: 0px !important;
