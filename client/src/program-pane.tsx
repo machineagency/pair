@@ -180,6 +180,7 @@ interface ProgramPaneProps {
 };
 interface ProgramPaneState {
     editorState: EditorState;
+    editorStateInitialized: boolean;
 };
 class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     moduleRefs: React.RefObject<VersoModule>[];
@@ -189,13 +190,31 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     constructor(props: ProgramPaneProps) {
         super(props);
         this.moduleRefs = [];
-        let preloadedContent = ContentState.createFromText(props.loadedWorkflowText);
         this.state = {
-            editorState: EditorState.createWithContent(preloadedContent)
+            editorState: EditorState.createEmpty(),
+            editorStateInitialized: false
         };
         this.updateAndRerunTimeout = 0;
         this.programLinesRef = React.createRef<HTMLDivElement>();
     }
+
+    static getDerivedStateFromProps(nextProps: ProgramPaneProps,
+                                    prevState: ProgramPaneState) {
+        if (!prevState.editorStateInitialized
+                && nextProps.loadedWorkflowText.length > 0) {
+            let preloadedContent = ContentState.createFromText(nextProps.loadedWorkflowText);
+            return {
+                editorState: EditorState.createWithContent(preloadedContent),
+                editorStateInitialized: true
+            };
+        }
+        else {
+            return {
+                editorState: prevState.editorState
+            };
+        }
+    }
+
 
     componentDidUpdate() {
         RERUN();
@@ -352,20 +371,21 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         return programLines;
     }
 
-    onChange() {
+    onChange(es: EditorState) {
+        this.setState({ editorState: es });
     }
 
     render() {
         return (
             <div id="program-pane">
                 <div id="program-lines-and-controls">
+                    <div id="program-lines">
+                        <Editor
+                            editorState={this.state.editorState}
+                            onChange={this.onChange.bind(this)}>
+                        </Editor>
+                    </div>
                     {/*
-                    <Editor
-                        id="program-lines"
-                        editorState={this.state.editorState}
-                        onChange={this.onChange}>
-                    </Editor>
-                    */}
                     <div id="program-lines"
                          ref={this.programLinesRef}
                          tabIndex={0}
@@ -376,6 +396,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
                          spellCheck={false}>
                         { this.renderLines() }
                     </div>
+                    */}
                     <div id="program-controls" className="hidden">
                         <div id="run-prog-btn"
                              className={`pc-btn pc-run}`}
