@@ -39,6 +39,32 @@ interface Props {};
 interface State {}
 
 class ProgramUtil {
+    static textHasModuleCall(text: string) {
+        const re = /\$\w+/;
+        const maybeMatch = text.match(re);
+        if (!maybeMatch) {
+            return false;
+        }
+        const moduleName = maybeMatch[0].slice(1);
+        const allModuleNames = [
+            'geometryGallery',
+            'pointPicker',
+            'tabletopCalibrator',
+            'cameraCalibrator',
+            'faceFinder',
+            'axidrawDriver',
+            'toolpathVisualizer',
+            'machineInitializer',
+            'dispatcher',
+            'miniCam',
+            'display',
+            'projector',
+            'instructionBuilder',
+            'arraySlicer',
+        ];
+        return allModuleNames.includes(moduleName);
+    }
+
     static parseTextForModule(text: string,
                                moduleRef: React.RefObject<VersoModule>)
                                : JSX.Element | null {
@@ -179,7 +205,7 @@ interface ProgramPaneProps {
     loadedWorkflowText: string;
 };
 interface ProgramPaneState {
-    editorState: EditorState;
+    cleanWorkflow: string[];
 };
 class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     moduleRefs: React.RefObject<VersoModule>[];
@@ -191,10 +217,21 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         this.moduleRefs = [];
         let preloadedContent = ContentState.createFromText(props.loadedWorkflowText);
         this.state = {
-            editorState: EditorState.createWithContent(preloadedContent)
+            cleanWorkflow: []
         };
         this.updateAndRerunTimeout = 0;
         this.programLinesRef = React.createRef<HTMLDivElement>();
+    }
+
+    static getDerivedStateFromProps(nextProps: ProgramPaneProps,
+                                    prevState: ProgramPaneState) {
+        if (prevState.cleanWorkflow.length === 0
+            && nextProps.loadedWorkflowText.length > 0) {
+            return { cleanWorkflow: nextProps.loadedWorkflowText.split('\n') };
+        }
+        else {
+            return prevState;
+        }
     }
 
     componentDidUpdate() {
@@ -250,11 +287,14 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         let moduleFunctionDeclarations = this.gatherModulesAsFunctionDeclarations();
         let progText  = `${moduleFunctionDeclarations}`;
         progText += `\n(async function() {`;
-        progText += `try {`;
         progText += `${innerProgText}`;
-        progText += `} catch (e) { console.error(e); }`;
         progText += `})();`;
-        eval(progText);
+        try {
+            eval(progText);
+        }
+        catch (e) {
+            console.error(e);
+        }
     }
 
     private clearWindowPaperObject() {
@@ -262,22 +302,140 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     }
 
     handleKeyUp(event: React.KeyboardEvent<HTMLDivElement>) {
-        const backspace = 8;
-        const carriageReturn = 13;
-        const printableStart = 20;
-        const printableEnd = 126;
-        if (event.keyCode === backspace ||
-            event.keyCode === carriageReturn ||
-            (event.keyCode >= printableStart
-             && event.keyCode <= printableEnd)) {
-            this.fireUpdateAndRerunHandler(event);
-        }
+        // const backspace = 8;
+        // const carriageReturn = 13;
+        // const printableStart = 20;
+        // const printableEnd = 126;
+        // if (event.keyCode === backspace ||
+        //     event.keyCode === carriageReturn ||
+        //     (event.keyCode >= printableStart
+        //      && event.keyCode <= printableEnd)) {
+        //     this.fireUpdateAndRerunHandler(event);
+        // }
+
+        let selection = window.getSelection();
+        if (!selection) { return; }
+        let lineNumber = this.getLineNumberFromSelection(selection);
+        if (lineNumber < 0) { return; }
+        let lineDom = this.findLineWithIndex(lineNumber - 1);
+        if (!lineDom) { return; }
+        let text = lineDom.innerText;
+        let hasModule = ProgramUtil.textHasModuleCall(text);
+        if (!hasModule) { return; }
+
+        // this.render();
+
+        let newCleanWorkflow = this.state.cleanWorkflow.slice();
+        newCleanWorkflow.splice(lineNumber, 0, text);
+
+        this.setState({ cleanWorkflow: newCleanWorkflow }, () => {
+            let newLineDom = this.findLineWithIndex(lineNumber);
+            if (!selection || !newLineDom) { return; }
+            this.setCursorToProgramLine(selection, newLineDom);
+        });
+    }
+
+    private getLineNumberFromSelection(sel: Selection) {
+        let anchorNode = sel.anchorNode as HTMLDivElement | undefined;
+        if (!anchorNode) { return -1; }
+        let plDom = anchorNode.nodeType === Node.TEXT_NODE
+                    ? anchorNode.parentElement : anchorNode;
+        if (!plDom) { return -1; }
+        let rawLineNumber = plDom.dataset.lineNumber;
+        if (!rawLineNumber) { return -1; }
+        let lineNumber = parseInt(rawLineNumber);
+        if (isNaN(lineNumber) || lineNumber < 1) { return -1; }
+        return lineNumber;
+    }
+
+    private findLineWithIndex(lineIndex: number) {
+        let plDoms = Array.from(document.getElementsByClassName(
+                        'program-line')) as HTMLDivElement[];
+        let newLineDom = plDoms.find((plDom) => {
+            let rawLineNumber = plDom.dataset.lineNumber;
+            if (!rawLineNumber) { return false; }
+            let plIdx = parseInt(rawLineNumber) - 1;
+            if (isNaN(plIdx) || plIdx < 1) {
+                return false;
+            }
+            return plIdx === lineIndex;
+        });
+        return newLineDom;
+    }
+
+    private setCursorToProgramLine(sel: Selection, plDom: HTMLDivElement) {
+        let range = document.createRange();
+        range.setStart(plDom, 0);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+    }
+
+    private filterEmptyLinesInWorkflow(deletedLineIndex: number) {
+        let existingWorkflow = this.state.cleanWorkflow.slice();
+        let newCleanWorkflow = existingWorkflow.filter((line) => {
+            let trimmedLine = line.trim();
+            return trimmedLine.length > 0;
+        });
+        // Get the previous line dom, to which we will set the cursor,
+        // BEFORE we set state and cause rerender.
+        let selection = window.getSelection();
+        if (!selection) { return; }
+        let index = deletedLineIndex === 0 ? 0 : deletedLineIndex - 1;
+        let prevLineDom = this.findLineWithIndex(index);
+        this.setState({ cleanWorkflow: newCleanWorkflow }, () => {
+            if (!selection || !prevLineDom) { return; }
+            this.setCursorToProgramLine(selection, prevLineDom);
+        });
     }
 
     handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+        const backspace = 8;
         const tabKey = 9;
-        if (event.keyCode === tabKey) {
+        const carriageReturn = 13;
+        if (event.keyCode === carriageReturn) {
+            // RIP Optional-based null-checking
+            event.preventDefault();
+            let selection = window.getSelection();
+            if (!selection) { return; }
+            let lineNumber = this.getLineNumberFromSelection(selection);
+            if (lineNumber < 0) { return; }
+            let lineIndex = lineNumber;
+            let newCleanWorkflow = this.state.cleanWorkflow.slice();
+            let blankLine = ' ';
+            newCleanWorkflow.splice(lineIndex, 0, blankLine);
+            this.setState({ cleanWorkflow: newCleanWorkflow }, () => {
+                let newLineDom = this.findLineWithIndex(lineIndex);
+                if (!selection || !newLineDom) { return; }
+                this.setCursorToProgramLine(selection, newLineDom);
+            });
+        }
+        else if (event.keyCode === backspace) {
+            let selection = window.getSelection();
+            if (!selection) { return; }
+            let lineNumber = this.getLineNumberFromSelection(selection);
+            if (lineNumber < 0) { return; }
+            let lineIndex = lineNumber - 1;
+            let thisLine = this.findLineWithIndex(lineIndex);
+            if (!thisLine) { return; }
+            if (thisLine.innerText.trim() === '') {
+                event.preventDefault();
+                // FIXME: cursor placement not working yet
+                this.filterEmptyLinesInWorkflow(lineIndex);
+            }
+        }
+        else if (event.keyCode === tabKey) {
             this.handleTabKeypress(event);
+        }
+        else {
+            // event.preventDefault();
+            // let selection = window.getSelection();
+            // if (!selection) { return; }
+            // let lineNumber = this.getLineNumberFromSelection(selection);
+            // if (lineNumber < 0) { return; }
+            // let lineIndex = lineNumber - 1;
+            // let thisLine = this.findLineWithIndex(lineIndex);
+            // if (!thisLine) { return; }
         }
     }
 
@@ -319,11 +477,10 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         }
     }
 
-
     renderLines() {
         this.moduleRefs = [];
-        let lines = this.props.loadedWorkflowText.split('\n')
-        // let lines = this.state.cleanWorkflow.split('\n')
+        // let lines = this.props.loadedWorkflowText.split('\n')
+        let lines = this.state.cleanWorkflow
             .filter((line) => line.length > 0);
         let programLines = lines.map((lineText, lineIndex) => {
             let lineNumber = lineIndex + 1;
