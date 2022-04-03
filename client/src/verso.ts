@@ -734,7 +734,7 @@ export class Geometry {
     // FIXME: deprecate the paper functionality and just work with the string rep
     async loadIntoPaperCanvas(filename: string, filepath: string) : Promise<Geometry> {
         return new Promise<Geometry>((resolve, reject) => {
-            this.tabletop.project.importSVG(this.stringRep, {
+            this.tabletop.project.importSVG(filepath, {
                 expandShapes: true,
                 insert: false,
                 onError: () => {
