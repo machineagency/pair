@@ -1,7 +1,7 @@
 /// <reference path="perspective-transform.d.ts" />
 import * as THREE from 'three';
 import Paper from 'paper';
-import { OrbitControls } from 'three-orbitcontrols-ts';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 /** This file contains all primitives in the (expanded) Verso language.
  */
@@ -1043,8 +1043,7 @@ export class VisualizationSpace {
         let controls = new OrbitControls(camera, renderer.domElement);
         controls.rotateSpeed = 1.0;
         controls.zoomSpeed = 0.8;
-        // controls.panSpeed = 0.8;
-        controls.keyPanSpeed = 0.8;
+        controls.panSpeed = 0.8;
         controls.addEventListener('change', this.requestRenderScene.bind(this));
         controls.enableDamping = true;
         controls.dampingFactor = 0.5;
