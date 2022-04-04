@@ -673,11 +673,11 @@ export class Geometry {
 
     /** Returns a new verso.Geometry object with placed at the provided
      *  placement point. */
-    placeAt(placementPoint: Point) : Geometry {
+    placeAt(x: number, y: number) : Geometry {
         if (!this.paperGroup) {
             throw new Error('Cannot place geometry without data loaded.');
         }
-        let adjustedPoint = placementPoint.paperPoint.add(this.tabletop.workEnvelope.anchor);
+        let adjustedPoint = this.tabletop.workEnvelope.anchor.add(new Paper.Point(x, y));
         let newGeom = new Geometry(this.tabletop);
         newGeom.filename = this.filename;
         newGeom.filepath = this.filepath;
@@ -688,7 +688,7 @@ export class Geometry {
         if (!this.position) { throw new Error('bad'); }
         if (this.stringRep) {
             newGeom.stringRep = this
-                .calculateTranslatedStringRep(placementPoint.x, placementPoint.y);
+                .calculateTranslatedStringRep(x, y);
         }
         return newGeom;
     }
@@ -706,12 +706,32 @@ export class Geometry {
         return stringRep;
     }
 
-    rotate() {
-        // TODO
+    rotate(degrees: number) {
+        if (!this.paperGroup) {
+            throw new Error('Cannot rotate geometry without data loaded.');
+        }
+        let newGeom = new Geometry(this.tabletop);
+        newGeom.filename = this.filename;
+        newGeom.filepath = this.filepath;
+        newGeom.paperGroup = this.paperGroup;
+        //TODO: actually adjust stringrep
+        newGeom.stringRep = this.stringRep;
+        newGeom.paperGroup.rotate(degrees);
+        return newGeom;
     }
 
-    scale() {
-        // TODO
+    scale(factor: number) {
+        if (!this.paperGroup) {
+            throw new Error('Cannot scale geometry without data loaded.');
+        }
+        let newGeom = new Geometry(this.tabletop);
+        newGeom.filename = this.filename;
+        newGeom.filepath = this.filepath;
+        newGeom.paperGroup = this.paperGroup;
+        //TODO: actually adjust stringrep
+        newGeom.stringRep = this.stringRep;
+        newGeom.paperGroup.scale(factor);
+        return newGeom;
     }
 
     async loadRemoteFile(filename: string) : Promise<Geometry> {
@@ -736,7 +756,7 @@ export class Geometry {
         return new Promise<Geometry>((resolve, reject) => {
             this.tabletop.project.importSVG(filepath, {
                 expandShapes: true,
-                insert: false,
+                insert: true,
                 onError: () => {
                     console.log(this);
                     console.warn('Could not load an SVG');
