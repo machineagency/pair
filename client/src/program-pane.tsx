@@ -302,17 +302,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     }
 
     handleKeyUp(event: React.KeyboardEvent<HTMLDivElement>) {
-        // const backspace = 8;
-        // const carriageReturn = 13;
-        // const printableStart = 20;
-        // const printableEnd = 126;
-        // if (event.keyCode === backspace ||
-        //     event.keyCode === carriageReturn ||
-        //     (event.keyCode >= printableStart
-        //      && event.keyCode <= printableEnd)) {
-        //     this.fireUpdateAndRerunHandler(event);
-        // }
-
+        // Get the current line DOM.
         let selection = window.getSelection();
         if (!selection) { return; }
         let lineNumber = this.getLineNumberFromSelection(selection);
@@ -320,19 +310,28 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         let lineDom = this.findLineWithIndex(lineNumber - 1);
         if (!lineDom) { return; }
         let text = lineDom.innerText;
-        let hasModule = ProgramUtil.textHasModuleCall(text);
-        if (!hasModule) { return; }
 
-        // this.render();
+        // Gather info on what we should do.
+        let hasModuleCall = ProgramUtil.textHasModuleCall(text);
+        let nextDom = lineDom.nextElementSibling;
+        let hasModuleNext = nextDom && nextDom.className === 'module-window';
 
-        let newCleanWorkflow = this.state.cleanWorkflow.slice();
-        newCleanWorkflow.splice(lineNumber, 0, text);
+        // CASE: need to inflate a module for a new call.
+        if (hasModuleCall && !hasModuleNext) {
+            let newCleanWorkflow = this.state.cleanWorkflow.slice();
+            let lineIndex = lineNumber - 1;
+            newCleanWorkflow[lineIndex] = text;
 
-        this.setState({ cleanWorkflow: newCleanWorkflow }, () => {
-            let newLineDom = this.findLineWithIndex(lineNumber);
-            if (!selection || !newLineDom) { return; }
-            this.setCursorToProgramLine(selection, newLineDom);
-        });
+            this.setState({ cleanWorkflow: newCleanWorkflow }, () => {
+                let newLineDom = this.findLineWithIndex(lineIndex);
+                if (!selection || !newLineDom) { return; }
+                this.setCursorToProgramLine(selection, newLineDom);
+            });
+        }
+        // CASE: need to remove a module due to loss of call.
+        else if (!hasModuleCall && hasModuleNext) {
+        }
+
     }
 
     private getLineNumberFromSelection(sel: Selection) {
@@ -365,7 +364,10 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
 
     private setCursorToProgramLine(sel: Selection, plDom: HTMLDivElement) {
         let range = document.createRange();
-        range.setStart(plDom, 0);
+        // Not really sure why but 1 is the magic number since I guess offset
+        // isn't by text in this case?
+        let offset = 1;
+        range.setStart(plDom, offset);
         range.collapse(true);
         sel.removeAllRanges();
         sel.addRange(range);
