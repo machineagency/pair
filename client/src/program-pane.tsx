@@ -206,6 +206,7 @@ interface ProgramPaneProps {
 };
 interface ProgramPaneState {
     cleanWorkflow: string[];
+    loadedWorkflowText: string;
 };
 class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     moduleRefs: React.RefObject<VersoModule>[];
@@ -217,7 +218,8 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         this.moduleRefs = [];
         let preloadedContent = ContentState.createFromText(props.loadedWorkflowText);
         this.state = {
-            cleanWorkflow: []
+            loadedWorkflowText: '',
+            cleanWorkflow: [],
         };
         this.updateAndRerunTimeout = 0;
         this.programLinesRef = React.createRef<HTMLDivElement>();
@@ -225,9 +227,15 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
 
     static getDerivedStateFromProps(nextProps: ProgramPaneProps,
                                     prevState: ProgramPaneState) {
-        if (prevState.cleanWorkflow.length === 0
-            && nextProps.loadedWorkflowText.length > 0) {
-            return { cleanWorkflow: nextProps.loadedWorkflowText.split('\n') };
+        let propsHasWf = nextProps.loadedWorkflowText.length > 0;
+        let currentWfEmpty = prevState.cleanWorkflow.length === 0;
+        let propsWfChanged = nextProps.loadedWorkflowText
+                                !== prevState.loadedWorkflowText;
+        if (propsHasWf && (currentWfEmpty || propsWfChanged)) {
+            return {
+                cleanWorkflow: nextProps.loadedWorkflowText.split('\n'),
+                loadedWorkflowText: nextProps.loadedWorkflowText
+            };
         }
         else {
             return prevState;
@@ -528,6 +536,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
                 </div>
             </div>
         );
+        return pane;
     }
 }
 
@@ -535,6 +544,7 @@ interface ProgramLineProps {
     lineNumber: number;
     lineText: string;
     refForLivelit: React.RefObject<VersoModule>;
+    getPane: () => ProgramPane;
 }
 
 interface ProgramLineState {
