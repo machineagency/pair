@@ -310,6 +310,8 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     }
 
     handleKeyUp(event: React.KeyboardEvent<HTMLDivElement>) {
+        this.fireRerunHandler(event);
+
         // Get the current line DOM.
         let selection = window.getSelection();
         if (!selection) { return; }
@@ -440,7 +442,16 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         }
     }
 
-    fireUpdateAndRerunHandler(event: React.KeyboardEvent<HTMLDivElement>) {
+    highlightSyntax() {
+        // FIXME: broken
+        let textDom = this.programLinesRef.current;
+        if (!textDom) { return; }
+        const pos = FormatUtil.caret(textDom);
+        FormatUtil.highlight(textDom);
+        FormatUtil.setCaret(pos, textDom);
+    }
+
+    fireRerunHandler(event: React.KeyboardEvent<HTMLDivElement>) {
         const delay = 250;
         let textDom = this.programLinesRef.current;
         if (!textDom) { return; }
@@ -449,16 +460,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         if (FormatUtil.isCharKeypress(event)) {
             clearTimeout(this.updateAndRerunTimeout);
             this.updateAndRerunTimeout = window.setTimeout(() => {
-                // this.setState(prevState => {
-                //     return {
-                //         cleanWorkflow: this.gatherDirtyWorkflow(),
-                //     }
-                // }, () => {
-                //     // this.highlightSyntax();
-                //     if (textDom) {
-                //         FormatUtil.setCaret(cursorPos, textDom);
-                //     }
-                // });
+                RERUN();
             }, delay);
         }
     }
@@ -481,7 +483,6 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     renderLines() {
         console.log('renderlines');
         this.moduleRefs = [];
-        // let lines = this.props.loadedWorkflowText.split('\n')
         let lines = this.state.cleanWorkflow
             .filter((line) => line.length > 0);
         let programLines = lines.map((lineText, lineIndex) => {
@@ -491,7 +492,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
             const livelitWindow = ProgramUtil.parseTextForModule(
                                     lineText, maybeModuleRef);
             let plAndMaybeLivelit = [
-                 <div className={ProgramLine.textClassName}
+                 <div className="program-line"
                       key={lineNumber}
                       data-line-number={lineNumber}>
                      {lineText}
@@ -501,13 +502,6 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
                 plAndMaybeLivelit.push(livelitWindow);
             }
             return plAndMaybeLivelit;
-            // return (
-            //     <ProgramLine lineNumber={lineNumber}
-            //                  key={lineIndex}
-            //                  lineText={lineText}
-            //                  getPane={this.getPane.bind(this)}
-            //                  refForLivelit={maybeModuleRef}></ProgramLine>
-            // );
         });
         return programLines;
     }
@@ -537,123 +531,6 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
             </div>
         );
         return pane;
-    }
-}
-
-interface ProgramLineProps {
-    lineNumber: number;
-    lineText: string;
-    refForLivelit: React.RefObject<VersoModule>;
-    getPane: () => ProgramPane;
-}
-
-interface ProgramLineState {
-    lineText: string;
-    highlight: boolean;
-}
-
-class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
-    updateAndRerunTimeout: number;
-    textDomRef: React.RefObject<HTMLDivElement>;
-
-    static textClassName = 'program-line';
-
-    constructor(props: ProgramLineProps) {
-        super(props);
-        this.state = {
-            lineText: props.lineText,
-            highlight: false
-        };
-        this.updateAndRerunTimeout = 0;
-        this.textDomRef = React.createRef<HTMLDivElement>();
-    }
-
-    componentDidMount() {
-        this.highlightSyntax();
-    }
-
-    handleKeyUp(event: React.KeyboardEvent<HTMLDivElement>) {
-        const backspace = 8;
-        const printableStart = 20;
-        const printableEnd = 126;
-        if (event.keyCode === backspace ||
-            (event.keyCode >= printableStart
-             && event.keyCode <= printableEnd)) {
-            this.fireUpdateAndRerunHandler(event);
-        }
-    }
-
-    handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-        const tabKey = 9;
-        if (event.keyCode === tabKey) {
-            this.handleTabKeypress(event);
-        }
-    }
-
-    fireUpdateAndRerunHandler(event: React.KeyboardEvent<HTMLDivElement>) {
-        const delay = 250;
-        let textDom = this.textDomRef.current;
-        if (!textDom) { return; }
-        let textSetByUser = textDom.innerText;
-        let cursorPos = FormatUtil.caret(textDom);
-        if (FormatUtil.isCharKeypress(event)) {
-            clearTimeout(this.updateAndRerunTimeout);
-            this.updateAndRerunTimeout = window.setTimeout(() => {
-                this.setState(_ => ({ lineText: textSetByUser }), () => {
-                    this.highlightSyntax();
-                    if (textDom) {
-                        FormatUtil.setCaret(cursorPos, textDom);
-                    }
-                    RERUN();
-                });
-            }, delay);
-        }
-    }
-
-    handleTabKeypress(event: React.KeyboardEvent<HTMLDivElement>) {
-        let textDom = this.textDomRef.current;
-        if (!textDom) { return; }
-        if (FormatUtil.isTabKeypress(event)) {
-            FormatUtil.handleTabKeypress(event, textDom);
-        }
-    }
-
-    highlightSyntax() {
-        let textDom = this.textDomRef.current;
-        if (!textDom) { return; }
-        const pos = FormatUtil.caret(textDom);
-        FormatUtil.highlight(textDom);
-        FormatUtil.setCaret(pos, textDom);
-    }
-
-    setContentEditable() {
-        let textDom = this.textDomRef.current;
-        if (!textDom) { return; }
-        textDom.contentEditable = "true";
-        textDom.spellcheck = false;
-    }
-
-    render() {
-        const highlightClass = this.state.highlight ? 'pl-highlight' : '';
-        const lineNumber = this.props.lineNumber || -1;
-        const livelitWindow = ProgramUtil.parseTextForModule(
-                                this.state.lineText,
-                                this.props.refForLivelit);
-        let plAndMaybeLivelit = [
-             <div className={ProgramLine.textClassName}
-                  ref={this.textDomRef}
-                  key={lineNumber}
-                  data-line-number={lineNumber}
-                  tabIndex={0}
-                  onKeyDown={this.handleKeyDown.bind(this)}
-                  onKeyUp={this.handleKeyUp.bind(this)}>
-                 {this.state.lineText}
-             </div>
-        ];
-        if (livelitWindow) {
-            plAndMaybeLivelit.push(livelitWindow);
-        }
-        return plAndMaybeLivelit;
     }
 }
 
