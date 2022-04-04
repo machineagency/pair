@@ -2062,9 +2062,13 @@ class ToolpathVisualizer extends VersoModule {
         let interpreter = this.currentInterpreter;
         let functionText = interpreter ? interpreter.implementation.toString()
                                        : '';
+        let demangleRe = /three__WEBPACK_IMPORTED_MODULE_2__\["(\w+)"\]/g;
+        let varRe = /var/g;
+        let demangledText = functionText.replace(demangleRe, 'THREE.$1');
+        demangledText = demangledText.replace(varRe, 'let');
         return (
             <pre id="viz-implementation-box" className="code-box"><code>
-                {functionText}
+                {demangledText}
             </code></pre>
         );
     }
