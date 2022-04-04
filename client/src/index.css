@@ -184,7 +184,7 @@ pre code.hljs {
 /* Shared Livelit Styles */
 
 .module-window {
-    max-width: 40%;
+    max-width: 60%;
     margin: 10px 0px 10px 0px;
     border: 1px solid whitesmoke;
     padding: 10px;
@@ -344,7 +344,7 @@ pre code.hljs {
 }
 
 #cam-compiler-list {
-    margin: 10px 10px 0px 0px;
+    margin-top: 10px;
 }
 
 .cam-compiler-item {
