@@ -2,6 +2,7 @@
   "name": "verso-new",
   "version": "0.1.0",
   "private": true,
+  "proxy": "http://localhost:3001/",
   "dependencies": {
     "@testing-library/jest-dom": "^5.16.3",
     "@testing-library/react": "^12.1.4",
@@ -22,16 +23,14 @@
     "react-scripts": "^2.1.3",
     "serialport": "^10.4.0",
     "three": "^0.139.2",
-    "three-orbitcontrols-ts": "^0.1.2",
     "typescript": "^4.6.3",
     "web-vitals": "^2.1.4"
   },
-    "scripts": {
-    "start": "concurrently \"npm run server\" \"npm run client\"",
-    "server": "node server.js",
-    "client": "node start-client.js",
-    "dev": "echo \"This command has been deprecated. Use 'npm start'\" && exit 1",
-    "lint": "eslint ."
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [

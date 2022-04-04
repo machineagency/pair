@@ -15,7 +15,7 @@ const ps             = require('python-shell');
 const bsDatabase     = require('better-sqlite3');
 
 // configuration ===========================================
-const SERVER_PORT = process.env.PORT || 3000; // set our port
+const SERVER_PORT = 3001; // set our port
 // For testing — change PORT_DEBUG to false to work with real ports—true otherwise.
 const PORT_DEBUG = true;
 SerialPortMock.binding.createPort('/dev/JUBILEE', { echo: true, record: true });
@@ -274,8 +274,12 @@ let attachRoutesAndStart = () => {
     });
 
     app.get('/geometries', (req: Request, res: Response) => {
-        let names = fs.readdirSync('./geometries').map((file: string) => {
+        let possiblyHiddenNames: string[] = fs.readdirSync('./geometries')
+                                                .map((file: string) => {
             return file;
+        });
+        let names = possiblyHiddenNames.filter((name) => {
+            return name.length > 0 && name[0] !== '.';
         });
         res.status(200).json({ names: names });
     });
