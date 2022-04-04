@@ -715,7 +715,7 @@ class GeometryGallery extends VersoModule {
         s += `let geomUrl = gg.state.selectedUrl;`;
         s += `let geom = new verso.Geometry(tabletop);`;
         s += `let geomName = gg.getGeometryNameForUrl(geomUrl);`;
-        s += `await geom.loadIntoPaperCanvas(geomName, geomUrl);`;
+        s += `await geom.loadRemoteFile(geomName);`;
         s += `return geom;`;
         s += `}`;
         return s;
