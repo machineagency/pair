@@ -316,8 +316,11 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         let nextDom = lineDom.nextElementSibling;
         let hasModuleNext = nextDom && nextDom.className === 'module-window';
 
-        // CASE: need to inflate a module for a new call.
-        if (hasModuleCall && !hasModuleNext) {
+        // CASE: need to inflate a module for a new call, OR
+        // CASE: need to remove a module due to loss of call.
+        // It turns out we just update in the same way each time.
+        if ((hasModuleCall && !hasModuleNext)
+            || (!hasModuleCall && hasModuleNext)) {
             let newCleanWorkflow = this.state.cleanWorkflow.slice();
             let lineIndex = lineNumber - 1;
             newCleanWorkflow[lineIndex] = text;
@@ -328,10 +331,6 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
                 this.setCursorToProgramLine(selection, newLineDom);
             });
         }
-        // CASE: need to remove a module due to loss of call.
-        else if (!hasModuleCall && hasModuleNext) {
-        }
-
     }
 
     private getLineNumberFromSelection(sel: Selection) {
@@ -396,7 +395,8 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         const tabKey = 9;
         const carriageReturn = 13;
         if (event.keyCode === carriageReturn) {
-            // RIP Optional-based null-checking
+            // CASE: pressing CR adds a new line (for now, without splitting
+            // the current line).
             event.preventDefault();
             let selection = window.getSelection();
             if (!selection) { return; }
@@ -413,6 +413,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
             });
         }
         else if (event.keyCode === backspace) {
+            // CASE: pressing backspace on empty line deletes line.
             let selection = window.getSelection();
             if (!selection) { return; }
             let lineNumber = this.getLineNumberFromSelection(selection);
@@ -428,16 +429,6 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         }
         else if (event.keyCode === tabKey) {
             this.handleTabKeypress(event);
-        }
-        else {
-            // event.preventDefault();
-            // let selection = window.getSelection();
-            // if (!selection) { return; }
-            // let lineNumber = this.getLineNumberFromSelection(selection);
-            // if (lineNumber < 0) { return; }
-            // let lineIndex = lineNumber - 1;
-            // let thisLine = this.findLineWithIndex(lineIndex);
-            // if (!thisLine) { return; }
         }
     }
 
@@ -480,6 +471,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     }
 
     renderLines() {
+        console.log('renderlines');
         this.moduleRefs = [];
         // let lines = this.props.loadedWorkflowText.split('\n')
         let lines = this.state.cleanWorkflow
@@ -505,35 +497,26 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
             //     <ProgramLine lineNumber={lineNumber}
             //                  key={lineIndex}
             //                  lineText={lineText}
+            //                  getPane={this.getPane.bind(this)}
             //                  refForLivelit={maybeModuleRef}></ProgramLine>
             // );
         });
         return programLines;
     }
 
-    onChange() {
-    }
-
     render() {
-        return (
+        let programLines = this.renderLines();
+        let pane = (
             <div id="program-pane">
                 <div id="program-lines-and-controls">
-                    {/*
-                    <Editor
-                        id="program-lines"
-                        editorState={this.state.editorState}
-                        onChange={this.onChange}>
-                    </Editor>
-                    */}
                     <div id="program-lines"
-                         ref={this.programLinesRef}
-                         tabIndex={0}
-                         onKeyDown={this.handleKeyDown.bind(this)}
-                         onKeyUp={this.handleKeyUp.bind(this)}
                          contentEditable={true}
                          suppressContentEditableWarning={true}
-                         spellCheck={false}>
-                        { this.renderLines() }
+                         spellCheck={false}
+                         onKeyDown={this.handleKeyDown.bind(this)}
+                         onKeyUp={this.handleKeyUp.bind(this)}
+                         ref={this.programLinesRef}>
+                        { programLines }
                     </div>
                     <div id="program-controls" className="hidden">
                         <div id="run-prog-btn"
@@ -581,11 +564,9 @@ class ProgramLine extends React.Component<ProgramLineProps, ProgramLineState> {
 
     handleKeyUp(event: React.KeyboardEvent<HTMLDivElement>) {
         const backspace = 8;
-        const carriageReturn = 13;
         const printableStart = 20;
         const printableEnd = 126;
         if (event.keyCode === backspace ||
-            event.keyCode === carriageReturn ||
             (event.keyCode >= printableStart
              && event.keyCode <= printableEnd)) {
             this.fireUpdateAndRerunHandler(event);
