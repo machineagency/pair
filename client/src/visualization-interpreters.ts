@@ -181,7 +181,7 @@ export class VisualizationInterpreters {
     }
 
     static ebbHeatMapViz(toolpath: verso.Toolpath) {
-        let moveCurves : THREE.LineCurve3[] = [];
+        let travelPoints : THREE.Vector3[] = [];
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
             let x = 0.5 * (aSteps + bSteps);
             let y = -0.5 * (aSteps - bSteps);
@@ -194,8 +194,8 @@ export class VisualizationInterpreters {
             );
         };
         let currentPosition = new THREE.Vector3();
+        travelPoints.push(currentPosition.clone());
         let newPosition : THREE.Vector3;
-        let moveCurve: THREE.LineCurve3;
         let tokens, opcode, duration, aSteps, bSteps, xyChange;
         toolpath.instructions.forEach((instruction) => {
             tokens = instruction.split(',');
@@ -205,12 +205,26 @@ export class VisualizationInterpreters {
                 bSteps = parseInt(tokens[3]);
                 xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
                 newPosition = currentPosition.clone().add(xyChange);
-                moveCurve = new THREE.LineCurve3(currentPosition, newPosition);
-                moveCurves.push(moveCurve);
+                travelPoints.push(newPosition.clone());
                 currentPosition = newPosition;
             }
         });
+        let material = new THREE.MeshBasicMaterial({
+            color: 0xffffff
+        });
+        let radius = 0.1;
+        let widthSegments = 4;
+        let heightSegments = 2;
+        let pointSpheres = travelPoints.map((pt) => {
+            let geom = new THREE.SphereBufferGeometry(radius, widthSegments,
+                                                        heightSegments);
+            let mesh = new THREE.Mesh(geom, material);
+            mesh.position.set(pt.x, pt.y, pt.z);
+            return mesh;
+        });
         let wrapperGroup = new THREE.Group();
+        pointSpheres.forEach((sphere) => { wrapperGroup.add(sphere); });
+        wrapperGroup.rotateX(Math.PI / 2);
         return wrapperGroup;
     }
 
