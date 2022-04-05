@@ -1867,21 +1867,21 @@ class ToolpathVisualizer extends VersoModule {
         this.vizSpaceDomRef = React.createRef<HTMLDivElement>();
         this.interpreters = [
             {
-                name: 'Basic Lines (G-code)',
+                name: 'Basic Lines',
                 description: 'All movement lines.',
                 isa: 'ebb',
                 implementation: VisualizationInterpreters.ebbBasicViz,
                 id: 0
             },
             {
-                name: 'Colored Travel vs Draw (EBB)',
+                name: 'Colored Travel vs Draw',
                 description: 'Travel and plot lines encoded by color.',
                 isa: 'ebb',
                 implementation: VisualizationInterpreters.ebbColorViz,
                 id: 1
             },
             {
-                name: 'Velocity as Thickness (EBB)',
+                name: 'Velocity as Thickness',
                 description: 'Movement lines with thickness proportional to'
                              + ' velocity.',
                 isa: 'ebb',
@@ -1889,11 +1889,56 @@ class ToolpathVisualizer extends VersoModule {
                 id: 2
             },
             {
+                name: 'Rainbow Order',
+                description: 'Instruction order maps to color of the rainbow.',
+                isa: 'ebb',
+                implementation: VisualizationInterpreters.ebbOrderViz,
+                id: 3
+            },
+            {
+                name: 'Heat Map',
+                description: 'Highlights areas with many close movements.',
+                isa: 'ebb',
+                implementation: VisualizationInterpreters.ebbHeatMapViz,
+                id: 4
+            },
+            {
+                name: 'Sharp Angle',
+                description: 'Highlights print moves with sharp angles.',
+                isa: 'ebb',
+                implementation: VisualizationInterpreters.ebbSharpAngleViz,
+                id: 5
+            },
+            {
+                name: 'Directions',
+                description: 'Shows directions of print movements.',
+                isa: 'ebb',
+                implementation: VisualizationInterpreters.ebbDirectionViz,
+                id: 6
+            },
+            {
+                name: 'Scale Check',
+                description: 'Renders the bounds of the job as a solid color'
+                                + ' to sanity check the job scale against the'
+                                + ' work envelope.',
+                isa: 'ebb',
+                implementation: VisualizationInterpreters.ebbScaleCheckViz,
+                id: 7
+            },
+            {
+                name: 'Purge Check',
+                description: 'Highlights the presence or absence of any purges'
+                                + ' of filament or gel.',
+                isa: 'ebb',
+                implementation: VisualizationInterpreters.ebbPurgeCheckViz,
+                id: 8
+            },
+            {
                 name: 'Colored Travel vs Draw (G-code)',
                 description: 'Travel and plot lines encoded by color.',
                 isa: 'gcode',
                 implementation: VisualizationInterpreters.gcodeColorViz,
-                id: 3
+                id: 9
             }
         ];
         let maybeSavedInterpreterName = this.loadSavedValue();

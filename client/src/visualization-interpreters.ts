@@ -180,6 +180,40 @@ export class VisualizationInterpreters {
         return wrapperGroup;
     }
 
+    static ebbHeatMapViz(toolpath: verso.Toolpath) {
+        let moveCurves : THREE.LineCurve3[] = [];
+        let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
+            let x = 0.5 * (aSteps + bSteps);
+            let y = -0.5 * (aSteps - bSteps);
+            // TODO: read this from an EM instruction
+            let stepsPerMm = 80;
+            return new THREE.Vector3(
+                (x / stepsPerMm),
+                (y / stepsPerMm),
+                0.0
+            );
+        };
+        let currentPosition = new THREE.Vector3();
+        let newPosition : THREE.Vector3;
+        let moveCurve: THREE.LineCurve3;
+        let tokens, opcode, duration, aSteps, bSteps, xyChange;
+        toolpath.instructions.forEach((instruction) => {
+            tokens = instruction.split(',');
+            opcode = tokens[0];
+            if (opcode === 'SM') {
+                aSteps = parseInt(tokens[2]);
+                bSteps = parseInt(tokens[3]);
+                xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
+                newPosition = currentPosition.clone().add(xyChange);
+                moveCurve = new THREE.LineCurve3(currentPosition, newPosition);
+                moveCurves.push(moveCurve);
+                currentPosition = newPosition;
+            }
+        });
+        let wrapperGroup = new THREE.Group();
+        return wrapperGroup;
+    }
+
     static ebbOrderViz(toolpath: verso.Toolpath) {
         let toolpathCurves : THREE.LineCurve3[] = [];
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
