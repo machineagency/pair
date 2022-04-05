@@ -2134,7 +2134,7 @@ class ToolpathVisualizer extends VersoModule {
         let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
         // TODO: have set visualizations modify state and the render... or not
         let interpreterName = (this.currentInterpreter && this.currentInterpreter.name) || 'Unknown';
-        let display = `Interpreter(${interpreterName})`;
+        let display = `TSS(${interpreterName})`;
         return (
             <div className={`module-value ${grayedIffUnset}`}
                  key={`${this.titleKey}-value`}>

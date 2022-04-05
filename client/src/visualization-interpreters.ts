@@ -181,6 +181,7 @@ export class VisualizationInterpreters {
     }
 
     static ebbHeatMapViz(toolpath: verso.Toolpath) {
+        // PART 1: POINT GENERATION
         let travelPoints : THREE.Vector3[] = [];
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
             let x = 0.5 * (aSteps + bSteps);
@@ -222,8 +223,89 @@ export class VisualizationInterpreters {
             mesh.position.set(pt.x, pt.y, pt.z);
             return mesh;
         });
+        let spheresGroup = new THREE.Group();
+        pointSpheres.forEach((mesh) => spheresGroup.add(mesh));
+
+        // PART 2: BINNING
+        type BinGrid = number[][];
+        const numRows = 18 * 4;
+        const numCols = 28 * 4;
+        const weHeight = 180;
+        const weWidth = 280;
+        const cellHeight = weHeight / numRows;
+        const cellWidth = weWidth / numCols;
+        // Assume ROW-MAJOR (x-coordinate FIRST).
+        let column = Array.from(Array(numCols)).map(_ => 0);
+        let grid: BinGrid = Array.from(Array(numRows)).map(_ => column.slice());
+
+        // Array.from(Array(numRows).keys()).forEach((rowIndex) => {
+        //     Array.from(Array(numCols).keys()).forEach((colIndex) => {
+        //         let xLowerBound = colIndex * cellWidth;
+        //         let xUpperBound = (colIndex + 1) * cellWidth;
+        //         let yLowerBound = rowIndex * cellHeight;
+        //         let yUpperBound = (rowIndex + 1) * cellHeight;
+        //     });
+        // });
+
+        travelPoints.forEach((pt) => {
+            let boundCheckedY = pt.y > 0 ? pt.y : 0;
+            let boundCheckedX = pt.x > 0 ? pt.x : 0;
+            let rowIndex = Math.floor(boundCheckedY / cellHeight);
+            let colIndex = Math.floor(boundCheckedX / cellWidth);
+            console.log(`${pt.y}, ${pt.x}`)
+            console.log(`${rowIndex}, ${colIndex}`)
+            grid[rowIndex][colIndex] += 1;
+        });
+
+        let maxPtsInAnyCell = 0;
+        grid.forEach((row, rowIndex) => {
+            row.forEach((col, colIndex) => {
+                let ptCount = grid[rowIndex][colIndex];
+                if (ptCount > maxPtsInAnyCell) {
+                    maxPtsInAnyCell = ptCount;
+                }
+            });
+        });
+
+        let overlayCellGeom = new THREE.BoxBufferGeometry(cellWidth, 0.1, cellHeight);
+        let minOpacity = 0.05;
+        let overlayCells = grid.map((row, rowIndex) => {
+            let rowCells = row.map((cellPtCount, colIndex) => {
+                // Since we only want to see the most prominent points, make
+                // the opacity curve sharper by exponentiating. EXP 1 is linear.
+                let exponent = 2;
+                let opacity = Math.pow(cellPtCount / maxPtsInAnyCell, exponent)
+                                / exponent;
+                if (opacity < minOpacity) {
+                    return null;
+                }
+                let overlayCellMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xff0000,
+                    transparent: true,
+                    opacity: cellPtCount / maxPtsInAnyCell
+                    // opacity: 1
+                });
+                let cellMesh = new THREE.Mesh(overlayCellGeom, overlayCellMaterial);
+                cellMesh.rotateX(Math.PI / 2);
+                cellMesh.position.set(
+                    (colIndex + 0.5) * cellWidth,
+                    (rowIndex + 0.5) * cellHeight,
+                    0
+                );
+                return cellMesh;
+            });
+            return rowCells;
+        }).flat().filter((maybeMesh) : maybeMesh is
+                THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial> => {
+            return maybeMesh !== null;
+        });
+        let overlayGroup = new THREE.Group();
+        overlayCells.forEach((cellMesh) => overlayGroup.add(cellMesh));
+
+        // Package results and return.
         let wrapperGroup = new THREE.Group();
-        pointSpheres.forEach((sphere) => { wrapperGroup.add(sphere); });
+        // wrapperGroup.add(spheresGroup);
+        wrapperGroup.add(overlayGroup);
         wrapperGroup.rotateX(Math.PI / 2);
         return wrapperGroup;
     }
