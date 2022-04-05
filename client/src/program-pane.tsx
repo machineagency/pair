@@ -2422,7 +2422,7 @@ class Dispatcher extends VersoModule {
         let fnString = this.__expandHelper.toString();
         fnString = fnString.replace('__expandHelper', this.functionName);
         fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
-        fnString = 'async function ' + fnString;
+        fnString = 'async ' + fnString;
         return fnString;
     }
 
@@ -2731,7 +2731,7 @@ class MiniCam extends VersoModule {
         let fnString = this.__expandHelper.toString();
         fnString = fnString.replace('__expandHelper', this.functionName);
         fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
-        fnString = 'async function ' + fnString;
+        fnString = 'async ' + fnString;
         return fnString;
     }
 
