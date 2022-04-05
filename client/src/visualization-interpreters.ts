@@ -180,6 +180,141 @@ export class VisualizationInterpreters {
         return wrapperGroup;
     }
 
+    static ebbOrderViz(toolpath: verso.Toolpath) {
+        let toolpathCurves : THREE.LineCurve3[] = [];
+        let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
+            let x = 0.5 * (aSteps + bSteps);
+            let y = -0.5 * (aSteps - bSteps);
+            // TODO: read this from an EM instruction
+            let stepsPerMm = 80;
+            return new THREE.Vector3(
+                (x / stepsPerMm),
+                (y / stepsPerMm),
+                0.0
+            );
+        };
+        //flag is 1 because of the z axis is flipped
+        let flag = 1;
+        let currentPosition = new THREE.Vector3();
+        let newPosition : THREE.Vector3;
+        let moveCurve2: THREE.LineCurve3;
+        let tokens, opcode, duration, aSteps, bSteps, xyChange;
+        toolpath.instructions.forEach((instruction) => {
+            tokens = instruction.split(',');
+            opcode = tokens[0];
+            if (opcode === 'SM') {
+              aSteps = parseInt(tokens[2]);
+              bSteps = parseInt(tokens[3]);
+              xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
+
+              newPosition = currentPosition.clone().add(xyChange);
+              moveCurve2 = new THREE.LineCurve3(currentPosition, newPosition);
+              toolpathCurves.push(moveCurve2);
+              currentPosition = newPosition;
+            }
+            //change the z axis depending on pen
+            if (opcode === 'SP') {
+                flag = parseInt(tokens[1]);
+                if (flag === 0 ){
+                  newPosition = currentPosition.clone().setZ(3);
+                }
+                if (flag === 1 ){
+                  newPosition = currentPosition.clone().setZ(0);
+                }
+                moveCurve2 = new THREE.LineCurve3(currentPosition, newPosition);
+                toolpathCurves.push(moveCurve2);
+                currentPosition = newPosition;
+            }
+        });
+
+        //raised
+        let colors : THREE.Color[] = [];
+        let center = 128;
+        let width = 127;
+        let steps = 6;
+
+        //rainbow color
+        let frequency = Math.PI*2/toolpathCurves.length;
+        let phase1 = 0;
+        let phase2 = 2;
+        let phase3 = 4;
+
+        for (var i = 0; i < toolpathCurves.length; ++i){
+          let red = Math.sin(frequency*i + phase1) * width + center;
+          let grn = Math.sin(frequency*i + phase2) * width + center;
+          let blu = Math.sin(frequency*i + phase3) * width + center;
+          colors.push(new THREE.Color("rgb(" + Math.round(red) + "," + Math.round(grn)
+                                        + "," + Math.round(blu) + ")"));
+        };
+
+        //define the line
+        let pathRadius = 0.25;
+        let toolpathGeometries = toolpathCurves.map((curve) => {
+            return new THREE.TubeBufferGeometry(curve, 1, pathRadius, 10, false);
+        });
+
+        //draws the figure
+        let toolpathMeshes: THREE.Mesh[] = [];
+        for (let i = 0; i < toolpathCurves.length; i++) {
+          toolpathMeshes.push(new THREE.Mesh(toolpathGeometries[i], (new THREE.MeshToonMaterial({
+                  color: colors[i],
+                  side: THREE.DoubleSide}))));
+        };
+
+        let colorbar : THREE.LineCurve3[] = [];
+        for (let i = 0; i < toolpathCurves.length; i++) {
+            let colorBarLength = 280;
+            let gradientPosition = (i / toolpathCurves.length) * colorBarLength;
+            let step = (1 / toolpathCurves.length) * colorBarLength;
+            colorbar.push(new THREE.LineCurve3(
+                            new THREE.Vector3(gradientPosition,0,0),
+                            new THREE.Vector3(gradientPosition + step,0,0)));
+        };
+        let toolpathGroup = new THREE.Group();
+        toolpathMeshes.forEach((mesh) => toolpathGroup.add(mesh));
+
+        let colorbarGeometries = colorbar.map((curve) => {
+            return new THREE.TubeBufferGeometry(curve, 1, 1, 4, false);
+        });
+
+        let colorbarMeshes: THREE.Mesh[] = [];
+        for (let i = 0; i < toolpathCurves.length; i++) {
+          colorbarMeshes.push(new THREE.Mesh(colorbarGeometries[i], (new THREE.MeshToonMaterial({
+                  color: colors[i],
+                  side: THREE.DoubleSide}))));
+        };
+        let colorbarGroup = new THREE.Group();
+        colorbarMeshes.forEach((mesh) => colorbarGroup.add(mesh));
+
+        let wrapperGroup = new THREE.Group();
+        wrapperGroup.add(toolpathGroup);
+        wrapperGroup.add(colorbarGroup);
+        let colorbarOffset = -10;
+        colorbarGroup.position.setY(colorbarOffset);
+        wrapperGroup.rotateX(Math.PI / 2);
+        return wrapperGroup;
+    }
+
+    static ebbSharpAngleViz(toolpath: verso.Toolpath) {
+        let wrapperGroup = new THREE.Group();
+        return wrapperGroup;
+    }
+
+    static ebbDirectionViz(toolpath: verso.Toolpath) {
+        let wrapperGroup = new THREE.Group();
+        return wrapperGroup;
+    }
+
+    static ebbScaleCheckViz(toolpath: verso.Toolpath) {
+        let wrapperGroup = new THREE.Group();
+        return wrapperGroup;
+    }
+
+    static ebbPurgeCheckViz(toolpath: verso.Toolpath) {
+        let wrapperGroup = new THREE.Group();
+        return wrapperGroup;
+    }
+
     //G-Code
     static gcodeColorViz(toolpath: verso.Toolpath) {
         let moveCurves : THREE.LineCurve3[] = [];
