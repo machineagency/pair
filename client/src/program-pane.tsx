@@ -310,6 +310,17 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     }
 
     handleKeyUp(event: React.KeyboardEvent<HTMLDivElement>) {
+        const backspace = 8;
+        const printableStart = 20;
+        const printableEnd = 126;
+
+        // If the keypress is not alphanumeric, space, CR, or backspace, ignore.
+        if (!(event.keyCode === backspace ||
+            (event.keyCode >= printableStart
+             && event.keyCode <= printableEnd))) {
+             return;
+        }
+
         this.fireRerunHandler(event);
 
         // Get the current line DOM.
