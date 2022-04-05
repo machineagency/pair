@@ -673,7 +673,7 @@ export class Geometry {
 
     /** Returns a new verso.Geometry object with placed at the provided
      *  placement point. */
-    placeAt(x: number, y: number) : Geometry {
+    translate(x: number, y: number) : Geometry {
         if (!this.paperGroup) {
             throw new Error('Cannot place geometry without data loaded.');
         }

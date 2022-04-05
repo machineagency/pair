@@ -25,7 +25,7 @@ let anchorPoints = params.velocities.map((velocity, velocityIndex) => {
     });
 }).flat();
 let geometries = anchorPoints.map((anchor, anchorIndex) => {
-    return baseGeometry.placeAt(anchor, tabletop);
+    return baseGeometry.translate(anchor.x, anchor.y);
 });
 // Given these parameters, generate 6 toolpaths based on the geometry.
 let testTp = await $miniCam(baseGeometry);

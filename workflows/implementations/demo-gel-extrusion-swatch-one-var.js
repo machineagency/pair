@@ -5,8 +5,8 @@ machine = await $machineInitializer(machine);
 let tabletop = await $tabletopCalibrator(machine);
 // Consider a simple test geometry which is a wave.
 let baseGeometry = await (new verso.Geometry(tabletop)).loadRemoteFile('wave.svg');
-let firstGeometry = baseGeometry.placeAt(new verso.Point(mm(10), mm(10)), tabletop);
-let secondGeometry = baseGeometry.placeAt(new verso.Point(mm(40), mm(10)), tabletop);
+let firstGeometry = baseGeometry.translate(mm(10), mm(10));
+let secondGeometry = baseGeometry.translate(mm(40), mm(10));
 let firstOperation = new verso.CamOperation({ cutSpeed: 5 });
 let secondOperation = new verso.CamOperation({ cutSpeed: 10 });
 let tps = await $miniCam([firstGeometry, secondGeometry],
