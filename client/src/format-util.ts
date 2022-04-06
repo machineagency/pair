@@ -1,6 +1,20 @@
 // From: https://zserge.com/posts/js-editor/
 export class FormatUtil {
 
+    static PROGRAM_LINE_CLASSNAME = 'program-line';
+
+    static getSelectedLine() {
+        let selection = window.getSelection();
+        if (!selection) { return null; }
+        return selection.anchorNode;
+    }
+
+    static getAllProgramLines() {
+        return Array.from(document
+                .getElementsByClassName(FormatUtil
+                               .PROGRAM_LINE_CLASSNAME)) as HTMLDivElement[];
+    }
+
     static isCharKeypress(e: React.KeyboardEvent<HTMLDivElement>) {
         // Alphanumeric || space || backspace
         return e.keyCode >= 0x30 || e.keyCode == 0x20 || e.keyCode == 0x08
@@ -30,7 +44,7 @@ export class FormatUtil {
         plText.innerHTML = s.split('\n').join('<br/>');
     }
 
-    static caret(programLineDom: HTMLDivElement) : number {
+    static getCursorOffset(programLineDom: HTMLDivElement) : number {
         const sel = window.getSelection();
         if (!sel) { return 0; }
         let range;
@@ -46,7 +60,7 @@ export class FormatUtil {
         return prefix.toString().length;
     }
 
-    static setCaret(pos: number, programLineDom: HTMLDivElement) {
+    static setCursorOffset(pos: number, programLineDom: HTMLDivElement) {
         for (const node of Array.from(programLineDom.childNodes)) {
             if (node.nodeType == Node.TEXT_NODE) {
                 let currNode = node as Text;
@@ -64,7 +78,7 @@ export class FormatUtil {
                 }
             } else {
                 let currNode = node as HTMLDivElement;
-                pos = FormatUtil.setCaret(pos, currNode);
+                pos = FormatUtil.setCursorOffset(pos, currNode);
                 if (pos < 0) {
                   return pos;
                 }
@@ -81,14 +95,14 @@ export class FormatUtil {
         const tabDepth = 4;
         const magicalSpace = '\xa0';
         const tab = magicalSpace.repeat(tabDepth);
-        const pos = FormatUtil.caret(programLineDom) + tab.length;
+        const offset = FormatUtil.getCursorOffset(programLineDom) + tab.length;
         const sel = window.getSelection();
         if (!sel) { return; }
         const range = sel.getRangeAt(0);
         range.deleteContents();
         range.insertNode(document.createTextNode(tab));
         FormatUtil.highlight(programLineDom);
-        FormatUtil.setCaret(pos, programLineDom);
+        FormatUtil.setCursorOffset(offset, programLineDom);
         e.preventDefault();
     }
 }

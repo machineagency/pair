@@ -311,13 +311,18 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
 
     handleKeyUp(event: React.KeyboardEvent<HTMLDivElement>) {
         const backspace = 8;
-        const printableStart = 20;
+        const tabKey = 9;
+        const printableStart = 32;
         const printableEnd = 126;
 
         // If the keypress is not alphanumeric, space, CR, or backspace, ignore.
         if (!(event.keyCode === backspace ||
             (event.keyCode >= printableStart
              && event.keyCode <= printableEnd))) {
+             // Also prevent default tab behavior, even besides handleTabKey
+             if (event.keyCode === tabKey) {
+                event.preventDefault();
+             }
              return;
         }
 
@@ -370,27 +375,35 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     private findLineWithIndex(lineIndex: number) {
         let plDoms = Array.from(document.getElementsByClassName(
                         'program-line')) as HTMLDivElement[];
-        let newLineDom = plDoms.find((plDom) => {
-            let rawLineNumber = plDom.dataset.lineNumber;
-            if (!rawLineNumber) { return false; }
-            let plIdx = parseInt(rawLineNumber) - 1;
-            if (isNaN(plIdx) || plIdx < 1) {
-                return false;
-            }
-            return plIdx === lineIndex;
-        });
-        return newLineDom;
+        if (lineIndex < 0 || lineIndex >= plDoms.length) {
+            return null;
+        }
+        return plDoms[lineIndex];
+        // let newLineDom = plDoms.find((plDom) => {
+        //     let rawLineNumber = plDom.dataset.lineNumber;
+        //     if (!rawLineNumber) { return false; }
+        //     let plIdx = parseInt(rawLineNumber) - 1;
+        //     if (isNaN(plIdx) || plIdx < 1) {
+        //         return false;
+        //     }
+        //     return plIdx === lineIndex;
+        // });
+        // return newLineDom;
     }
 
     private setCursorToProgramLine(sel: Selection, plDom: HTMLDivElement) {
         let range = document.createRange();
         // Not really sure why but 1 is the magic number since I guess offset
         // isn't by text in this case?
-        let offset = 1;
-        range.setStart(plDom, offset);
-        range.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(range);
+        let offset = plDom.innerText.length === 0 ? 0 : 1;
+        try {
+            range.setStart(plDom, offset);
+            range.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+        catch (e) {
+        }
     }
 
     private filterEmptyLinesInWorkflow(deletedLineIndex: number) {
@@ -442,10 +455,15 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
             let lineIndex = lineNumber - 1;
             let thisLine = this.findLineWithIndex(lineIndex);
             if (!thisLine) { return; }
+            let maybePreviousLine = thisLine.previousElementSibling;
             if (thisLine.innerText.trim() === '') {
                 event.preventDefault();
-                // FIXME: cursor placement not working yet
                 this.filterEmptyLinesInWorkflow(lineIndex);
+                if (maybePreviousLine) {
+                    let nowCurrentLine = maybePreviousLine as HTMLDivElement;
+                    let lineLen = nowCurrentLine.innerText.length;
+                    FormatUtil.setCursorOffset(lineLen - 1, nowCurrentLine);
+                }
             }
         }
         else if (event.keyCode === tabKey) {
@@ -453,13 +471,10 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         }
     }
 
-    highlightSyntax() {
-        // FIXME: broken
-        let textDom = this.programLinesRef.current;
-        if (!textDom) { return; }
-        const pos = FormatUtil.caret(textDom);
-        FormatUtil.highlight(textDom);
-        FormatUtil.setCaret(pos, textDom);
+    highlightSyntax(lineDom: HTMLDivElement) {
+        const offset = FormatUtil.getCursorOffset(lineDom);
+        FormatUtil.highlight(lineDom);
+        FormatUtil.setCursorOffset(offset, lineDom);
     }
 
     fireRerunHandler(event: React.KeyboardEvent<HTMLDivElement>) {
@@ -467,7 +482,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         let textDom = this.programLinesRef.current;
         if (!textDom) { return; }
         let textSetByUser = textDom.innerText;
-        let cursorPos = FormatUtil.caret(textDom);
+        let cursorPos = FormatUtil.getCursorOffset(textDom);
         if (FormatUtil.isCharKeypress(event)) {
             clearTimeout(this.updateAndRerunTimeout);
             this.updateAndRerunTimeout = window.setTimeout(() => {
@@ -484,6 +499,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     }
 
     handleTabKeypress(event: React.KeyboardEvent<HTMLDivElement>) {
+        event.preventDefault();
         let textDom = this.programLinesRef.current;
         if (!textDom) { return; }
         if (FormatUtil.isTabKeypress(event)) {
