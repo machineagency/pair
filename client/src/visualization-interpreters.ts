@@ -436,7 +436,70 @@ export class VisualizationInterpreters {
     }
 
     static ebbScaleCheckViz(toolpath: verso.Toolpath) {
+        // PART 1: POINT GENERATION
+        let travelPoints : THREE.Vector3[] = [];
+        let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
+            let x = 0.5 * (aSteps + bSteps);
+            let y = -0.5 * (aSteps - bSteps);
+            // TODO: read this from an EM instruction
+            let stepsPerMm = 80;
+            return new THREE.Vector3(
+                (x / stepsPerMm),
+                (y / stepsPerMm),
+                0.0
+            );
+        };
+        let currentPosition = new THREE.Vector3();
+        travelPoints.push(currentPosition.clone());
+        let newPosition : THREE.Vector3;
+        let tokens, opcode, duration, aSteps, bSteps, xyChange;
+        toolpath.instructions.forEach((instruction) => {
+            tokens = instruction.split(',');
+            opcode = tokens[0];
+            if (opcode === 'SM') {
+                aSteps = parseInt(tokens[2]);
+                bSteps = parseInt(tokens[3]);
+                xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
+                newPosition = currentPosition.clone().add(xyChange);
+                travelPoints.push(newPosition.clone());
+                currentPosition = newPosition;
+            }
+        });
+
+        // PART 2: find extremes
+        let xMin = Infinity;
+        let yMin = Infinity;
+        let xMax = -Infinity;
+        let yMax = -Infinity;
+
+        travelPoints.forEach((pt) => {
+            if (pt.x < xMin) {
+                xMin = pt.x;
+            }
+            if (pt.x > xMax) {
+                xMax = pt.x;
+            }
+            if (pt.y < yMin) {
+                yMin = pt.y;
+            }
+            if (pt.y > yMax) {
+                yMax = pt.y;
+            }
+        });
+
+        let height = 1;
+        let boxGeom = new THREE.BoxBufferGeometry(xMax - xMin, height, yMax - yMin);
+        let material = new THREE.MeshBasicMaterial({
+            color: 0x00ff00,
+            transparent: true,
+            opacity: 0.5
+        });
+        let boundsMesh = new THREE.Mesh(boxGeom, material);
+        boundsMesh.position.setX((xMax - xMin) / 2);
+        boundsMesh.position.setZ((yMax - yMin) / 2);
+
         let wrapperGroup = new THREE.Group();
+        wrapperGroup.add(boundsMesh);
         return wrapperGroup;
     }
 
