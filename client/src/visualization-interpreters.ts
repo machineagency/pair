@@ -8,7 +8,8 @@ export type InterpreterSignature = (tp: verso.Toolpath) => THREE.Group;
 
 export class VisualizationInterpreters {
     // EBB
-    static ebbBasicViz(toolpath: verso.Toolpath) {
+
+    private static basicVizCurves(toolpath: verso.Toolpath) {
         let moveCurves : THREE.LineCurve3[] = [];
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
             let x = 0.5 * (aSteps + bSteps);
@@ -24,7 +25,8 @@ export class VisualizationInterpreters {
         let currentPosition = new THREE.Vector3();
         let newPosition : THREE.Vector3;
         let moveCurve: THREE.LineCurve3;
-        let tokens, opcode, duration, aSteps, bSteps, xyChange;
+        let tokens, opcode, duration, penValue, aSteps, bSteps, xyChange;
+        let toolOnBed = false;
         toolpath.instructions.forEach((instruction) => {
             tokens = instruction.split(',');
             opcode = tokens[0];
@@ -34,12 +36,23 @@ export class VisualizationInterpreters {
                 xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
                 newPosition = currentPosition.clone().add(xyChange);
                 moveCurve = new THREE.LineCurve3(currentPosition, newPosition);
-                moveCurves.push(moveCurve);
+                if (toolOnBed) {
+                    moveCurves.push(moveCurve);
+                }
                 currentPosition = newPosition;
             }
+            if (opcode === 'SP') {
+                penValue = parseInt(tokens[1]);
+                toolOnBed = penValue === 0;
+            }
         });
+        return moveCurves;
+    }
+
+    static ebbBasicViz(toolpath: verso.Toolpath) {
+        let moveCurves = VisualizationInterpreters.basicVizCurves(toolpath);
         let material = new THREE.MeshToonMaterial({
-            color: 0xe44242,
+            color: 0xffffff,
             side: THREE.DoubleSide
         });
         let pathRadius = 0.25
@@ -440,7 +453,122 @@ export class VisualizationInterpreters {
     }
 
     static ebbSharpAngleViz(toolpath: verso.Toolpath) {
+        // PART 1: POINT GENERATION
+        let travelPoints : THREE.Vector3[] = [];
+        let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
+            let x = 0.5 * (aSteps + bSteps);
+            let y = -0.5 * (aSteps - bSteps);
+            // TODO: read this from an EM instruction
+            let stepsPerMm = 80;
+            return new THREE.Vector3(
+                (x / stepsPerMm),
+                (y / stepsPerMm),
+                0.0
+            );
+        };
+        let currentPosition = new THREE.Vector3();
+        travelPoints.push(currentPosition.clone());
+        let newPosition : THREE.Vector3;
+        let tokens, opcode, duration, aSteps, bSteps, xyChange, penValue;
+        let toolOnBed = false;
+        toolpath.instructions.forEach((instruction) => {
+            tokens = instruction.split(',');
+            opcode = tokens[0];
+            if (opcode === 'SM') {
+                aSteps = parseInt(tokens[2]);
+                bSteps = parseInt(tokens[3]);
+                xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
+                newPosition = currentPosition.clone().add(xyChange);
+                if (toolOnBed) {
+                    travelPoints.push(newPosition.clone());
+                }
+                currentPosition = newPosition;
+            }
+            if (opcode === 'SP') {
+                penValue = parseInt(tokens[1]);
+                toolOnBed = penValue === 0;
+            }
+        });
+
+        // PART 2: TRIPLET-WISE CALCULATIONS
+        type Triplet = [THREE.Vector3, THREE.Vector3, THREE.Vector3];
+        let warningTriplets: Triplet[] = [];
+        const MIN_ANGLE = 30;
+        travelPoints.forEach((midpoint, midpointIdx) => {
+            if (midpointIdx === 0 || midpointIdx >= travelPoints.length - 1) {
+                return;
+            }
+            let prevPoint = travelPoints[midpointIdx - 1];
+            let nextPoint = travelPoints[midpointIdx + 1];
+            let a = prevPoint.clone().sub(midpoint);
+            let b = nextPoint.clone().sub(midpoint);
+            let arc = a.dot(b) / (a.length() * b.length());
+            let angle = Math.acos(arc);
+            let angleDegrees = angle * (180 / Math.PI);
+            if (isNaN(angleDegrees)) { return; }
+            const minNorm = 0.5;
+            if (angleDegrees < MIN_ANGLE
+                && (a.length() >= minNorm && b.length() >= minNorm)) {
+                warningTriplets.push([
+                    prevPoint,
+                    midpoint,
+                    nextPoint
+                ]);
+            }
+        });
+
+        let warningMeshesForTriplet = (triplet: Triplet) => {
+            let startPt = triplet[0];
+            let midpoint = triplet[1];
+            let endPt = triplet[2];
+            let factor = 2;
+            let farStart = startPt.clone().sub(midpoint).normalize()
+                            .multiplyScalar(factor).add(midpoint);
+            let farEnd = endPt.clone().sub(midpoint).normalize()
+                            .multiplyScalar(factor).add(midpoint)
+            let pathA = new THREE.LineCurve3(farStart, midpoint);
+            let pathB = new THREE.LineCurve3(midpoint, farEnd);
+            let radius = 0.25;
+            let radialSegments = 12;
+            let tubularSegments = 10;
+            let geomA = new THREE.TubeBufferGeometry(pathA, tubularSegments,
+                                               radius, radialSegments, true);
+            let geomB = new THREE.TubeBufferGeometry(pathB, tubularSegments,
+                                               radius, radialSegments, true);
+            let material = new THREE.MeshToonMaterial({
+                color: 0xff0000,
+                side: THREE.DoubleSide
+            });
+            let meshA = new THREE.Mesh(geomA, material);
+            let meshB = new THREE.Mesh(geomB, material);
+            return [meshA, meshB];
+        };
+
+        let warnMeshes = warningTriplets.map((t) => {
+            return warningMeshesForTriplet(t);
+        }).flat();
+        let warnGroup = new THREE.Group();
+        warnMeshes.forEach(mesh => warnGroup.add(mesh));
+        warnGroup.rotateX(Math.PI / 2);
+
+        // STEP 3: add in exiting move curves for reference
+        let moveCurves = VisualizationInterpreters.basicVizCurves(toolpath);
+        let moveCurveMaterial = new THREE.LineBasicMaterial({
+            color : 0xffffff
+        });
+        let moveGeoms = moveCurves.map((curve) => {
+            return new THREE.TubeBufferGeometry(curve, 64, 0.1, 64, true);
+        });
+        let moveMeshes = moveGeoms.map((geom) => {
+            return new THREE.Mesh(geom, moveCurveMaterial);
+        });
+        let moveGroup = new THREE.Group();
+        moveMeshes.forEach(mesh => moveGroup.add(mesh));
+        moveGroup.rotateX(Math.PI / 2);
+
         let wrapperGroup = new THREE.Group();
+        wrapperGroup.add(warnGroup);
+        wrapperGroup.add(moveGroup);
         return wrapperGroup;
     }
 
