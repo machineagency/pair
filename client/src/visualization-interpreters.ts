@@ -198,17 +198,32 @@ export class VisualizationInterpreters {
         travelPoints.push(currentPosition.clone());
         let newPosition : THREE.Vector3;
         let tokens, opcode, duration, aSteps, bSteps, xyChange, penValue;
+        let msPerPoint = 100;
+        let timeLeftOver = 0;
         let toolOnBed = false;
         toolpath.instructions.forEach((instruction) => {
             tokens = instruction.split(',');
             opcode = tokens[0];
             if (opcode === 'SM') {
+                duration = parseInt(tokens[1]);
                 aSteps = parseInt(tokens[2]);
                 bSteps = parseInt(tokens[3]);
                 xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
                 newPosition = currentPosition.clone().add(xyChange);
                 if (toolOnBed) {
-                    travelPoints.push(newPosition.clone());
+                    let startOffsetAlpha = timeLeftOver / duration;
+                    let startPt = currentPosition.clone()
+                                    .lerp(currentPosition, startOffsetAlpha);
+                    let numSamples = Math.floor((duration + timeLeftOver) / msPerPoint);
+                    let points = Array.from(Array(numSamples).keys())
+                        .forEach((sIdx) => {
+                            let alpha = sIdx / numSamples;
+                            let interPoint = startPt.clone()
+                                                .lerp(newPosition, alpha);
+                            travelPoints.push(interPoint);
+                    });
+                    // Update leftover
+                    timeLeftOver = (timeLeftOver + duration) % msPerPoint;
                 }
                 currentPosition = newPosition;
             }
@@ -272,7 +287,7 @@ export class VisualizationInterpreters {
             let rowCells = row.map((cellPtCount, colIndex) => {
                 // Since we only want to see the most prominent points, make
                 // the opacity curve sharper by exponentiating. EXP 1 is linear.
-                let exponent = 1.2;
+                let exponent = 2.0;
                 let opacity = Math.pow(cellPtCount / maxPtsInAnyCell, exponent)
                                 / exponent;
                 if (opacity < minOpacity) {
