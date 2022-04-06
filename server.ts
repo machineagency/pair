@@ -288,6 +288,10 @@ let attachRoutesAndStart = () => {
         res.sendFile(__dirname + `/geometries/${req.params.name}`);
     });
 
+    app.get('/toolpaths/:name', (req: Request, res: Response) => {
+        res.sendFile(__dirname + `/toolpaths/${req.params.name}`);
+    });
+
     // List device's UNIX ports, whether open or not.
     app.get('/portPaths', (req: Request, res: Response) => {
         let PortType = PORT_DEBUG ? SerialPortMock : SerialPort;

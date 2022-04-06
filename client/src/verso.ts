@@ -1328,3 +1328,29 @@ export class Cam {
         return maybeMatch ? maybeMatch[0] : num.toString();
     }
 }
+
+export class FileSystem {
+    static readToolpath(toolpathName: string) {
+        return new Promise<string[]>((resolve, reject) => {
+            let url = `${BASE_URL}/toolpaths/${toolpathName}`;
+            fetch(url).then((response) => {
+                if (response.ok) {
+                    response.text().then((text) => {
+                        let gCodeRe = /[GM]\d+/g;
+                        let lines = text.split('\n').filter((line) => {
+                            return line.match(gCodeRe);
+                        });
+                        resolve(lines);
+                    });
+                }
+                else {
+                    console.error(response.statusText);
+                    resolve([]);
+                }
+            }).catch((error) => {
+                console.error(error);
+                resolve([]);
+            });
+        });
+    }
+}
