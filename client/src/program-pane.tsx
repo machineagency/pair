@@ -310,6 +310,22 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     }
 
     handleKeyUp(event: React.KeyboardEvent<HTMLDivElement>) {
+        const backspace = 8;
+        const tabKey = 9;
+        const printableStart = 32;
+        const printableEnd = 126;
+
+        // If the keypress is not alphanumeric, space, CR, or backspace, ignore.
+        if (!(event.keyCode === backspace ||
+            (event.keyCode >= printableStart
+             && event.keyCode <= printableEnd))) {
+             // Also prevent default tab behavior, even besides handleTabKey
+             if (event.keyCode === tabKey) {
+                event.preventDefault();
+             }
+             return;
+        }
+
         this.fireRerunHandler(event);
 
         // Get the current line DOM.
@@ -359,27 +375,35 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     private findLineWithIndex(lineIndex: number) {
         let plDoms = Array.from(document.getElementsByClassName(
                         'program-line')) as HTMLDivElement[];
-        let newLineDom = plDoms.find((plDom) => {
-            let rawLineNumber = plDom.dataset.lineNumber;
-            if (!rawLineNumber) { return false; }
-            let plIdx = parseInt(rawLineNumber) - 1;
-            if (isNaN(plIdx) || plIdx < 1) {
-                return false;
-            }
-            return plIdx === lineIndex;
-        });
-        return newLineDom;
+        if (lineIndex < 0 || lineIndex >= plDoms.length) {
+            return null;
+        }
+        return plDoms[lineIndex];
+        // let newLineDom = plDoms.find((plDom) => {
+        //     let rawLineNumber = plDom.dataset.lineNumber;
+        //     if (!rawLineNumber) { return false; }
+        //     let plIdx = parseInt(rawLineNumber) - 1;
+        //     if (isNaN(plIdx) || plIdx < 1) {
+        //         return false;
+        //     }
+        //     return plIdx === lineIndex;
+        // });
+        // return newLineDom;
     }
 
     private setCursorToProgramLine(sel: Selection, plDom: HTMLDivElement) {
         let range = document.createRange();
         // Not really sure why but 1 is the magic number since I guess offset
         // isn't by text in this case?
-        let offset = 1;
-        range.setStart(plDom, offset);
-        range.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(range);
+        let offset = plDom.innerText.length === 0 ? 0 : 1;
+        try {
+            range.setStart(plDom, offset);
+            range.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+        catch (e) {
+        }
     }
 
     private filterEmptyLinesInWorkflow(deletedLineIndex: number) {
@@ -431,10 +455,15 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
             let lineIndex = lineNumber - 1;
             let thisLine = this.findLineWithIndex(lineIndex);
             if (!thisLine) { return; }
+            let maybePreviousLine = thisLine.previousElementSibling;
             if (thisLine.innerText.trim() === '') {
                 event.preventDefault();
-                // FIXME: cursor placement not working yet
                 this.filterEmptyLinesInWorkflow(lineIndex);
+                if (maybePreviousLine) {
+                    let nowCurrentLine = maybePreviousLine as HTMLDivElement;
+                    let lineLen = nowCurrentLine.innerText.length;
+                    FormatUtil.setCursorOffset(lineLen - 1, nowCurrentLine);
+                }
             }
         }
         else if (event.keyCode === tabKey) {
@@ -442,13 +471,10 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         }
     }
 
-    highlightSyntax() {
-        // FIXME: broken
-        let textDom = this.programLinesRef.current;
-        if (!textDom) { return; }
-        const pos = FormatUtil.caret(textDom);
-        FormatUtil.highlight(textDom);
-        FormatUtil.setCaret(pos, textDom);
+    highlightSyntax(lineDom: HTMLDivElement) {
+        const offset = FormatUtil.getCursorOffset(lineDom);
+        FormatUtil.highlight(lineDom);
+        FormatUtil.setCursorOffset(offset, lineDom);
     }
 
     fireRerunHandler(event: React.KeyboardEvent<HTMLDivElement>) {
@@ -456,7 +482,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
         let textDom = this.programLinesRef.current;
         if (!textDom) { return; }
         let textSetByUser = textDom.innerText;
-        let cursorPos = FormatUtil.caret(textDom);
+        let cursorPos = FormatUtil.getCursorOffset(textDom);
         if (FormatUtil.isCharKeypress(event)) {
             clearTimeout(this.updateAndRerunTimeout);
             this.updateAndRerunTimeout = window.setTimeout(() => {
@@ -473,6 +499,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
     }
 
     handleTabKeypress(event: React.KeyboardEvent<HTMLDivElement>) {
+        event.preventDefault();
         let textDom = this.programLinesRef.current;
         if (!textDom) { return; }
         if (FormatUtil.isTabKeypress(event)) {
@@ -1856,21 +1883,21 @@ class ToolpathVisualizer extends VersoModule {
         this.vizSpaceDomRef = React.createRef<HTMLDivElement>();
         this.interpreters = [
             {
-                name: 'Basic Lines (G-code)',
+                name: 'Basic Lines',
                 description: 'All movement lines.',
                 isa: 'ebb',
                 implementation: VisualizationInterpreters.ebbBasicViz,
                 id: 0
             },
             {
-                name: 'Colored Travel vs Draw (EBB)',
+                name: 'Colored Travel vs Draw',
                 description: 'Travel and plot lines encoded by color.',
                 isa: 'ebb',
                 implementation: VisualizationInterpreters.ebbColorViz,
                 id: 1
             },
             {
-                name: 'Velocity as Thickness (EBB)',
+                name: 'Velocity as Thickness',
                 description: 'Movement lines with thickness proportional to'
                              + ' velocity.',
                 isa: 'ebb',
@@ -1878,11 +1905,56 @@ class ToolpathVisualizer extends VersoModule {
                 id: 2
             },
             {
+                name: 'Rainbow Order',
+                description: 'Instruction order maps to color of the rainbow.',
+                isa: 'ebb',
+                implementation: VisualizationInterpreters.ebbOrderViz,
+                id: 3
+            },
+            {
+                name: 'Heat Map',
+                description: 'Highlights areas with many close movements.',
+                isa: 'ebb',
+                implementation: VisualizationInterpreters.ebbHeatMapViz,
+                id: 4
+            },
+            {
+                name: 'Sharp Angle',
+                description: 'Highlights print moves with sharp angles.',
+                isa: 'ebb',
+                implementation: VisualizationInterpreters.ebbSharpAngleViz,
+                id: 5
+            },
+            {
+                name: 'Directions',
+                description: 'Shows directions of print movements.',
+                isa: 'ebb',
+                implementation: VisualizationInterpreters.ebbDirectionViz,
+                id: 6
+            },
+            {
+                name: 'Scale Check',
+                description: 'Renders the bounds of the job as a solid color'
+                                + ' to sanity check the job scale against the'
+                                + ' work envelope.',
+                isa: 'ebb',
+                implementation: VisualizationInterpreters.ebbScaleCheckViz,
+                id: 7
+            },
+            {
+                name: 'Purge Check',
+                description: 'Highlights the presence or absence of any purges'
+                                + ' of filament or gel.',
+                isa: 'ebb',
+                implementation: VisualizationInterpreters.ebbPurgeCheckViz,
+                id: 8
+            },
+            {
                 name: 'Colored Travel vs Draw (G-code)',
                 description: 'Travel and plot lines encoded by color.',
                 isa: 'gcode',
                 implementation: VisualizationInterpreters.gcodeColorViz,
-                id: 3
+                id: 9
             }
         ];
         let maybeSavedInterpreterName = this.loadSavedValue();
@@ -2078,7 +2150,7 @@ class ToolpathVisualizer extends VersoModule {
         let hiddenIffUnset = this.state.valueSet ? '' : 'hidden';
         // TODO: have set visualizations modify state and the render... or not
         let interpreterName = (this.currentInterpreter && this.currentInterpreter.name) || 'Unknown';
-        let display = `Interpreter(${interpreterName})`;
+        let display = `TSS(${interpreterName})`;
         return (
             <div className={`module-value ${grayedIffUnset}`}
                  key={`${this.titleKey}-value`}>
