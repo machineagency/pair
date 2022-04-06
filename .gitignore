@@ -38,3 +38,6 @@ client/*.js.map
 *.js.map
 verso.db
 axidraw_NEW/
+
+# Don't ignore start-client.js
+!start-client.js
