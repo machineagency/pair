@@ -214,7 +214,7 @@ export class VisualizationInterpreters {
             }
             if (opcode === 'SP') {
                 penValue = parseInt(tokens[1]);
-                toolOnBed = penValue === 1;
+                toolOnBed = penValue === 0;
             }
         });
         let material = new THREE.MeshBasicMaterial({
