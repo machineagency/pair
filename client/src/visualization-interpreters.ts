@@ -197,7 +197,8 @@ export class VisualizationInterpreters {
         let currentPosition = new THREE.Vector3();
         travelPoints.push(currentPosition.clone());
         let newPosition : THREE.Vector3;
-        let tokens, opcode, duration, aSteps, bSteps, xyChange;
+        let tokens, opcode, duration, aSteps, bSteps, xyChange, penValue;
+        let toolOnBed = false;
         toolpath.instructions.forEach((instruction) => {
             tokens = instruction.split(',');
             opcode = tokens[0];
@@ -206,8 +207,14 @@ export class VisualizationInterpreters {
                 bSteps = parseInt(tokens[3]);
                 xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
                 newPosition = currentPosition.clone().add(xyChange);
-                travelPoints.push(newPosition.clone());
+                if (toolOnBed) {
+                    travelPoints.push(newPosition.clone());
+                }
                 currentPosition = newPosition;
+            }
+            if (opcode === 'SP') {
+                penValue = parseInt(tokens[1]);
+                toolOnBed = penValue === 1;
             }
         });
         let material = new THREE.MeshBasicMaterial({
@@ -238,15 +245,6 @@ export class VisualizationInterpreters {
         let column = Array.from(Array(numCols)).map(_ => 0);
         let grid: BinGrid = Array.from(Array(numRows)).map(_ => column.slice());
 
-        // Array.from(Array(numRows).keys()).forEach((rowIndex) => {
-        //     Array.from(Array(numCols).keys()).forEach((colIndex) => {
-        //         let xLowerBound = colIndex * cellWidth;
-        //         let xUpperBound = (colIndex + 1) * cellWidth;
-        //         let yLowerBound = rowIndex * cellHeight;
-        //         let yUpperBound = (rowIndex + 1) * cellHeight;
-        //     });
-        // });
-
         travelPoints.forEach((pt) => {
             let boundCheckedY = pt.y > 0 ? pt.y : 0;
             let boundCheckedX = pt.x > 0 ? pt.x : 0;
@@ -268,12 +266,13 @@ export class VisualizationInterpreters {
         });
 
         let overlayCellGeom = new THREE.BoxBufferGeometry(cellWidth, 0.1, cellHeight);
-        let minOpacity = 0.05;
+        let minOpacity = 0.00;
+        let warningCountThreshold = 5;
         let overlayCells = grid.map((row, rowIndex) => {
             let rowCells = row.map((cellPtCount, colIndex) => {
                 // Since we only want to see the most prominent points, make
                 // the opacity curve sharper by exponentiating. EXP 1 is linear.
-                let exponent = 2;
+                let exponent = 1.2;
                 let opacity = Math.pow(cellPtCount / maxPtsInAnyCell, exponent)
                                 / exponent;
                 if (opacity < minOpacity) {
@@ -304,7 +303,7 @@ export class VisualizationInterpreters {
 
         // Package results and return.
         let wrapperGroup = new THREE.Group();
-        // wrapperGroup.add(spheresGroup);
+        wrapperGroup.add(spheresGroup);
         wrapperGroup.add(overlayGroup);
         wrapperGroup.rotateX(Math.PI / 2);
         return wrapperGroup;
