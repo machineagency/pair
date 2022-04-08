@@ -49,7 +49,7 @@ export class Tabletop {
     workEnvelope: WorkEnvelope;
     toolpaths: Toolpath[];
     interactionMode: InteractionMode;
-    activeToolpath?: Toolpath;
+    activeToolpath?: paper.Group;
     activeEnvelopeSegment?: paper.Segment;
     moveEntireEnvelope: boolean;
     vizLayer: paper.Layer;
@@ -166,7 +166,7 @@ export class Tabletop {
             }
             if (event.key === 't') {
                 if (this.activeToolpath) {
-                    let tpGroupCopy = this.activeToolpath.vizGroup.clone({
+                    let tpGroupCopy = this.activeToolpath.clone({
                         deep: true,
                         insert: false
                     });
@@ -774,6 +774,7 @@ export class Geometry {
                     this.paperGroup = item;
                     this.filename = filename;
                     this.filepath = filepath;
+                    this.tabletop.activeToolpath = item;
                     resolve(this);
                 }
             });
