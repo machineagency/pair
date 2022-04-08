@@ -3263,10 +3263,35 @@ class InstructionBuilder extends VersoModule {
 
     renderInstruction() {
         let instruction = this.generateInstructionFromStoredParams();
+        // return (
+        //     <div className="display-box">
+        //         <div className="title">
+        //             { instruction }
+        //         </div>
+        //     </div>
+        // );
         return (
-            <div className="display-box">
-                <div className="title">
+            <div id="inst-list" className="boxed-list">
+                <div className="inst-list-item">
+                   G0 X50 Y2 Z0.23 E100 F218
+                </div>
+                <div className="inst-list-item">
+                   G0 X2 Y2 Z0.23 E100 F218
+                </div>
+                <div className="inst-list-item highlight inst-list-item-highlight">
                     { instruction }
+                </div>
+                <div className="inst-list-item">
+                   G0 X50 Y50 Z0.23 E100 F218
+                </div>
+                <div className="inst-list-item">
+                   G0 X50 Y100 Z0.23 E100 F218
+                </div>
+                <div className="inst-list-item">
+                   G0 X2 Y100 Z0.23 E100 F218
+                </div>
+                <div className="inst-list-item">
+                   G0 X2 Y150 Z0.23 E100 F218
                 </div>
             </div>
         );
