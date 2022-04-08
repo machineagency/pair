@@ -124,7 +124,7 @@ export class VisualizationInterpreters {
             });
             curveMaterials.push(material);
         });
-        let pathRadius = 0.25
+        let pathRadius = 0.1;
         let geometries = moveCurves.map((curve) => {
             return new THREE.TubeBufferGeometry(curve, 64, pathRadius, 64, false);
         });
@@ -300,9 +300,8 @@ export class VisualizationInterpreters {
             let rowCells = row.map((cellPtCount, colIndex) => {
                 // Since we only want to see the most prominent points, make
                 // the opacity curve sharper by exponentiating. EXP 1 is linear.
-                let exponent = 2.0;
-                let opacity = Math.pow(cellPtCount / maxPtsInAnyCell, exponent)
-                                / exponent;
+                let exponent = 3.0;
+                let opacity = Math.pow(cellPtCount / maxPtsInAnyCell, exponent);
                 if (opacity < minOpacity) {
                     return null;
                 }
@@ -391,7 +390,8 @@ export class VisualizationInterpreters {
         let steps = 6;
 
         //rainbow color
-        let frequency = Math.PI*2/toolpathCurves.length;
+        //let frequency = Math.PI*2/toolpathCurves.length;
+        let frequency = Math.PI*(1.5)/toolpathCurves.length;
         let phase1 = 0;
         let phase2 = 2;
         let phase3 = 4;
@@ -493,7 +493,7 @@ export class VisualizationInterpreters {
         // PART 2: TRIPLET-WISE CALCULATIONS
         type Triplet = [THREE.Vector3, THREE.Vector3, THREE.Vector3];
         let warningTriplets: Triplet[] = [];
-        const MIN_ANGLE = 30;
+        const MIN_ANGLE = 45;
         travelPoints.forEach((midpoint, midpointIdx) => {
             if (midpointIdx === 0 || midpointIdx >= travelPoints.length - 1) {
                 return;
@@ -509,6 +509,9 @@ export class VisualizationInterpreters {
             const minNorm = 0.5;
             if (angleDegrees < MIN_ANGLE
                 && (a.length() >= minNorm && b.length() >= minNorm)) {
+                console.log(angleDegrees);
+                console.log(a.length());
+                console.log(b.length());
                 warningTriplets.push([
                     prevPoint,
                     midpoint,
@@ -721,5 +724,123 @@ export class VisualizationInterpreters {
         return wrapperGroup;
     }
 
+    static gCodeOrderViz(toolpath: verso.Toolpath) {
+        let toolpathCurves : THREE.LineCurve3[] = [];
+        //flag is 1 because of the z axis is flipped
+        let flag = 1;
+        let currentPosition = new THREE.Vector3();
+        let newPosition : THREE.Vector3;
+        let moveCurve2: THREE.LineCurve3;
+
+        let opcodeRe = /(G[0-9]+|M[0-9]+)/;
+        let opXRe = /X(-?[0-9]+.[0-9]+)/;
+        let opYRe = /Y(-?[0-9]+.[0-9]+)/;
+        let opZRe = /Z(-?[0-9]+.[0-9]+)/;
+        let opFRe = /F(-?[0-9]+.[0-9]+)/;
+        let findOpcode = (instruction: string, argRe: RegExp) => {
+            let maybeArgResults = instruction.match(argRe);
+            if (!maybeArgResults) { return ''; }
+            return maybeArgResults[0];
+        };
+        const SCALE_FACTOR = 25;
+        let findArg = (instruction: string, argRe: RegExp, fallback: number) => {
+            let maybeArgResults = instruction.match(argRe);
+            if (!maybeArgResults || maybeArgResults.length < 2) {
+                return fallback;
+            }
+            return parseFloat(maybeArgResults[1]) * SCALE_FACTOR || 0;
+        };
+
+        let opcode, opX, opY, opZ;
+        toolpath.instructions.forEach((instruction) => {
+            opcode = findOpcode(instruction, opcodeRe);
+            if (opcode === 'G0' || opcode === 'G1') {
+              opX = findArg(instruction, opXRe, currentPosition.x),
+              opY = findArg(instruction, opYRe, currentPosition.y),
+              // Two negatives here because our coordinate basis is wonky
+              opZ = -findArg(instruction, opZRe, -currentPosition.z)
+
+              newPosition = new THREE.Vector3(opX, opY, opZ);
+              console.log(newPosition);
+              moveCurve2 = new THREE.LineCurve3(currentPosition, newPosition);
+              toolpathCurves.push(moveCurve2);
+              currentPosition = newPosition;
+            }
+        });
+
+        //raised
+        let colors : THREE.Color[] = [];
+        let center = 128;
+        let width = 127;
+        let steps = 6;
+
+        //rainbow color
+        let frequency = Math.PI*(1.5)/toolpathCurves.length;
+        let phase1 = 0;
+        let phase2 = 2;
+        let phase3 = 4;
+
+        for (var i = 0; i < toolpathCurves.length; ++i){
+          let red = Math.sin(frequency*i + phase1) * width + center;
+          let grn = Math.sin(frequency*i + phase2) * width + center;
+          let blu = Math.sin(frequency*i + phase3) * width + center;
+          colors.push(new THREE.Color("rgb(" + Math.round(red) + "," + Math.round(grn)
+                                        + "," + Math.round(blu) + ")"));
+        };
+
+        //define the line
+        let pathRadius = 0.185;
+        let toolpathGeometries = toolpathCurves.map((curve) => {
+            return new THREE.TubeBufferGeometry(curve, 1, pathRadius, 4, false);
+        });
+
+        //draws the figure
+        let toolpathMeshes: THREE.Mesh[] = [];
+        for (let i = 0; i < toolpathCurves.length; i++) {
+          toolpathMeshes.push(new THREE.Mesh(toolpathGeometries[i], (new THREE.MeshToonMaterial({
+                  color: colors[i],
+                  side: THREE.DoubleSide}))));
+        };
+
+        let colorbar : THREE.LineCurve3[] = [];
+        for (let i = 0; i < toolpathCurves.length; i++) {
+            let colorBarLength = 200;
+            let gradientPosition = (i / toolpathCurves.length) * colorBarLength;
+            let step = (1 / toolpathCurves.length) * colorBarLength;
+            colorbar.push(new THREE.LineCurve3(
+                            new THREE.Vector3(gradientPosition,0,0),
+                            new THREE.Vector3(gradientPosition + step,0,0)));
+        };
+        let toolpathGroup = new THREE.Group();
+        toolpathMeshes.forEach((mesh) => toolpathGroup.add(mesh));
+
+        let colorbarGeometries = colorbar.map((curve) => {
+            return new THREE.TubeBufferGeometry(curve, 1, 1, 4, false);
+        });
+
+        let colorbarMeshes: THREE.Mesh[] = [];
+        for (let i = 0; i < toolpathCurves.length; i++) {
+          colorbarMeshes.push(new THREE.Mesh(colorbarGeometries[i], (new THREE.MeshToonMaterial({
+                  color: colors[i],
+                  side: THREE.DoubleSide}))));
+        };
+        let colorbarGroup = new THREE.Group();
+        colorbarMeshes.forEach((mesh) => colorbarGroup.add(mesh));
+
+        let wrapperGroup = new THREE.Group();
+        const initialZDrop = 0.6996;
+        toolpathGroup.translateZ(-initialZDrop * SCALE_FACTOR);
+        wrapperGroup.add(toolpathGroup);
+        // colorbarGroup.translateY(200 + 10);
+        colorbarGroup.translateY(-15);
+        wrapperGroup.add(colorbarGroup);
+        wrapperGroup.rotateX(Math.PI / 2);
+        return wrapperGroup;
+    }
+
+    static gCodeVelocityViz(toolpath: verso.Toolpath) {
+        let wrapperGroup = new THREE.Group();
+        return wrapperGroup;
+    }
 
 }

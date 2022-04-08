@@ -1896,16 +1896,17 @@ class ToolpathVisualizer extends VersoModule {
                 id: 1
             },
             {
-                name: 'Velocity as Thickness',
-                description: 'Movement lines with thickness proportional to'
-                             + ' velocity.',
-                isa: 'ebb',
-                implementation: VisualizationInterpreters.ebbVelocityThicknessViz,
+                name: 'Ordering (G-code)',
+                description: 'Maps toolpath order to colors of the rainbow as'
+                                + ' shown in the legend.',
+                isa: 'gcode',
+                implementation: VisualizationInterpreters.gCodeOrderViz,
                 id: 2
             },
             {
-                name: 'Rainbow Order',
-                description: 'Instruction order maps to color of the rainbow.',
+                name: 'Ordering',
+                description: 'Maps toolpath order to colors of the rainbow as'
+                                + ' shown in the legend.',
                 isa: 'ebb',
                 implementation: VisualizationInterpreters.ebbOrderViz,
                 id: 3
@@ -1954,6 +1955,21 @@ class ToolpathVisualizer extends VersoModule {
                 isa: 'gcode',
                 implementation: VisualizationInterpreters.gcodeColorViz,
                 id: 9
+            },
+            {
+                name: 'Velocity as Thickness',
+                description: 'Movement lines with thickness proportional to'
+                             + ' velocity.',
+                isa: 'ebb',
+                implementation: VisualizationInterpreters.ebbVelocityThicknessViz,
+                id: 10
+            },
+            {
+                name: 'Velocity Coloring (G-Code)',
+                description: 'Colors paths by velocity.',
+                isa: 'gcode',
+                implementation: VisualizationInterpreters.gCodeVelocityViz,
+                id: 11
             }
         ];
         let maybeSavedInterpreterName = this.loadSavedValue();
@@ -2169,8 +2185,10 @@ class ToolpathVisualizer extends VersoModule {
                 </div>
                 <div className="bold-text">Toolpath Stylesheets</div>
                 { this.renderVizInterpreters() }
+                {/*
                 <div className="bold-text">Current TSS Implementation</div>
                 { this.renderImplementation() }
+                */}
            </div>
        );
     }
