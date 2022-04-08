@@ -967,8 +967,6 @@ class TabletopCalibrator extends VersoModule {
             tc.tabletop.workEnvelope
                 .setHomographyAndRedrawCorners(tc.state.homography);
         }
-        // FIXME: remove the need to set this
-        machine.tabletop = tabletop;
         return tabletop;
     }
 

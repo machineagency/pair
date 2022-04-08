@@ -56,6 +56,8 @@ export class Tabletop {
 
     constructor(machine: Machine) {
         this.machine = machine;
+        // We are forever linked, sort of.
+        machine.tabletop = this;
         this.project = Paper.project;
         this.tool = Paper.tool || new Paper.Tool();
         this.toolpaths = [];
