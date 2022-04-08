@@ -165,6 +165,12 @@ pre code.hljs {
     color: #ffffffab;
 }
 
+/* FIXME: currently doesn't work--intent is to blacken line numbers for
+ * highlighted instructions. */
+.inst-list-item-hightlight::before {
+    color: #23241f;
+}
+
 .program-line strong {
     font-weight: bold;
     color: #ffffff;
@@ -432,7 +438,7 @@ pre code.hljs {
     color: #e6db74;
 }
 
-#program-controls {
+.button-bar {
     margin-top: 20px;
     height: 75px;
     display: flex;

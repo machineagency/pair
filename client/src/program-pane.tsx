@@ -547,7 +547,7 @@ class ProgramPane extends React.Component<ProgramPaneProps, ProgramPaneState> {
                          ref={this.programLinesRef}>
                         { programLines }
                     </div>
-                    <div id="program-controls" className="hidden">
+                    <div id="program-controls" className="hidden button-bar">
                         <div id="run-prog-btn"
                              className={`pc-btn pc-run}`}
                              onClick={this.runAllLines.bind(this)}>
