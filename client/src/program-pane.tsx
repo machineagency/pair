@@ -2472,7 +2472,8 @@ class Dispatcher extends VersoModule {
             machine: undefined,
             toolpaths: undefined,
             currentToolpathIndex: 0,
-            machineState: 'disconnected'
+            //machineState: 'disconnected'
+            machineState: 'free'
         };
     }
 
@@ -2501,7 +2502,8 @@ class Dispatcher extends VersoModule {
             return {
                 machine: machine,
                 toolpaths: toolpaths,
-                machineState: machineState
+                // machineState: machineState
+                machineState: 'free'
             }
         });
         return undefined;
@@ -2589,6 +2591,19 @@ class Dispatcher extends VersoModule {
         }
     }
 
+    HACK_DispatchAxidraw() {
+        if (this.currentToolpath && this.state.machine) {
+            let tt = this.state.machine.tabletop;
+            if (!tt || !tt.activeToolpath) { return; }
+            let tpGroupCopy = tt.activeToolpath.clone({
+                deep: true,
+                insert: false
+            });
+            tt.workEnvelope.applyInverseHomography(tpGroupCopy);
+            tt.sendPaperItemToMachine(tpGroupCopy);
+        }
+    }
+
     setCurrentToolpathIndex(index: number) {
         this.setState((prevState) => ({ currentToolpathIndex: index }));
     }
@@ -2634,11 +2649,17 @@ class Dispatcher extends VersoModule {
                    Send Snippet
                </div>
                 { this.renderToolpathChoices() }
-               <div onClick={this.dispatchSelectedToolpath.bind(this)}
-                    className={`button ${grayIffNotFree}`}
-                    id="dispatch-send-toolpath">
-                   Dispatch
-               </div>
+                <div className="button-bar">
+                    <div onClick={this.HACK_DispatchAxidraw.bind(this)}
+                         className={`button ${grayIffNotFree}`}
+                         id="dispatch-send-toolpath">
+                        Dispatch
+                    </div>
+                    <div onClick={this.dispatchSelectedToolpath.bind(this)}
+                         className={`button ${grayIffNotFree}`}>
+                        Pause
+                    </div>
+                </div>
             </div>
         );
     }
