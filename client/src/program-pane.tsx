@@ -996,8 +996,9 @@ class TabletopCalibrator extends VersoModule {
             return {
                 homography: h,
             }
+        }, () => {
+            this.saveValue().then(_ => RERUN());
         });
-        this.saveValue().then(_ => RERUN());
     }
 
     saveValue() {
