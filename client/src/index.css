@@ -61,12 +61,13 @@ pre code.hljs {
 
 #main-container {
     height: 100%;
+    display: flex;
 }
 
 #program-container {
     font-size: 8pt;
-    /* height: 100%; */
-    width: 960pt;
+    /* width: 960pt; */
+    width: 40%;
     color: whitesmoke;
     font-family: 'JetBrains Mono', monospace;
     padding-top: 10px;
@@ -74,9 +75,7 @@ pre code.hljs {
     flex-direction: row;
     margin-top: 20px;
     margin-left: 20px;
-    /* TODO: figure out how to scroll without overflow-y: scroll because
-     * this seems to causing the ::before pseudoelement not to show.
-     */
+    overflow-y: scroll;
 }
 
 #program-pane {
@@ -132,7 +131,7 @@ pre code.hljs {
 
 #program-lines-and-controls {
     height: 100%;
-    width: 70%;
+    /* width: 70%; */
     margin-right: 20px;
     font-size: 14px;
 }
@@ -190,7 +189,7 @@ pre code.hljs {
 /* Shared Livelit Styles */
 
 .module-window {
-    max-width: 60%;
+    max-width: 80%;
     margin: 10px 0px 10px 0px;
     border: 1px solid whitesmoke;
     padding: 10px;
@@ -440,7 +439,6 @@ pre code.hljs {
 
 .button-bar {
     margin-top: 20px;
-    height: 75px;
     display: flex;
     flex-direction: row;
 }
@@ -469,8 +467,9 @@ pre code.hljs {
 }
 
 #canvas-container {
-    width: 100%;
+    width: 60%;
     height: 100%;
+    overflow: hidden;
 }
 
 #display-box {
