@@ -845,13 +845,14 @@ export class Port {
     }
 }
 
+export type MachineType = 'axidraw' | 'othermill' | 'jubilee' | 'TEMP'
 export class Machine {
-    machineName: string;
+    machineName: MachineType;
     tabletop?: Tabletop;
     initialized: boolean;
     port?: Port;
 
-    constructor(machineName: string) {
+    constructor(machineName: MachineType) {
         this.machineName = machineName;
         this.initialized = false;
         // TODO: look up machine name and populate fields—fake it for now

@@ -17,7 +17,7 @@ const bsDatabase     = require('better-sqlite3');
 // configuration ===========================================
 const SERVER_PORT = 3001; // set our port
 // For testing — change PORT_DEBUG to false to work with real ports—true otherwise.
-const PORT_DEBUG = true;
+const PORT_DEBUG = false;
 SerialPortMock.binding.createPort('/dev/JUBILEE', { echo: true, record: true });
 SerialPortMock.binding.createPort('/dev/LASER_CUTTER', { echo: true, record: true });
 const DEVICE_PORTS: SerialPort[] = [];

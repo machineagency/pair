@@ -158,7 +158,7 @@ class Interpreter(cmd.Cmd):
             Interpreter.prompt = ""
 
         self.camera = Camera(dry=True)
-        self.machine = Machine(dry=False)
+        self.machine = Machine(dry=True)
 
     def do_image(self, arg):
         if self.camera.dry_mode:
