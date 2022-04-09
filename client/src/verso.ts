@@ -936,6 +936,16 @@ export class Machine {
     }
 }
 
+export interface VizGroup extends THREE.Group {
+    children: THREE.Mesh[];
+    add: (mesh: THREE.Mesh) => this;
+}
+
+interface VizGroupWrapper extends THREE.Group {
+    children: VizGroup[];
+    add: (vizGroup: VizGroup) => this;
+}
+
 export class VisualizationSpace {
     protected machine: Machine;
     protected scene: THREE.Scene;
@@ -943,21 +953,25 @@ export class VisualizationSpace {
     protected controls?: OrbitControls;
     protected threeRenderer?: THREE.Renderer;
     protected envelopeGroup: THREE.Group;
-    protected vizGroup: THREE.Group;
+    protected vizGroupWrapper: VizGroupWrapper;
     protected renderRequested: boolean;
 
     constructor(machine: Machine) {
         this.machine = machine;
         this.scene = this.initScene();
         this.envelopeGroup = this.createEnvelopeGroup(machine);
-        this.vizGroup = new THREE.Group();
+        this.vizGroupWrapper = new THREE.Group() as VizGroupWrapper;
         this.scene.add(this.envelopeGroup);
-        this.scene.add(this.vizGroup);
+        this.scene.add(this.vizGroupWrapper);
         this.camera = this.initCamera(this.scene, this.envelopeGroup.position, true);
         this.renderRequested = false;
         this.initPostDomLoadLogistics();
         // For debugging
         (window as any).vs = this;
+    }
+
+    componentWillUnmount() {
+        this.removeAllViz();
     }
 
     cloneCamera() {
@@ -973,24 +987,35 @@ export class VisualizationSpace {
         return this.threeRenderer.domElement;
     }
 
-    addVizWithName(vizGroup: THREE.Group, interpreterName: string) {
+    addVizWithName(vizGroup: VizGroup, interpreterName: string) {
+        if (this.vizGroupWrapper.children.length >= 1) {
+            console.error('Cannot add another vizGroup without clearing the'
+                          + ' existing one.');
+            return;
+        }
         vizGroup.name = interpreterName;
-        this.vizGroup.add(vizGroup);
+        this.vizGroupWrapper.add(vizGroup);
         this.threeRenderScene();
     }
 
     getCurrentVizNames() {
-        return this.vizGroup.children.map((alsoCalledVizGroup) => {
+        return this.vizGroupWrapper.children.map((alsoCalledVizGroup) => {
             return alsoCalledVizGroup.name;
         });
     }
 
     removeAllViz() {
         // TODO: cast as THREE.Mesh and call dispose on geom and mat
-        this.vizGroup.children.forEach((child: THREE.Object3D) => {
+        let wrappedVizGroup = this.vizGroupWrapper.children[0];
+        if (!wrappedVizGroup) {
+            return;
+        }
+        wrappedVizGroup.children.forEach((child: THREE.Mesh) => {
+            child.geometry.dispose();
+            (child.material as THREE.Material).dispose();
             child.remove();
         });
-        this.vizGroup.children = [];
+        this.vizGroupWrapper.children = [];
         this.threeRenderScene();
     }
 

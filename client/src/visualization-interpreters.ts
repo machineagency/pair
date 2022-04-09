@@ -4,12 +4,12 @@ import ReactDOM from 'react-dom';
 import Paper from 'paper';
 import * as THREE from 'three';
 
-export type InterpreterSignature = (tp: verso.Toolpath) => THREE.Group;
+export type InterpreterSignature = (tp: verso.Toolpath) => verso.VizGroup;
 
 export class VisualizationInterpreters {
     // EBB
 
-    private static basicVizCurves(toolpath: verso.Toolpath) {
+    private static basicVizCurves(toolpath: verso.Toolpath) : THREE.LineCurve3[] {
         let moveCurves : THREE.LineCurve3[] = [];
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
             let x = 0.5 * (aSteps + bSteps);
@@ -49,7 +49,7 @@ export class VisualizationInterpreters {
         return moveCurves;
     }
 
-    static ebbBasicViz(toolpath: verso.Toolpath) {
+    static ebbBasicViz(toolpath: verso.Toolpath) : verso.VizGroup {
         let moveCurves = VisualizationInterpreters.basicVizCurves(toolpath);
         let material = new THREE.MeshToonMaterial({
             color: 0xffffff,
@@ -62,13 +62,13 @@ export class VisualizationInterpreters {
         let meshes = geometries.map((geom) => {
             return new THREE.Mesh(geom, material);
         });
-        let wrapperGroup = new THREE.Group();
+        let wrapperGroup = new THREE.Group() as verso.VizGroup;
         meshes.forEach((mesh) => wrapperGroup.add(mesh));
         wrapperGroup.rotateX(Math.PI / 2);
         return wrapperGroup;
     }
 
-    static ebbColorViz(toolpath: verso.Toolpath) {
+    static ebbColorViz(toolpath: verso.Toolpath) : verso.VizGroup {
         let moveCurves : THREE.LineCurve3[] = [];
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
             let x = 0.5 * (aSteps + bSteps);
@@ -131,13 +131,13 @@ export class VisualizationInterpreters {
         let meshes = geometries.map((geom, idx) => {
             return new THREE.Mesh(geom, curveMaterials[idx]);
         });
-        let wrapperGroup = new THREE.Group();
+        let wrapperGroup = new THREE.Group() as verso.VizGroup;
         meshes.forEach((mesh) => wrapperGroup.add(mesh));
         wrapperGroup.rotateX(Math.PI / 2);
         return wrapperGroup;
     }
 
-    static ebbVelocityThicknessViz(toolpath: verso.Toolpath) {
+    static ebbVelocityThicknessViz(toolpath: verso.Toolpath) : verso.VizGroup {
         let moveCurves : THREE.LineCurve3[] = [];
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
             let x = 0.5 * (aSteps + bSteps);
@@ -187,13 +187,13 @@ export class VisualizationInterpreters {
         let meshes = geometries.map((geom) => {
             return new THREE.Mesh(geom, material);
         });
-        let wrapperGroup = new THREE.Group();
+        let wrapperGroup = new THREE.Group() as verso.VizGroup;
         meshes.forEach((mesh) => wrapperGroup.add(mesh));
         wrapperGroup.rotateX(Math.PI / 2);
         return wrapperGroup;
     }
 
-    static ebbHeatMapViz(toolpath: verso.Toolpath) {
+    static ebbHeatMapViz(toolpath: verso.Toolpath) : verso.VizGroup {
         // PART 1: POINT GENERATION
         let travelPoints : THREE.Vector3[] = [];
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
@@ -278,8 +278,6 @@ export class VisualizationInterpreters {
             let boundCheckedX = pt.x > 0 ? pt.x : 0;
             let rowIndex = Math.floor(boundCheckedY / cellHeight);
             let colIndex = Math.floor(boundCheckedX / cellWidth);
-            console.log(`${pt.y}, ${pt.x}`)
-            console.log(`${rowIndex}, ${colIndex}`)
             grid[rowIndex][colIndex] += 1;
         });
 
@@ -329,14 +327,14 @@ export class VisualizationInterpreters {
         overlayCells.forEach((cellMesh) => overlayGroup.add(cellMesh));
 
         // Package results and return.
-        let wrapperGroup = new THREE.Group();
-        wrapperGroup.add(spheresGroup);
-        wrapperGroup.add(overlayGroup);
+        let wrapperGroup = new THREE.Group() as verso.VizGroup;
+        pointSpheres.forEach(sphere => wrapperGroup.add(sphere));
+        overlayCells.forEach(box => wrapperGroup.add(box));
         wrapperGroup.rotateX(Math.PI / 2);
         return wrapperGroup;
     }
 
-    static ebbOrderViz(toolpath: verso.Toolpath) {
+    static ebbOrderViz(toolpath: verso.Toolpath) : verso.VizGroup {
         let toolpathCurves : THREE.LineCurve3[] = [];
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
             let x = 0.5 * (aSteps + bSteps);
@@ -443,16 +441,16 @@ export class VisualizationInterpreters {
         let colorbarGroup = new THREE.Group();
         colorbarMeshes.forEach((mesh) => colorbarGroup.add(mesh));
 
-        let wrapperGroup = new THREE.Group();
-        wrapperGroup.add(toolpathGroup);
-        wrapperGroup.add(colorbarGroup);
+        let wrapperGroup = new THREE.Group() as verso.VizGroup;
+        toolpathMeshes.forEach(mesh => wrapperGroup.add(mesh));
+        colorbarMeshes.forEach((mesh) => wrapperGroup.add(mesh));
         let colorbarOffset = -10;
         colorbarGroup.position.setY(colorbarOffset);
         wrapperGroup.rotateX(Math.PI / 2);
         return wrapperGroup;
     }
 
-    static ebbSharpAngleViz(toolpath: verso.Toolpath) {
+    static ebbSharpAngleViz(toolpath: verso.Toolpath) : verso.VizGroup {
         // PART 1: POINT GENERATION
         let travelPoints : THREE.Vector3[] = [];
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
@@ -509,9 +507,6 @@ export class VisualizationInterpreters {
             const minNorm = 0.5;
             if (angleDegrees < MIN_ANGLE
                 && (a.length() >= minNorm && b.length() >= minNorm)) {
-                console.log(angleDegrees);
-                console.log(a.length());
-                console.log(b.length());
                 warningTriplets.push([
                     prevPoint,
                     midpoint,
@@ -552,7 +547,6 @@ export class VisualizationInterpreters {
         }).flat();
         let warnGroup = new THREE.Group();
         warnMeshes.forEach(mesh => warnGroup.add(mesh));
-        warnGroup.rotateX(Math.PI / 2);
 
         // STEP 3: add in exiting move curves for reference
         let moveCurves = VisualizationInterpreters.basicVizCurves(toolpath);
@@ -567,20 +561,20 @@ export class VisualizationInterpreters {
         });
         let moveGroup = new THREE.Group();
         moveMeshes.forEach(mesh => moveGroup.add(mesh));
-        moveGroup.rotateX(Math.PI / 2);
 
-        let wrapperGroup = new THREE.Group();
-        wrapperGroup.add(warnGroup);
-        wrapperGroup.add(moveGroup);
+        let wrapperGroup = new THREE.Group() as verso.VizGroup;
+        warnMeshes.forEach(mesh => wrapperGroup.add(mesh));
+        moveMeshes.forEach(mesh => wrapperGroup.add(mesh));
+        wrapperGroup.rotateX(Math.PI / 2);
         return wrapperGroup;
     }
 
-    static ebbDirectionViz(toolpath: verso.Toolpath) {
-        let wrapperGroup = new THREE.Group();
+    static ebbDirectionViz(toolpath: verso.Toolpath) : verso.VizGroup {
+        let wrapperGroup = new THREE.Group() as verso.VizGroup;
         return wrapperGroup;
     }
 
-    static ebbScaleCheckViz(toolpath: verso.Toolpath) {
+    static ebbScaleCheckViz(toolpath: verso.Toolpath) : verso.VizGroup {
         // PART 1: POINT GENERATION
         let travelPoints : THREE.Vector3[] = [];
         let getXyMmChangeFromABSteps = (aSteps: number, bSteps: number) => {
@@ -643,18 +637,18 @@ export class VisualizationInterpreters {
         boundsMesh.position.setX((xMax - xMin) / 2);
         boundsMesh.position.setZ((yMax - yMin) / 2);
 
-        let wrapperGroup = new THREE.Group();
+        let wrapperGroup = new THREE.Group() as verso.VizGroup;
         wrapperGroup.add(boundsMesh);
         return wrapperGroup;
     }
 
-    static ebbPurgeCheckViz(toolpath: verso.Toolpath) {
-        let wrapperGroup = new THREE.Group();
+    static ebbPurgeCheckViz(toolpath: verso.Toolpath) : verso.VizGroup {
+        let wrapperGroup = new THREE.Group() as verso.VizGroup;
         return wrapperGroup;
     }
 
     //G-Code
-    static gcodeColorViz(toolpath: verso.Toolpath) {
+    static gcodeColorViz(toolpath: verso.Toolpath) : verso.VizGroup {
         let moveCurves : THREE.LineCurve3[] = [];
         let moveCurve: THREE.LineCurve3;
         let curveMaterials: THREE.Material[] = [];
@@ -718,13 +712,13 @@ export class VisualizationInterpreters {
         let meshes = geometries.map((geom, idx) => {
             return new THREE.Mesh(geom, curveMaterials[idx]);
         });
-        let wrapperGroup = new THREE.Group();
+        let wrapperGroup = new THREE.Group() as verso.VizGroup;
         meshes.forEach((mesh) => wrapperGroup.add(mesh));
         wrapperGroup.rotateX(Math.PI / 2);
         return wrapperGroup;
     }
 
-    static gCodeOrderViz(toolpath: verso.Toolpath) {
+    static gCodeOrderViz(toolpath: verso.Toolpath) : verso.VizGroup {
         let toolpathCurves : THREE.LineCurve3[] = [];
         //flag is 1 because of the z axis is flipped
         let flag = 1;
@@ -761,7 +755,6 @@ export class VisualizationInterpreters {
               opZ = -findArg(instruction, opZRe, -currentPosition.z)
 
               newPosition = new THREE.Vector3(opX, opY, opZ);
-              console.log(newPosition);
               moveCurve2 = new THREE.LineCurve3(currentPosition, newPosition);
               toolpathCurves.push(moveCurve2);
               currentPosition = newPosition;
@@ -827,19 +820,20 @@ export class VisualizationInterpreters {
         let colorbarGroup = new THREE.Group();
         colorbarMeshes.forEach((mesh) => colorbarGroup.add(mesh));
 
-        let wrapperGroup = new THREE.Group();
+        let wrapperGroup = new THREE.Group() as verso.VizGroup;
         const initialZDrop = 0.6996;
         toolpathGroup.translateZ(-initialZDrop * SCALE_FACTOR);
-        wrapperGroup.add(toolpathGroup);
         // colorbarGroup.translateY(200 + 10);
         colorbarGroup.translateY(-15);
-        wrapperGroup.add(colorbarGroup);
+
+        toolpathMeshes.forEach(mesh => wrapperGroup.add(mesh));
+        colorbarMeshes.forEach(mesh => wrapperGroup.add(mesh));
         wrapperGroup.rotateX(Math.PI / 2);
         return wrapperGroup;
     }
 
-    static gCodeVelocityViz(toolpath: verso.Toolpath) {
-        let wrapperGroup = new THREE.Group();
+    static gCodeVelocityViz(toolpath: verso.Toolpath) : verso.VizGroup {
+        let wrapperGroup = new THREE.Group() as verso.VizGroup;
         return wrapperGroup;
     }
 
