@@ -23,7 +23,7 @@ SerialPortMock.binding.createPort('/dev/LASER_CUTTER', { echo: true, record: tru
 const DEVICE_PORTS: SerialPort[] = [];
 const DEVICE_PORT_MOCKS: SerialPortMock[] = [];
 const DEVICE_PORT_PARSERS: ReadlineParser[] = [];
-app.use(bodyParser.json()); // for parsing application/json
+app.use(bodyParser.json({ limit: '10mb' })); // for parsing application/json
 app.use(express.static(__dirname + '/client')); // set the static files location /public/img will be /img for users
 const shell = new ps.PythonShell('./cp_interpreter.py', {});
 
@@ -225,29 +225,29 @@ let attachRoutesAndStart = () => {
         }
     });
 
-    app.get('/machine/drawEnvelope', (req: Request, res: Response) => {
+    app.put('/machine/drawEnvelope', (req: Request, res: Response) => {
         shell.send('draw_envelope');
         res.status(200).send();
     });
 
-    app.get('/machine/drawToolpath', (req: Request, res: Response) => {
-        let svg_string = req.query['svgString']
-        shell.send('draw_toolpath '+ svg_string);
+    app.put('/machine/drawToolpath', (req: Request, res: Response) => {
+        let svgString = req.body.svgString;
+        shell.send('draw_toolpath '+ svgString);
         res.status(200).send();
     });
 
-    app.get('/machine/generatePreview', (req: Request, res: Response) => {
-        let svg_string = req.query['svgString']
+    app.put('/machine/generatePreview', (req: Request, res: Response) => {
+        let svgString = req.body.svgString;
         shell.currRpcResponse = res;
         shell.currRpcName = 'generatePreview';
-        shell.send('generate_preview '+ svg_string);
+        shell.send('generate_preview '+ svgString);
     });
 
-    app.get('/machine/generateInstructions', (req: Request, res: Response) => {
-        let svg_string = req.query['svgString']
+    app.put('/machine/generateInstructions', (req: Request, res: Response) => {
+        let svgString = req.body.svgString;
         shell.currRpcResponse = res;
         shell.currRpcName = 'generateInstructions';
-        shell.send('generate_instructions '+ svg_string);
+        shell.send('generate_instructions '+ svgString);
     });
 
     app.get('/camera/takePhoto', (req: Request, res: Response) => {
@@ -473,7 +473,7 @@ function seedDatabase(db: Database) {
                         let progName = headerObj['progName'];
                         let progText = jsData.toString();
                         // SQL escapes quotes with ... another quote.
-                        progText = progText.replaceAll('\'', '\'\'');
+                        progText = progText.replace(/'/g, `''`);
                         let queryStr = ('INSERT INTO Workflows '
                             + '(progName, progText) '
                             + `VALUES ('${progName}', '${progText}');`);

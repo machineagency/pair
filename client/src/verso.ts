@@ -226,13 +226,6 @@ export class Tabletop {
 
     sendPaperItemToMachine(itemToSend: paper.Item) : Promise<Response> {
         // Credit: https://github.com/yoksel/url-encoder/ .
-        const urlEncodeSvg = (data: String) : String => {
-            const symbols = /[\r\n%#()<>?[\\\]^`{|}]/g;
-            data = data.replace(/"/g, `'`);
-            data = data.replace(/>\s{1,}</g, `><`);
-            data = data.replace(/\s{2,}/g, ` `);
-            return data.replace(symbols, encodeURIComponent);
-        }
         const headerXmlns = 'xmlns="http://www.w3.org/2000/svg"';
         // If the height and width cause issues, switch them back to a large
         // number, say 300 or 500.
@@ -247,11 +240,17 @@ export class Tabletop {
             asString: true,
             precision: 2
         });
-        const svgString = svgHeader + svgPath + svgFooter;
-        const encodedSvg = urlEncodeSvg(svgString);
-        const url = `${BASE_URL}/machine/drawToolpath?svgString=${encodedSvg}`;
+        let svgString = svgHeader + svgPath + svgFooter;
+        svgString = svgString.replace(/"/g, `'`);
+        const body = JSON.stringify({ svgString: svgString });
+        const url = `${BASE_URL}/machine/drawToolpath`;
         return fetch(url, {
-            method: 'GET'
+            method: 'PUT',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: body
         });
     }
 }
@@ -886,14 +885,6 @@ export class Machine {
     }
 
     async compileGeometryToToolpath(geometry: Geometry) : Promise<Toolpath> {
-        // Credit: https://github.com/yoksel/url-encoder/ .
-        const urlEncodeSvg = (data: String) : String => {
-            const symbols = /[\r\n%#()<>?[\\\]^`{|}]/g;
-            data = data.replace(/"/g, `'`);
-            data = data.replace(/>\s{1,}</g, `><`);
-            data = data.replace(/\s{2,}/g, ` `);
-            return data.replace(symbols, encodeURIComponent);
-        }
         if (!this.tabletop) {
             throw new Error(`${this.machineName} needs a tabletop before previewing.`);
         }
@@ -910,10 +901,18 @@ export class Machine {
             asString: true,
             precision: 2
         });
-        const svgString = svgHeader + svgPath + svgFooter;
-        const encodedSvg = urlEncodeSvg(svgString);
-        const url = `${BASE_URL}/machine/generateInstructions?svgString=${encodedSvg}`;
-        let response = await fetch(url);
+        let svgString = svgHeader + svgPath + svgFooter;
+        svgString = svgString.replace(/"/g, `'`);
+        const body = JSON.stringify({ svgString: svgString });
+        const url = `${BASE_URL}/machine/generateInstructions`;
+        let response = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: body
+        });
         if (response.ok) {
             let resJson = await response.json();
             let instructions = resJson.instructions;
