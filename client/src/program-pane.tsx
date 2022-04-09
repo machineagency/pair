@@ -2199,17 +2199,30 @@ interface MachineInitializerProps extends ModuleProps {
 };
 
 interface MachineInitializerState extends ModuleState {
+    machine?: verso.Machine;
     initialized: boolean;
     connected: boolean;
     axesHomed: verso.Axis[];
     portPaths: string[];
     selectedPortPathIndex: number;
     port?: verso.Port;
+    bypass: boolean;
+};
+
+type BaudRateTable = {
+    [K in verso.MachineType]: number;
 };
 
 class MachineInitializer extends VersoModule {
     props: MachineInitializerProps;
     state: MachineInitializerState;
+
+    static baudRatesTable: BaudRateTable = {
+        'axidraw': 9600,
+        'othermill': 0,
+        'jubilee': 115200,
+        'TEMP': 0
+    };
 
     constructor(props: MachineInitializerProps) {
         super(props);
@@ -2223,7 +2236,8 @@ class MachineInitializer extends VersoModule {
             connected: false,
             axesHomed: [],
             portPaths: [],
-            selectedPortPathIndex: 0
+            selectedPortPathIndex: 0,
+            bypass: false
         };
         this.fetchPortPaths();
         // TODO: check if machine port is actually open and homed, so we don't
@@ -2260,15 +2274,37 @@ class MachineInitializer extends VersoModule {
     };
 
     expand() : string {
-        let s = `async function ${this.functionName}(machine) {`;
-        s += `let mi = PROGRAM_PANE.getModuleWithName(\'${this.functionName}\');`;
-        s += `if (mi.state.initialized) {`;
-        s += `machine.initialized = true;`;
-        s += `machine.port = mi.state.port;`;
-        s += `}`;
-        s += `return machine;`;
-        s += `}`;
-        return s;
+        let fnString = this.__expandHelper.toString();
+        fnString = fnString.replace('__expandHelper', this.functionName);
+        fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
+        fnString = 'async ' + fnString;
+        return fnString;
+    }
+
+    private __expandHelper(machine: verso.Machine) {
+        // @ts-ignore
+        let mi: typeof this = PROGRAM_PANE.getModuleWithName(FUNCTION_NAME_PLACEHOLDER);
+        return new Promise<verso.Machine>((resolve, reject) => {
+            mi.setArguments(machine).then(_ => {
+                if (mi.state.initialized || mi.state.bypass) {
+                    machine.initialized = true;
+                    machine.port = mi.state.port;
+                    if (mi.state.bypass) {
+                        console.log('$MI: bypassing initialization procedure.');
+                    }
+                }
+                resolve(machine);
+            });
+        });
+    }
+
+    setArguments(machine: verso.Machine) {
+        return new Promise<void>((resolve, reject) => {
+            this.titleText = `MachineInitializer<${machine.machineName}>`;
+            this.setState({
+               machine: machine,
+            }, resolve);
+        });
     }
 
     saveValue() {
@@ -2306,7 +2342,12 @@ class MachineInitializer extends VersoModule {
     }
 
     private connect() {
-        const machineBaudRate = 115200;
+        if (!this.state.machine) {
+            console.error('$MI: no machine set for connection');
+            return;
+        }
+        const machineBaudRate = MachineInitializer
+                                .baudRatesTable[this.state.machine.machineName];
         let chosenPath = this.selectedPortPath;
         if (!chosenPath) {
             return;
@@ -2320,6 +2361,9 @@ class MachineInitializer extends VersoModule {
                         port: port
                     };
                 });
+            }
+            else {
+                console.log('$MI: could not connect.');
             }
         });
     }
@@ -2344,6 +2388,35 @@ class MachineInitializer extends VersoModule {
                     if (initialized) {
                         RERUN();
                     }
+                });
+            }
+        });
+    }
+
+    axidrawDisengageMotors() {
+        let port = this.state.port;
+        if (!port || !port.isOpen) {
+            console.error('Cannot write to port.');
+            return;
+        }
+        port.writeInstructions(['EM,0,0\n']).then((response) => {
+            if (response) {
+                console.log(response);
+            }
+        });
+    }
+
+    axidrawFinishHoming() {
+        let port = this.state.port;
+        if (!port || !port.isOpen) {
+            console.error('Cannot write to port.');
+            return;
+        }
+        port.writeInstructions(['EM,1,1\n']).then((response) => {
+            if (response) {
+                this.setState({
+                    axesHomed: ['x', 'y'],
+                    initialized: true
                 });
             }
         });
@@ -2402,6 +2475,21 @@ class MachineInitializer extends VersoModule {
     }
 
     renderContent() {
+        if (!this.state.machine) {
+            return <div>No machine given.</div>
+        }
+        else if (this.state.machine.machineName === 'axidraw') {
+            return this.renderContentAxidraw();
+        }
+        else if (this.state.machine.machineName === 'jubilee') {
+            return this.renderContentJubilee();
+        }
+        else {
+            return <div>Unknown machine given.</div>
+        }
+    }
+
+    renderContentAxidraw() {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return <div className={`tabletop-calibrator content ${maybeHidden}`}
                     key={this.contentKey.toString()}>
@@ -2415,10 +2503,42 @@ class MachineInitializer extends VersoModule {
                    </div>
                    <br/>
                    { this.renderPortPaths() }
-                   { this.renderSnippet(this.connect.toString()) }
                    <div onClick={this.connect.bind(this)}
                         className="button" id="mi-connect">
-                       Send Code
+                       Connect
+                   </div>
+                   <div className="help-text">
+                       2. Disengage the motors and push the pen as close as
+                       possible to the control board.
+                   </div>
+                   <div onClick={this.axidrawDisengageMotors.bind(this)}
+                        className={`button`} id="mi-home-axidraw-disengage">
+                       Disengage
+                   </div>
+                   <div onClick={this.axidrawFinishHoming.bind(this)}
+                        className={`button`} id="mi-home-axidraw-finish">
+                       Finish
+                   </div>
+               </div>;
+    }
+
+    renderContentJubilee() {
+        let maybeHidden = this.state.windowOpen ? '' : 'hidden';
+        return <div className={`tabletop-calibrator content ${maybeHidden}`}
+                    key={this.contentKey.toString()}>
+                   <div className="subtitle">
+                       Machine Initialized? {
+                           this.state.initialized ? 'Yes' : 'No'
+                       }
+                   </div>
+                   <div className="help-text">
+                       1. Connect to the machine.
+                   </div>
+                   <br/>
+                   { this.renderPortPaths() }
+                   <div onClick={this.connect.bind(this)}
+                        className="button" id="mi-connect">
+                       Connect
                    </div>
                    <div className="help-text">
                        2. Home the U, Y, Z, then X axes.
