@@ -2687,10 +2687,11 @@ class Dispatcher extends VersoModule {
     }
 
     sendSnippet() {
-       let snippetDom = document.getElementById('dispatch-send-snippet');
-       if (!snippetDom || !this.state.machine ||
+       let dispatchTerminalDom = document
+                    .getElementById('dispatch-terminal') as HTMLInputElement;
+       if (!dispatchTerminalDom || !this.state.machine ||
            !this.state.machine.port || !this.isFree) { return; }
-       let snippet = snippetDom.innerText;
+       let snippet = dispatchTerminalDom.value + '\n';
        // TODO: validation
        this.state.machine.port.writeInstructions([snippet])
            .then((response) => {
@@ -2702,8 +2703,19 @@ class Dispatcher extends VersoModule {
     dispatchSelectedToolpath() {
         if (this.currentToolpath && this.state.machine
             && this.state.machine.port && this.isFree) {
+            let instructions = [];
+            if (this.state.machine.machineName === 'axidraw') {
+                instructions = this.currentToolpath.instructions.map((inst) => {
+                    return inst + '\n';
+                });
+            }
+            else {
+                instructions = this.currentToolpath.instructions;
+            }
+            // FIXME: we cannot just send all instructions at once, we have
+            // to wait for OK
             this.state.machine.port
-                .writeInstructions(this.currentToolpath.instructions)
+                .writeInstructions(instructions)
                 .then((response) => {
                     // TODO: set busy/free again, make a mini console
                     console.log(response);
@@ -2770,7 +2782,7 @@ class Dispatcher extends VersoModule {
                </div>
                 { this.renderToolpathChoices() }
                 <div className="button-bar">
-                    <div onClick={this.HACK_DispatchAxidraw.bind(this)}
+                    <div onClick={this.dispatchSelectedToolpath.bind(this)}
                          className={`button ${grayIffNotFree}`}
                          id="dispatch-send-toolpath">
                         Dispatch
