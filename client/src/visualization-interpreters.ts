@@ -588,10 +588,11 @@ export class VisualizationInterpreters {
                 0.0
             );
         };
+        // Do not add the origin to travel points.
         let currentPosition = new THREE.Vector3();
-        travelPoints.push(currentPosition.clone());
         let newPosition : THREE.Vector3;
         let tokens, opcode, duration, aSteps, bSteps, xyChange;
+        let penDown = false;
         toolpath.instructions.forEach((instruction) => {
             tokens = instruction.split(',');
             opcode = tokens[0];
@@ -600,8 +601,14 @@ export class VisualizationInterpreters {
                 bSteps = parseInt(tokens[3]);
                 xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
                 newPosition = currentPosition.clone().add(xyChange);
-                travelPoints.push(newPosition.clone());
+                if (penDown) {
+                    travelPoints.push(newPosition.clone());
+                }
                 currentPosition = newPosition;
+            }
+            if (opcode === 'SP') {
+                let penValue = parseInt(tokens[1]);
+                penDown = penValue === 0;
             }
         });
 
@@ -625,7 +632,6 @@ export class VisualizationInterpreters {
                 yMax = pt.y;
             }
         });
-
         let height = 1;
         let boxGeom = new THREE.BoxBufferGeometry(xMax - xMin, height, yMax - yMin);
         let material = new THREE.MeshBasicMaterial({
@@ -634,11 +640,11 @@ export class VisualizationInterpreters {
             opacity: 0.5
         });
         let boundsMesh = new THREE.Mesh(boxGeom, material);
-        boundsMesh.position.setX((xMax - xMin) / 2);
-        boundsMesh.position.setZ((yMax - yMin) / 2);
 
         let wrapperGroup = new THREE.Group() as verso.VizGroup;
         wrapperGroup.add(boundsMesh);
+        boundsMesh.position.setX((xMax + xMin) / 2);
+        boundsMesh.position.setZ((yMax + yMin) / 2);
         return wrapperGroup;
     }
 
