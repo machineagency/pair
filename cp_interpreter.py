@@ -12,7 +12,7 @@ class Camera:
         self.PROJ_SCREEN_SIZE_HW = (900, 1440)
         self.CM_TO_PX = 37.7952755906
         self.MIN_CONTOUR_LEN = 100
-        self.static_image_path = './client/img/seattle-times.jpg'
+        self.static_image_path = './static/duckbot.png'
         self.camera_image_path = './volatile/camera-photo.jpg'
         self.contours = []
         self.work_env_contour = None
@@ -20,7 +20,8 @@ class Camera:
         self.fiducial_homography = np.zeros((3, 3))
         self.most_recent_img = np.zeros(0);
         if not self.dry_mode:
-            self.video_capture = self.find_video_capture()
+            # self.video_capture = self.find_video_capture()
+            self.video_capture = cv2.VideoCapture(1);
 
     def find_video_capture(self):
         for i in range(3):

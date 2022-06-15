@@ -1,7 +1,7 @@
 from pyaxidraw import axidraw
 
 class Machine:
-    def __init__(self, port='/dev/tty.usbmodem14101', dry=True):
+    def __init__(self, port='/dev/tty.usbmodem14101', dry=False):
         self.dry = dry
         self.ad = axidraw.AxiDraw()
         self.ad.interactive()
