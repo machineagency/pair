@@ -39,5 +39,6 @@ client/*.js.map
 verso.db
 axidraw_NEW/
 
-# Don't ignore start-client.js
+# Don't ignore these .js files
 !start-client.js
+!client/src/perspective-transform.js
