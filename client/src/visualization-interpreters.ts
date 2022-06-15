@@ -468,7 +468,6 @@ export class VisualizationInterpreters {
         travelPoints.push(currentPosition.clone());
         let newPosition : THREE.Vector3;
         let tokens, opcode, duration, aSteps, bSteps, xyChange, penValue;
-        let toolOnBed = false;
         toolpath.instructions.forEach((instruction) => {
             tokens = instruction.split(',');
             opcode = tokens[0];
@@ -477,14 +476,14 @@ export class VisualizationInterpreters {
                 bSteps = parseInt(tokens[3]);
                 xyChange = getXyMmChangeFromABSteps(aSteps, bSteps);
                 newPosition = currentPosition.clone().add(xyChange);
-                if (toolOnBed) {
-                    travelPoints.push(newPosition.clone());
-                }
+                travelPoints.push(newPosition.clone());
                 currentPosition = newPosition;
             }
             if (opcode === 'SP') {
                 penValue = parseInt(tokens[1]);
-                toolOnBed = penValue === 0;
+                newPosition = currentPosition.clone().setZ(penValue);
+                travelPoints.push(newPosition.clone());
+                currentPosition = newPosition;
             }
         });
 
@@ -498,6 +497,11 @@ export class VisualizationInterpreters {
             }
             let prevPoint = travelPoints[midpointIdx - 1];
             let nextPoint = travelPoints[midpointIdx + 1];
+            if (prevPoint.z !== 0 || midpoint.z !== 0 || nextPoint.z !== 0) {
+                console.log('here');
+                // Do not consider any triplet with any point in the air
+                return;
+            }
             let a = prevPoint.clone().sub(midpoint);
             let b = nextPoint.clone().sub(midpoint);
             let arc = a.dot(b) / (a.length() * b.length());

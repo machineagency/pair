@@ -114,7 +114,6 @@ class ProgramUtil {
                 return <CameraCalibrator {...ccProps}></CameraCalibrator>;
             case 'faceFinder':
                 const ffProps: FaceFinderProps = {
-                    camera: undefined,
                     ref: moduleRef as React.RefObject<FaceFinder>,
                     valueSet: false,
                     windowOpen: true,
@@ -638,6 +637,10 @@ class VersoModule extends React.Component {
         });
     }
 
+    stopKeypressPropagation(event: React.KeyboardEvent<HTMLDivElement>) {
+       event.stopPropagation();
+    }
+
     renderTitle() {
         return <div className="title"
                     key={this.titleKey.toString()}>
@@ -673,6 +676,8 @@ class VersoModule extends React.Component {
 
     render() {
         return <div className={this.moduleClassName}
+                    onKeyDown={this.stopKeypressPropagation.bind(this)}
+                    onKeyUp={this.stopKeypressPropagation.bind(this)}
                     contentEditable={false}
                     key={this.moduleClassName}>
                     <div className="title-and-toggle-bar">
@@ -962,6 +967,7 @@ class TabletopCalibrator extends VersoModule {
         // @ts-ignore
         let tc: typeof this = PROGRAM_PANE.getModuleWithName(FUNCTION_NAME_PLACEHOLDER);
         let tabletop = new verso.Tabletop(machine);
+        tc.titleText = `Tabletop Calibrator<${machine.machineName}>`;
         tc.tabletop = tabletop;
         if (tc.state.homography) {
             tc.tabletop.workEnvelope
@@ -1418,12 +1424,12 @@ class CameraCalibrator extends VersoModule {
 }
 
 interface FaceFinderProps extends ModuleProps {
-    camera?: verso.Camera;
     ref: React.RefObject<FaceFinder>;
     windowOpen: boolean;
 }
 
 interface FaceFinderState extends ModuleState {
+    camera?: verso.Camera;
     imageTaken: boolean;
     imagePath: string;
     detectedRegions: verso.Region[];
@@ -1431,7 +1437,6 @@ interface FaceFinderState extends ModuleState {
 
 class FaceFinder extends VersoModule {
     state: FaceFinderState;
-    camera?: verso.Camera;
     props: FaceFinderProps;
     photoButton: JSX.Element;
     acceptButton: JSX.Element;
@@ -1442,6 +1447,7 @@ class FaceFinder extends VersoModule {
         this.titleText = 'Face Finder';
         this.functionName = '$faceFinder';
         this.state = {
+            camera: undefined,
             imageTaken: false,
             imagePath: './img/seattle-times.jpg',
             detectedRegions: [],
@@ -1458,8 +1464,8 @@ class FaceFinder extends VersoModule {
     }
 
     async takePhoto() {
-        if (!this.camera) { return; }
-        let imageUrl = await this.camera.takePhoto();
+        if (!this.state.camera) { return; }
+        let imageUrl = await this.state.camera.takePhoto();
         if (imageUrl) {
             this.setState((prev: FaceFinderProps) => {
                 return {
@@ -1473,24 +1479,28 @@ class FaceFinder extends VersoModule {
     expand() : string {
         let s = `async function ${this.functionName}(camera) {`;
         s += `let ff = PROGRAM_PANE.getModuleWithName(\'$faceFinder\');`;
-        s += `ff.camera = camera;`;
-        s += `await ff.openWindow();`;
+        s += `await ff.setArguments(camera);`;
         s += `let regions = await ff.acceptDetectedRegions();`;
-        s += `await ff.closeWindow();`;
         s += `return regions;`;
         s += `}`;
         return s;
     }
 
+    setArguments(camera: verso.Camera) {
+        return new Promise<void>((resolve, reject) => {
+            this.setState({ camera: camera }, resolve);
+        });
+    }
+
     async detectRegions() {
-        if (!this.camera) {
+        if (!this.state.camera) {
             return [];
         }
-        let regions = await this.camera.findFaceRegions();
+        let regions = await this.state.camera.findFaceRegions();
         return new Promise<void>((resolve) => {
             regions.forEach(r => {
-                if (this.camera && this.camera.tabletop) {
-                    r.drawOnTabletop(this.camera.tabletop);
+                if (this.state.camera && this.state.camera.tabletop) {
+                    r.drawOnTabletop(this.state.camera.tabletop);
                 }
             });
             let prevRegions : verso.Region[];
@@ -2063,7 +2073,7 @@ class ToolpathVisualizer extends VersoModule {
 
     private __expandHelper(machine: verso.Machine, toolpaths: verso.Toolpath[]) {
         if (!toolpaths.length) {
-            console.error('Dispatcher needs an array of toolpaths.');
+            console.error('$MI needs an array of toolpaths.');
             return;
         }
         // @ts-ignore
@@ -2237,7 +2247,7 @@ class MachineInitializer extends VersoModule {
             axesHomed: [],
             portPaths: [],
             selectedPortPathIndex: 0,
-            bypass: false
+            bypass: true
         };
         this.fetchPortPaths();
         // TODO: check if machine port is actually open and homed, so we don't
@@ -2443,8 +2453,8 @@ class MachineInitializer extends VersoModule {
         return this.state.axesHomed.includes('y') ? '' : 'grayed';
     }
 
-    grayIffZAxisNotHomed() {
-        return this.state.axesHomed.includes('z') ? '' : 'grayed';
+    grayIffXAxisNotHomed() {
+        return this.state.axesHomed.includes('x') ? '' : 'grayed';
     }
 
     setSelectedPortPathIndex(index: number) {
@@ -2543,7 +2553,6 @@ class MachineInitializer extends VersoModule {
                    <div className="help-text">
                        2. Home the U, Y, Z, then X axes.
                    </div>
-                   { this.renderSnippet(this.homeAxis.toString()) }
                    <div onClick={this.homeAxis.bind(this, 'u')}
                         className={`button ${this.grayIffUnconnected()}`} id="mi-home-u">
                        Home U
@@ -2552,13 +2561,13 @@ class MachineInitializer extends VersoModule {
                         className={`button ${this.grayIffUAxisNotHomed()}`} id="mi-home-y">
                        Home Y
                    </div>
-                   <div onClick={this.homeAxis.bind(this, 'z')}
-                        className={`button ${this.grayIffYAxisNotHomed()}`} id="mi-home-z">
-                       Home Z
-                   </div>
                    <div onClick={this.homeAxis.bind(this, 'x')}
-                        className={`button ${this.grayIffZAxisNotHomed()}`} id="mi-home-x">
+                        className={`button ${this.grayIffYAxisNotHomed()}`} id="mi-home-x">
                        Home X
+                   </div>
+                   <div onClick={this.homeAxis.bind(this, 'z')}
+                        className={`button ${this.grayIffXAxisNotHomed()}`} id="mi-home-z">
+                       Home Z
                    </div>
                </div>;
     }
@@ -2701,13 +2710,19 @@ class Dispatcher extends VersoModule {
     }
 
     dispatchSelectedToolpath() {
+        if (this.state.machine && this.state.machine.machineName === 'axidraw') {
+            return this.dispatchForAxidraw();
+        }
         if (this.currentToolpath && this.state.machine
             && this.state.machine.port && this.isFree) {
             let instructions = [];
             if (this.state.machine.machineName === 'axidraw') {
-                instructions = this.currentToolpath.instructions.map((inst) => {
-                    return inst + '\n';
-                });
+                return this.dispatchForAxidraw();
+                // FIXME: sending to the axidraw can't work without buffering.
+                // instructions = this.currentToolpath.instructions
+                //  .map((inst) => {
+                //     return inst + '\n';
+                // });
             }
             else {
                 instructions = this.currentToolpath.instructions;
@@ -2723,7 +2738,7 @@ class Dispatcher extends VersoModule {
         }
     }
 
-    HACK_DispatchAxidraw() {
+    dispatchForAxidraw() {
         if (this.currentToolpath && this.state.machine) {
             let tt = this.state.machine.tabletop;
             if (!tt || !tt.activeToolpath) { return; }
@@ -3122,9 +3137,10 @@ class Projector extends VersoModule {
         // @ts-ignore
         let pr: typeof this = PROGRAM_PANE.getModuleWithName(FUNCTION_NAME_PLACEHOLDER);
         return new Promise<void>((resolve, reject) => {
-            pr.generateBitmapFromVizSpace(vizSpace).then(_ => {
-                resolve();
-            });
+            resolve();
+            // pr.generateBitmapFromVizSpace(vizSpace).then(_ => {
+            //     resolve();
+            // });
         });
     }
 
@@ -3134,6 +3150,22 @@ class Projector extends VersoModule {
         fnString = fnString.replace('FUNCTION_NAME_PLACEHOLDER', `\'${this.functionName}\'`);
         fnString = 'async ' + fnString;
         return fnString;
+    }
+
+    /* For now, rather than create a real 2D projection, just toggle the
+     * underlying Paper.js visualization. In the future, we will want to
+     * continue working on generating a 2D projection and projecting it
+     * on a separate page. */
+    togglePaperViz() {
+        let canvasDom = document.getElementById('main-canvas');
+        if (canvasDom) {
+            if (canvasDom.classList.contains('invisible')) {
+                canvasDom.classList.remove('invisible');
+            }
+            else {
+                canvasDom.classList.add('invisible');
+            }
+        }
     }
 
     generateBitmapFromVizSpace(vizSpace: verso.VisualizationSpace) {
@@ -3186,12 +3218,9 @@ class Projector extends VersoModule {
         let maybeHidden = this.state.windowOpen ? '' : 'hidden';
         return (
             <div className={`machine-initializer content ${maybeHidden}`}>
-                <div id="projector-box">
-                   <div className="image-thumbnail">
-                       <img src={this.state.bitmapDataUrl}
-                            id="projector-bitmap"
-                            alt="projection bitmap"/>
-                   </div>
+                <div className="button"
+                     onClick={this.togglePaperViz.bind(this)}>
+                    Toggle
                 </div>
             </div>
         );

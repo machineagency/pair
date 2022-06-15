@@ -26,6 +26,10 @@ pre code.hljs {
     display: none !important;
 }
 
+.invisible {
+    visibility: hidden !important;
+}
+
 .grayed {
     color: #888888;
     font-style: italic;
@@ -67,7 +71,7 @@ pre code.hljs {
 #program-container {
     font-size: 8pt;
     /* width: 960pt; */
-    width: 40%;
+    width: 60%;
     color: whitesmoke;
     font-family: 'JetBrains Mono', monospace;
     padding-top: 10px;
@@ -84,7 +88,6 @@ pre code.hljs {
 }
 
 #program-names {
-    width: 35%;
     height: 35px;
     margin-bottom: 10px;
     background-color: #23241f;
@@ -131,7 +134,7 @@ pre code.hljs {
 
 #program-lines-and-controls {
     height: 100%;
-    /* width: 70%; */
+    width: 100%;
     margin-right: 20px;
     font-size: 14px;
 }
@@ -467,7 +470,7 @@ pre code.hljs {
 }
 
 #canvas-container {
-    width: 60%;
+    width: 40%;
     height: 100%;
     overflow: hidden;
 }

@@ -80,9 +80,12 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
                 workflowDict[workflow.progName] = workflow.progText;
             });
             this.setState(_ => {
-                let firstWorkflowName = Object.keys(workflowDict)[0];
+                let currentWorkflowName = localStorage.getItem('currentWorkflowName');
+                if (!currentWorkflowName) {
+                    currentWorkflowName = Object.keys(workflowDict)[0];
+                }
                 return {
-                    currentWorkflowName: firstWorkflowName,
+                    currentWorkflowName: currentWorkflowName,
                     workflowDict: workflowDict
                 };
             }, () => {
@@ -112,6 +115,7 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
             return { currentWorkflowName: workflowName };
         }, () => {
             let programPaneLines = this.currentWorkflowText;
+            localStorage.setItem('currentWorkflowName', workflowName);
             this.rerun();
         });
     }
@@ -132,6 +136,7 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
         });
         return (
             <select id="program-names" name="workflow-select"
+                    value={this.state.currentWorkflowName}
                     onChange={this.handleWorkflowChange.bind(this)}>
                 { options }
             </select>
@@ -139,12 +144,11 @@ class UIRoot extends React.Component<UIRootProps, UIRootState> {
     }
 
     saveWorkflow() {
-        let programLinesDom = document.getElementById('program-lines');
-        if (!programLinesDom) { return; }
-        let currentWorkflowText = programLinesDom.innerText
-                                    .replaceAll('\n', '\\n');
+        let plDoms = Array.from(document.getElementsByClassName('program-line'));
+        let text = plDoms.map(dom => (dom as HTMLDivElement).innerText)
+                                    .join('\\n');
         let url = `${BASE_URL}/workflows?workflowName=${this.state.currentWorkflowName}`
-                    + `&workflowText=${currentWorkflowText}`;
+                    + `&workflowText=${text}`;
         fetch(url, { method: 'PUT' })
         .then((response) => {
             if (response.ok) {
@@ -195,7 +199,7 @@ class PaperCanvas extends React.Component<Props, State> {
     }
 
     render() {
-        return <canvas id="main-canvas" className=""></canvas>
+        return <canvas id="main-canvas" className="invisible"></canvas>
     }
 }
 

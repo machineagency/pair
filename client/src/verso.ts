@@ -572,8 +572,14 @@ export class Camera {
     }
 
     async takePhoto() : Promise<string> {
-        if (!this.extrinsicTransform) { return ''; }
-        let coeffs = this.extrinsicTransform.coeffs.toString() || '';
+        // if (!this.extrinsicTransform) { return ''; }
+        let coeffs;
+        if (!this.extrinsicTransform) {
+            coeffs = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+        }
+        else {
+            coeffs = this.extrinsicTransform.coeffs.toString() || '';
+        }
         let imageRes = await fetch(`/camera/takePhoto?coeffs=${coeffs}`);
         if (imageRes.ok) {
             let blob = await imageRes.blob();
@@ -1190,8 +1196,8 @@ export class CamOperation {
         operationType: 'engrave',
         topHeight: 15,
         depthHeight: 5,
-        cutSpeed: 5,
-        plungeSpeed: 5
+        cutSpeed: 500,
+        plungeSpeed: 500
     };
 
     constructor(incompleteOperation: any) {
@@ -1243,9 +1249,9 @@ export class Cam {
 
     getGcode() {
         let pointSets = this.paths.map((path) => this.getPointsFromPath(path));
-        let preamble = Cam.codegenPreamble();
-        let pathCodeBlocks = pointSets.map((ps) => Cam.codegenPathPoints(ps));
-        let postabmble = Cam.codegenPostamble();
+        let preamble = this.codegenPreamble();
+        let pathCodeBlocks = pointSets.map((ps) => this.codegenPathPoints(ps));
+        let postabmble = this.codegenPostamble();
         return preamble.concat(pathCodeBlocks.flat()).concat(postabmble);
     }
 
@@ -1281,9 +1287,9 @@ export class Cam {
         return transformedPoints;
     }
 
-    private static codegenPreamble() {
-        const opParamZHigh = 20;
-        const opParamTravelSpeed = 50;
+    private codegenPreamble() {
+        const opParamZHigh = this.operation.topHeight;
+        const opParamTravelSpeed = this.operation.cutSpeed;
         let gCodes = [];
         gCodes.push(`G21 ; Set units to mm.`);
         gCodes.push(`G90 ; Absolute positioning.`);
@@ -1291,7 +1297,7 @@ export class Cam {
         return gCodes;
     }
 
-    private static codegenPostamble() {
+    private codegenPostamble() {
         return [ 'G0 X0 Y0' ];
     }
 
@@ -1304,17 +1310,16 @@ export class Cam {
      * 5. Linear move to every point with z=DOWN.
      * 6. At the end, retract tool to z=UP.
      */
-    private static codegenPathPoints(points: SVGPoint[]) {
+    private codegenPathPoints(points: SVGPoint[]) {
         if (points.length < 2) {
             throw new Error('Path points are not long enough');
         }
-        // TODO: store params in an operation instead
-        const opParamZHigh = 20;
-        const opParamZLow = 0;
-        const opParamTravelSpeed = 50;
-        const opParamPlungeSpeed = 10;
-        const opParamCutSpeed = 20;
-        const opParamRetractSpeed = 10;
+        const opParamZHigh = this.operation.topHeight;
+        const opParamZLow = this.operation.depthHeight;
+        const opParamTravelSpeed = this.operation.cutSpeed;
+        const opParamPlungeSpeed = this.operation.plungeSpeed;
+        const opParamCutSpeed = this.operation.cutSpeed;
+        const opParamRetractSpeed = this.operation.plungeSpeed;
 
         let gCodes = [];
 
